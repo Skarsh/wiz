@@ -1,7 +1,10 @@
 const std = @import("std");
 const windows = std.os.windows;
-const WINAPI = windows.WINAPI;
 const winh = @import("winh.zig").winh;
+const user32 = @import("user32.zig");
+const WINAPI = user32.WINAPI;
+
+extern "kernel32" fn GetLastError() callconv(WINAPI) windows.DWORD;
 
 extern "user32" fn MessageBoxA(
     h_wnd: ?windows.HANDLE,
@@ -27,7 +30,8 @@ const STD_HANDLE = enum(windows.UINT) {
 };
 
 extern "kernel32" fn GetStdHandle(n_std_handle: STD_HANDLE) callconv(WINAPI) windows.HANDLE;
-extern "kernel32" fn GetModuleHandle(lp_moudle_name: ?windows.LPCSTR) callconv(WINAPI) windows.HMODULE;
+extern "kernel32" fn GetModuleHandleW(lp_moudle_name: ?windows.LPCSTR) callconv(WINAPI) windows.HMODULE;
+extern "user32" fn RegisterClassW(wnd_class_w: winh.LPWNDCLASSW) callconv(WINAPI) winh.ATOM;
 
 var global_running = true;
 
@@ -46,30 +50,21 @@ fn win32MainWindowCallback(
 
     switch (message) {
         winh.WM_CLOSE => {
-            std.debug.print("closing");
+            std.debug.print("closing", .{});
         },
+        else => {},
     }
-}
-
-pub export fn wWinMain(
-    h_instance: ?windows.HINSTANCE,
-    h_prev_instance: ?windows.HINSTANCE,
-    lp_cmd_line: ?windows.LPWSTR,
-    n_show_cmd: windows.INT,
-) callconv(WINAPI) windows.INT {
-    _ = h_instance;
-    _ = h_prev_instance;
-    _ = lp_cmd_line;
-    _ = n_show_cmd;
-
-    _ = MessageBoxA(null, "Zig is pretty great", "Wow much exposure", 4);
-    _ = AllocConsole();
-
-    var written: windows.UINT = 0;
-    const h_console = GetStdHandle(STD_HANDLE.OUTPUT_HANDLE);
-
-    const hello = "hello";
-    _ = WriteConsoleA(h_console, hello, hello.len, &written, null);
 
     return 0;
+}
+
+pub fn main() !void {
+    const instance = GetModuleHandleW(null);
+    _ = instance;
+
+    var window_class = winh.WNDCLASSW{};
+    window_class.style = winh.CS_HREDRAW | winh.CS_VREDRAW | winh.CS_OWNDC;
+    //window_class.lpfnWndProc = win32MainWindowCallback;
+    window_class.lpfnWndProc = winh.DefWindowProcW;
+    //window_class.hInstance = instance;
 }
