@@ -4,8 +4,6 @@ const winh = @import("winh.zig").winh;
 const user32 = @import("user32.zig");
 const WINAPI = user32.WINAPI;
 
-extern "kernel32" fn GetLastError() callconv(WINAPI) windows.DWORD;
-
 extern "user32" fn MessageBoxA(
     h_wnd: ?windows.HANDLE,
     lp_text: ?windows.LPCSTR,
@@ -30,6 +28,7 @@ const STD_HANDLE = enum(windows.UINT) {
 };
 
 extern "kernel32" fn GetStdHandle(n_std_handle: STD_HANDLE) callconv(WINAPI) windows.HANDLE;
+extern "kernel32" fn GetModuleHandleA(lp_module_name: ?windows.LPCSTR) callconv(WINAPI) windows.HMODULE;
 extern "kernel32" fn GetModuleHandleW(lp_moudle_name: ?windows.LPCSTR) callconv(WINAPI) windows.HMODULE;
 extern "user32" fn RegisterClassW(wnd_class_w: winh.LPWNDCLASSW) callconv(WINAPI) winh.ATOM;
 
@@ -59,12 +58,20 @@ fn win32MainWindowCallback(
 }
 
 pub fn main() !void {
-    const instance = GetModuleHandleW(null);
-    _ = instance;
+    //const instance = GetModuleHandleW(null);
+    const instance = GetModuleHandleA(null);
 
-    var window_class = winh.WNDCLASSW{};
-    window_class.style = winh.CS_HREDRAW | winh.CS_VREDRAW | winh.CS_OWNDC;
-    //window_class.lpfnWndProc = win32MainWindowCallback;
-    window_class.lpfnWndProc = winh.DefWindowProcW;
-    //window_class.hInstance = instance;
+    const window_class = user32.WNDCLASSEXA{
+        .style = user32.CS_HREDRAW | user32.CS_VREDRAW | user32.CS_OWNDC,
+        .lpfnWndProc = win32MainWindowCallback,
+        .hInstance = @ptrCast(instance),
+        .hIcon = null,
+        .hCursor = null,
+        .hbrBackground = null,
+        .lpszMenuName = null,
+        .lpszClassName = "Wiz",
+        .hIconSm = null,
+    };
+
+    if (try user32.registerClassExA(&window_class) != 0) {}
 }
