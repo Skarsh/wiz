@@ -1,7 +1,9 @@
 const std = @import("std");
 const windows = std.os.windows;
 const user32 = @import("user32.zig");
-const WINAPI = user32.WINAPI;
+//const user32 = windows.user32;
+
+const WINAPI = windows.WINAPI;
 
 extern "user32" fn MessageBoxA(
     h_wnd: ?windows.HANDLE,
@@ -32,6 +34,121 @@ extern "kernel32" fn GetModuleHandleW(lp_moudle_name: ?windows.LPCSTR) callconv(
 
 var global_running = true;
 
+extern "opengl32" fn wglCreateContext(hdc: windows.HDC) callconv(windows.WINAPI) ?windows.HGLRC;
+extern "opengl32" fn wglMakeCurrent(hdc: windows.HDC, hglrc: windows.HGLRC) callconv(windows.WINAPI) windows.BOOL;
+extern "opengl32" fn wglDeleteContext(hglrc: windows.HGLRC) callconv(windows.WINAPI) windows.BOOL;
+extern "opengl32" fn wglGetProcAccress(fn_name: windows.LPCSTR) callconv(windows.WINAPI) ?windows.PVOID;
+extern "opengl32" fn glGetString(name: u32) callconv(.C) [*:0]u8;
+
+const PIXELFORMATDESCRIPTOR = extern struct {
+    nSize: windows.WORD,
+    nVersion: windows.WORD,
+    dwFlags: windows.DWORD,
+    iPixelType: u8,
+    cColorBits: u8,
+    cRedBits: u8,
+    cRedShift: u8,
+    cGreenBits: u8,
+    cGreenShift: u8,
+    cBlueBits: u8,
+    cBlueShift: u8,
+    cAlphaBits: u8,
+    cAlphaShift: u8,
+    cAccumBits: u8,
+    cAccumRedBits: u8,
+    cAccumGreenBits: u8,
+    cAccumBlueBits: u8,
+    cAccumAlphaBits: u8,
+    cDepthBits: u8,
+    cStencilBits: u8,
+    cAuxBuffers: u8,
+    iLayerType: u8,
+    bReserved: u8,
+    dwLayerMask: windows.DWORD,
+    dwVisibleMask: windows.DWORD,
+    dwDamageMask: windows.DWORD,
+};
+
+const PFD_TYPE_RGBA: u8 = 0;
+const PFD_DOUBLEBUFFER: u32 = 0x00000001;
+const PFD_DRAW_TO_WINDOW: u32 = 0x00000004;
+const PFD_SUPPORT_OPENGL: u32 = 0x00000020;
+
+extern "gdi32" fn ChoosePixelFormat(hdc: windows.HDC, ppfd: ?*PIXELFORMATDESCRIPTOR) callconv(windows.WINAPI) windows.INT;
+
+extern "gdi32" fn SetPixelFormat(
+    hdc: windows.HDC,
+    iPixelFormat: i32,
+    ppfd: ?*PIXELFORMATDESCRIPTOR,
+) callconv(windows.WINAPI) windows.BOOL;
+
+pub export fn WindowProc(
+    hWnd: windows.HWND,
+    message: windows.UINT,
+    wParam: windows.WPARAM,
+    lParam: windows.LPARAM,
+) callconv(windows.WINAPI) windows.LRESULT {
+    switch (message) {
+        user32.WM_CREATE => {
+            var pfd = PIXELFORMATDESCRIPTOR{
+                .nSize = @sizeOf(PIXELFORMATDESCRIPTOR),
+                .nVersion = 1,
+                .dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+                .iPixelType = PFD_TYPE_RGBA,
+                .cColorBits = 32,
+                .cRedBits = 0,
+                .cRedShift = 0,
+                .cGreenBits = 0,
+                .cGreenShift = 0,
+                .cBlueBits = 0,
+                .cBlueShift = 0,
+                .cAlphaBits = 0,
+                .cAlphaShift = 0,
+                .cAccumBits = 0,
+                .cAccumRedBits = 0,
+                .cAccumGreenBits = 0,
+                .cAccumBlueBits = 0,
+                .cAccumAlphaBits = 0,
+                .cDepthBits = 24, // Number of bits for the depthbuffer
+                .cStencilBits = 8, // Number of bits for the stencilbuffer
+                .cAuxBuffers = 0, // Number of Aux buffers in the framebuffer
+                .iLayerType = 0, // NOTE: This is PFD_MAIN_PLANE in the Khronos example https://www.khronos.org/opengl/wiki/Creating_an_OpenGL_Context_(WGL), but this is suppposed to not be needed anymore?
+                .bReserved = 0,
+                .dwLayerMask = 0,
+                .dwVisibleMask = 0,
+                .dwDamageMask = 0,
+            };
+
+            const our_window_handle_to_device_context = user32.GetDC(hWnd);
+
+            const let_windows_choose_pixel_format = ChoosePixelFormat(our_window_handle_to_device_context.?, &pfd);
+
+            // TODO: handle return value
+            _ = SetPixelFormat(our_window_handle_to_device_context.?, let_windows_choose_pixel_format, &pfd);
+
+            const our_opengl_rendering_context = wglCreateContext(our_window_handle_to_device_context.?);
+
+            // TODO: handle return value
+            _ = wglMakeCurrent(our_window_handle_to_device_context.?, our_opengl_rendering_context.?);
+
+            // TOOD (Thomas): What is this magic number?
+            const gl_version = glGetString(7938);
+            std.debug.print("OpenGL Version: {s}\n", .{gl_version});
+
+            // TODO: handle return value
+            _ = MessageBoxA(null, gl_version, "OPENGL VERSION", 0);
+
+            // TODO: handle return value
+            _ = wglDeleteContext(our_opengl_rendering_context.?);
+            user32.PostQuitMessage(0);
+        },
+        else => {
+            return user32.DefWindowProcW(hWnd, message, wParam, lParam);
+        },
+    }
+    return 0;
+}
+
 fn win32MainWindowCallback(
     window: windows.HWND,
     message: windows.UINT,
@@ -49,21 +166,80 @@ fn win32MainWindowCallback(
     return 0;
 }
 
-pub fn main() !void {
-    //const instance = GetModuleHandleW(null);
-    const instance = GetModuleHandleA(null);
+const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
-    const window_class = user32.WNDCLASSEXA{
-        .style = user32.CS_HREDRAW | user32.CS_VREDRAW | user32.CS_OWNDC,
-        .lpfnWndProc = win32MainWindowCallback,
-        .hInstance = @ptrCast(instance),
+//pub export fn wWinMain(
+//    hInstance: ?windows.HINSTANCE,
+//    hPrevInstance: ?windows.HINSTANCE,
+//    lpCmdLine: ?windows.LPWSTR,
+//    nShowCmd: windows.INT,
+//) callconv(windows.WINAPI) windows.INT {
+pub fn main() !void {
+    //_ = nShowCmd;
+    //_ = lpCmdLine;
+    //_ = hPrevInstance;
+
+    const hInstance = GetModuleHandleA(null);
+
+    var wc = user32.WNDCLASSEXW{
+        .style = 0,
+        .lpfnWndProc = WindowProc,
+        .cbClsExtra = 0,
+        .cbWndExtra = 0,
+        .hInstance = @ptrCast(hInstance),
         .hIcon = null,
         .hCursor = null,
         .hbrBackground = null,
         .lpszMenuName = null,
-        .lpszClassName = "Wiz",
+        .lpszClassName = u8to16le("Test Window"),
         .hIconSm = null,
     };
 
-    if (try user32.registerClassExA(&window_class) != 0) {}
+    // TODO: Have a better way of checking this
+    if (user32.RegisterClassExW(&wc) == 0) {
+        //return 1;
+    }
+
+    const hwnd = user32.CreateWindowExW(
+        0,
+        wc.lpszClassName,
+        u8to16le("OpenGL Version Check"),
+        user32.WS_OVERLAPPED | user32.WS_VISIBLE,
+        0,
+        0,
+        640,
+        480,
+        null,
+        null,
+        @ptrCast(hInstance),
+        null,
+    );
+
+    var msg = user32.MSG{
+        .hWnd = hwnd,
+        .message = 0,
+        .wParam = 0,
+        .lParam = 0,
+        .time = 0,
+        .pt = windows.POINT{
+            .x = 0,
+            .y = 0,
+        },
+        .lPrivate = 0,
+    };
+
+    const hdc = user32.GetDC(hwnd);
+
+    if (hdc == null) {
+        std.log.err("Failed to get device context.\n", .{});
+        //return 1;
+    }
+
+    while (global_running) {
+        while (user32.GetMessageW(&msg, null, 0, 0) > 0) {
+            _ = user32.DispatchMessageW(&msg);
+        }
+    }
+
+    //return 0;
 }
