@@ -212,10 +212,10 @@ pub extern "user32" fn CreateWindowExA(
     lpParam: ?LPVOID,
 ) callconv(WINAPI) ?HWND;
 pub fn createWindowExA(
-    dwExStyle: DWORD,
+    dwExStyle: u32,
     lpClassName: [*:0]const u8,
     lpWindowName: [*:0]const u8,
-    dwStyle: DWORD,
+    dwStyle: u32,
     x: i32,
     y: i32,
     nWidth: i32,
