@@ -122,12 +122,198 @@ pub fn registerClassExW(window_class: *const WNDCLASSEXW) !ATOM {
     }
 }
 
-pub extern "user32" fn LoadCursorA(
-    hInstance: HINSTANCE,
-    lpCursorName: LPCSTR,
-) callconv(WINAPI) HCURSOR;
+pub extern "user32" fn UnregisterClassA(lpClassName: [*:0]const u8, hInstance: HINSTANCE) callconv(WINAPI) BOOL;
+pub fn unregisterClassA(lpClassName: [*:0]const u8, hInstance: HINSTANCE) !void {
+    if (UnregisterClassA(lpClassName, hInstance) == 0) {
+        switch (GetLastError()) {
+            .CLASS_DOES_NOT_EXIST => return error.ClassDoesNotExist,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
 
-pub extern "user32" fn LoadCursorW(
+pub extern "user32" fn UnregisterClassW(lpClassName: [*:0]const u16, hInstance: HINSTANCE) callconv(WINAPI) BOOL;
+pub var pfnUnregisterClassW: *const @TypeOf(UnregisterClassW) = undefined;
+pub fn unregisterClassW(lpClassName: [*:0]const u16, hInstance: HINSTANCE) callconv(WINAPI) !void {
+    const function = selectSymbol(UnregisterClassW, pfnUnregisterClassW, .win2k);
+    if (function(lpClassName, hInstance) == 0) {
+        switch (GetLastError()) {
+            .CLASS_DOES_NOT_EXIST => return error.ClassDoesNotExist,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+pub const WS_OVERLAPPED = 0x00000000;
+pub const WS_POPUP = 0x80000000;
+pub const WS_CHILD = 0x40000000;
+pub const WS_MINIMIZE = 0x20000000;
+pub const WS_VISIBLE = 0x10000000;
+pub const WS_DISABLED = 0x08000000;
+pub const WS_CLIPSIBLINGS = 0x04000000;
+pub const WS_CLIPCHILDREN = 0x02000000;
+pub const WS_MAXIMIZE = 0x01000000;
+pub const WS_CAPTION = WS_BORDER | WS_DLGFRAME;
+pub const WS_BORDER = 0x00800000;
+pub const WS_DLGFRAME = 0x00400000;
+pub const WS_VSCROLL = 0x00200000;
+pub const WS_HSCROLL = 0x00100000;
+pub const WS_SYSMENU = 0x00080000;
+pub const WS_THICKFRAME = 0x00040000;
+pub const WS_GROUP = 0x00020000;
+pub const WS_TABSTOP = 0x00010000;
+pub const WS_MINIMIZEBOX = 0x00020000;
+pub const WS_MAXIMIZEBOX = 0x00010000;
+pub const WS_TILED = WS_OVERLAPPED;
+pub const WS_ICONIC = WS_MINIMIZE;
+pub const WS_SIZEBOX = WS_THICKFRAME;
+pub const WS_TILEDWINDOW = WS_OVERLAPPEDWINDOW;
+pub const WS_OVERLAPPEDWINDOW = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+pub const WS_POPUPWINDOW = WS_POPUP | WS_BORDER | WS_SYSMENU;
+pub const WS_CHILDWINDOW = WS_CHILD;
+
+pub const WS_EX_DLGMODALFRAME = 0x00000001;
+pub const WS_EX_NOPARENTNOTIFY = 0x00000004;
+pub const WS_EX_TOPMOST = 0x00000008;
+pub const WS_EX_ACCEPTFILES = 0x00000010;
+pub const WS_EX_TRANSPARENT = 0x00000020;
+pub const WS_EX_MDICHILD = 0x00000040;
+pub const WS_EX_TOOLWINDOW = 0x00000080;
+pub const WS_EX_WINDOWEDGE = 0x00000100;
+pub const WS_EX_CLIENTEDGE = 0x00000200;
+pub const WS_EX_CONTEXTHELP = 0x00000400;
+pub const WS_EX_RIGHT = 0x00001000;
+pub const WS_EX_LEFT = 0x00000000;
+pub const WS_EX_RTLREADING = 0x00002000;
+pub const WS_EX_LTRREADING = 0x00000000;
+pub const WS_EX_LEFTSCROLLBAR = 0x00004000;
+pub const WS_EX_RIGHTSCROLLBAR = 0x00000000;
+pub const WS_EX_CONTROLPARENT = 0x00010000;
+pub const WS_EX_STATICEDGE = 0x00020000;
+pub const WS_EX_APPWINDOW = 0x00040000;
+pub const WS_EX_LAYERED = 0x00080000;
+pub const WS_EX_OVERLAPPEDWINDOW = WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE;
+pub const WS_EX_PALETTEWINDOW = WS_EX_WINDOWEDGE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
+
+pub const CW_USEDEFAULT: i32 = @bitCast(@as(u32, 0x80000000));
+
+pub extern "user32" fn CreateWindowExA(
+    dwExStyle: DWORD,
+    lpClassName: [*:0]const u8,
+    lpWindowName: [*:0]const u8,
+    dwStyle: DWORD,
+    x: i32,
+    y: i32,
+    nWidth: i32,
+    nHeight: i32,
+    hWindParent: ?HWND,
+    hMenu: ?HMENU,
     hInstance: HINSTANCE,
-    lpCursorName: LPCSTR,
-) callconv(WINAPI) HCURSOR;
+    lpParam: ?LPVOID,
+) callconv(WINAPI) ?HWND;
+pub fn createWindowExA(
+    dwExStyle: DWORD,
+    lpClassName: [*:0]const u8,
+    lpWindowName: [*:0]const u8,
+    dwStyle: DWORD,
+    x: i32,
+    y: i32,
+    nWidth: i32,
+    nHeight: i32,
+    hWindParent: ?HWND,
+    hMenu: ?HMENU,
+    hInstance: HINSTANCE,
+    lpParam: ?*anyopaque,
+) !HWND {
+    const window = CreateWindowExA(
+        dwExStyle,
+        lpClassName,
+        lpWindowName,
+        dwStyle,
+        x,
+        y,
+        nWidth,
+        nHeight,
+        hWindParent,
+        hMenu,
+        hInstance,
+        lpParam,
+    );
+    if (window) |win| return win;
+
+    switch (GetLastError()) {
+        .CLASS_DOES_NOT_EXIST => return error.ClassDoesNotExist,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn CreateWindowExW(
+    dwExStyle: DWORD,
+    lpClassName: [*:0]const u16,
+    lpWindowName: [*:0]const u16,
+    dwStyle: DWORD,
+    x: i32,
+    y: i32,
+    nWidth: i32,
+    nHeight: i32,
+    hWindParent: ?HWND,
+    hMenu: ?HMENU,
+    hInstance: HINSTANCE,
+    lpParam: ?LPVOID,
+) callconv(WINAPI) ?HWND;
+pub var pfnCreateWindowExW: *const @TypeOf(CreateWindowExW) = undefined;
+pub fn createWindowExW(
+    dwExStyle: DWORD,
+    lpClassName: [*:0]const u16,
+    lpWindowName: [*:0]const u16,
+    dwStyle: DWORD,
+    x: i32,
+    y: i32,
+    nWidth: i32,
+    nHeight: i32,
+    hWindParent: ?HWND,
+    hMenu: ?HMENU,
+    hInstance: HINSTANCE,
+    lpParam: ?*anyopaque,
+) !HWND {
+    const function = selectSymbol(CreateWindowExW, pfnCreateWindowExW, .win2k);
+    const window = function(
+        dwExStyle,
+        lpClassName,
+        lpWindowName,
+        dwStyle,
+        x,
+        y,
+        nWidth,
+        nHeight,
+        hWindParent,
+        hMenu,
+        hInstance,
+        lpParam,
+    );
+    if (window) |win| return win;
+
+    switch (GetLastError()) {
+        .CLASS_DOES_NOT_EXIST => return error.ClassDoesNotExist,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn DestroyWindow(hWnd: HWND) callconv(WINAPI) BOOL;
+pub fn destroyWindow(hWnd: HWND) !void {
+    if (DestroyWindow(hWnd) == 0) {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+// TODO (Thomas): Add wrapper function like the other ones
+pub extern "user32" fn LoadCursorA(hInstance: HINSTANCE, lpCursorName: LPCSTR) callconv(WINAPI) HCURSOR;
+
+// TODO (Thomas): Add wrapper function like the other ones
+pub extern "user32" fn LoadCursorW(hInstance: HINSTANCE, lpCursorName: LPCSTR) callconv(WINAPI) HCURSOR;
