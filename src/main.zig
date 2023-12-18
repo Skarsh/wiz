@@ -1,6 +1,5 @@
 const std = @import("std");
 const windows = std.os.windows;
-const winh = @import("winh.zig").winh;
 const user32 = @import("user32.zig");
 const WINAPI = user32.WINAPI;
 
@@ -30,7 +29,6 @@ const STD_HANDLE = enum(windows.UINT) {
 extern "kernel32" fn GetStdHandle(n_std_handle: STD_HANDLE) callconv(WINAPI) windows.HANDLE;
 extern "kernel32" fn GetModuleHandleA(lp_module_name: ?windows.LPCSTR) callconv(WINAPI) windows.HMODULE;
 extern "kernel32" fn GetModuleHandleW(lp_moudle_name: ?windows.LPCSTR) callconv(WINAPI) windows.HMODULE;
-extern "user32" fn RegisterClassW(wnd_class_w: winh.LPWNDCLASSW) callconv(WINAPI) winh.ATOM;
 
 var global_running = true;
 
@@ -41,18 +39,12 @@ fn win32MainWindowCallback(
     l_param: windows.LPARAM,
 ) callconv(WINAPI) windows.LRESULT {
     _ = window;
+    _ = message;
     _ = w_param;
     _ = l_param;
 
     const result: windows.LRESULT = 0;
     _ = result;
-
-    switch (message) {
-        winh.WM_CLOSE => {
-            std.debug.print("closing", .{});
-        },
-        else => {},
-    }
 
     return 0;
 }
