@@ -54,6 +54,42 @@ pub const MSG = extern struct {
     lPrivate: DWORD,
 };
 
+pub const WM_CREATE = 0x0001;
+
+pub extern "user32" fn GetMessageW(lpMsg: *MSG, hWnd: ?HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT) callconv(WINAPI) BOOL;
+pub var pfnGetMessageW: *const @TypeOf(GetMessageW) = undefined;
+pub fn getMessageW(lpMsg: *MSG, hWnd: ?HWND, wMsgFilterMin: u32, wMsgFilterMax: u32) !void {
+    const function = selectSymbol(GetMessageW, pfnGetMessageW, .win2k);
+
+    const r = function(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax);
+    if (r == 0) return error.Quit;
+    if (r != -1) return;
+    switch (GetLastError()) {
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn DispatchMessageW(lpMsg: *const MSG) callconv(WINAPI) LRESULT;
+pub var pfnDispatchMessageW: *const @TypeOf(DispatchMessageW) = undefined;
+pub fn dispatchMessageW(lpMsg: *const MSG) LRESULT {
+    const function = selectSymbol(DispatchMessageW, pfnDispatchMessageW, .win2k);
+    return function(lpMsg);
+}
+
+pub extern "user32" fn PostQuitMessage(nExitCode: i32) callconv(WINAPI) void;
+pub fn postQuitMessage(nExitCode: i32) void {
+    PostQuitMessage(nExitCode);
+}
+
+pub extern "user32" fn DefWindowProcW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) callconv(WINAPI) LRESULT;
+pub var pfnDefWindowProcW: *const @TypeOf(DefWindowProcW) = undefined;
+pub fn defWindowProcW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) LRESULT {
+    const function = selectSymbol(DefWindowProcW, pfnDefWindowProcW, .win2k);
+    return function(hWnd, Msg, wParam, lParam);
+}
+
 // ==== Windows ==== //
 pub const CS_VREDRAW = 0x0001;
 pub const CS_HREDRAW = 0x0002;
@@ -341,3 +377,15 @@ pub extern "user32" fn LoadCursorA(hInstance: HINSTANCE, lpCursorName: LPCSTR) c
 
 // TODO (Thomas): Add wrapper function like the other ones
 pub extern "user32" fn LoadCursorW(hInstance: HINSTANCE, lpCursorName: LPCSTR) callconv(WINAPI) HCURSOR;
+
+pub extern "user32" fn GetDC(hWnd: ?HWND) callconv(WINAPI) ?HDC;
+pub fn getDC(hWnd: ?HWND) !HDC {
+    const hdc = GetDC(hWnd);
+    if (hdc) |h| return h;
+
+    switch (GetLastError()) {
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
