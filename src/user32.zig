@@ -67,6 +67,19 @@ pub const CS_BYTEALIGNCLIENT = 0x1000;
 pub const CS_BYTEALIGNWINDOW = 0x2000;
 pub const CS_GLOBALCLASS = 0x4000;
 
+pub const WNDCLASSA = extern struct {
+    cbSize: UINT = @sizeOf(WNDCLASSA),
+    lpfnWndProc: WNDPROC,
+    cbClsExtra: i32 = 0,
+    cbWndExtra: i32 = 0,
+    hInstance: HINSTANCE,
+    hIcon: ?HICON,
+    hCursor: ?HCURSOR,
+    hbrBackground: ?HBRUSH,
+    lpszMenuName: ?[*:0]const u8,
+    lpszClassName: [*:0]const u8,
+};
+
 pub const WNDCLASSEXA = extern struct {
     cbSize: UINT = @sizeOf(WNDCLASSEXA),
     style: UINT,
@@ -96,6 +109,17 @@ pub const WNDCLASSEXW = extern struct {
     lpszClassName: [*:0]const u16,
     hIconSm: ?HICON,
 };
+
+pub extern "user32" fn RegisterClassA(*const WNDCLASSA) callconv(WINAPI) ATOM;
+pub fn registerClassA(window_class: *const WNDCLASSA) !ATOM {
+    const atom = RegisterClassA(window_class);
+    if (atom != 0) return atom;
+    switch (GetLastError()) {
+        .CLASS_ALREADY_EXISTS => return error.AlreadyExists,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
 
 pub extern "user32" fn RegisterClassExA(*const WNDCLASSEXA) callconv(WINAPI) ATOM;
 pub fn registerClassExA(window_class: *const WNDCLASSEXA) !ATOM {
