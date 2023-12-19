@@ -1,7 +1,7 @@
 const std = @import("std");
 const windows = std.os.windows;
 const user32 = @import("user32.zig");
-//const user32 = windows.user32;
+const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
 const WINAPI = windows.WINAPI;
 
@@ -155,35 +155,49 @@ fn win32MainWindowCallback(
     w_param: windows.WPARAM,
     l_param: windows.LPARAM,
 ) callconv(WINAPI) windows.LRESULT {
-    _ = window;
-    _ = message;
-    _ = w_param;
-    _ = l_param;
+    var result: windows.LRESULT = 0;
 
-    const result: windows.LRESULT = 0;
-    _ = result;
+    switch (message) {
+        user32.WM_CLOSE => {
+            std.debug.print("closing\n", .{});
+            global_running = false;
+        },
+        user32.WM_DESTROY => {
+            std.debug.print("destroying window\n", .{});
+            global_running = false;
+        },
+        else => {
+            result = user32.defWindowProcW(window, message, w_param, l_param);
+        },
+    }
 
-    return 0;
+    return result;
 }
 
-const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
+fn win32ProcessPendingMessages() !void {
+    var msg = user32.MSG.default();
+    while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
+        switch (msg.message) {
+            user32.WM_QUIT => {
+                global_running = false;
+                break;
+            },
+            else => {
+                // TODO(Thomas): Deal with return values here
+                _ = user32.translateMessage(&msg);
+                _ = user32.dispatchMessageW(&msg);
+            },
+        }
+    }
+}
 
-//pub export fn wWinMain(
-//    hInstance: ?windows.HINSTANCE,
-//    hPrevInstance: ?windows.HINSTANCE,
-//    lpCmdLine: ?windows.LPWSTR,
-//    nShowCmd: windows.INT,
-//) callconv(windows.WINAPI) windows.INT {
 pub fn main() !void {
-    //_ = nShowCmd;
-    //_ = lpCmdLine;
-    //_ = hPrevInstance;
-
-    const hInstance = GetModuleHandleA(null);
+    const hInstance: windows.HMODULE = @ptrCast(GetModuleHandleA(null));
 
     var wc = user32.WNDCLASSEXW{
         .style = 0,
-        .lpfnWndProc = WindowProc,
+        //.lpfnWndProc = WindowProc,
+        .lpfnWndProc = win32MainWindowCallback,
         .cbClsExtra = 0,
         .cbWndExtra = 0,
         .hInstance = @ptrCast(hInstance),
@@ -195,15 +209,12 @@ pub fn main() !void {
         .hIconSm = null,
     };
 
-    // TODO: Have a better way of checking this
-    if (user32.RegisterClassExW(&wc) == 0) {
-        //return 1;
-    }
+    _ = try user32.registerClassExW(&wc);
 
-    const hwnd = user32.CreateWindowExW(
+    const hwnd = try user32.createWindowExW(
         0,
         wc.lpszClassName,
-        u8to16le("OpenGL Version Check"),
+        u8to16le("Wiz"),
         user32.WS_OVERLAPPED | user32.WS_VISIBLE,
         0,
         0,
@@ -215,31 +226,10 @@ pub fn main() !void {
         null,
     );
 
-    var msg = user32.MSG{
-        .hWnd = hwnd,
-        .message = 0,
-        .wParam = 0,
-        .lParam = 0,
-        .time = 0,
-        .pt = windows.POINT{
-            .x = 0,
-            .y = 0,
-        },
-        .lPrivate = 0,
-    };
-
-    const hdc = user32.GetDC(hwnd);
-
-    if (hdc == null) {
-        std.log.err("Failed to get device context.\n", .{});
-        //return 1;
-    }
+    const hdc = try user32.getDC(hwnd);
+    _ = hdc;
 
     while (global_running) {
-        while (user32.GetMessageW(&msg, null, 0, 0) > 0) {
-            _ = user32.DispatchMessageW(&msg);
-        }
+        try win32ProcessPendingMessages();
     }
-
-    //return 0;
 }
