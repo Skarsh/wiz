@@ -38,7 +38,7 @@ var global_running = true;
 extern "opengl32" fn wglCreateContext(hdc: windows.HDC) callconv(windows.WINAPI) ?windows.HGLRC;
 extern "opengl32" fn wglMakeCurrent(hdc: windows.HDC, hglrc: windows.HGLRC) callconv(windows.WINAPI) windows.BOOL;
 extern "opengl32" fn wglDeleteContext(hglrc: windows.HGLRC) callconv(windows.WINAPI) windows.BOOL;
-extern "opengl32" fn wglGetProcAccress(fn_name: windows.LPCSTR) callconv(windows.WINAPI) ?windows.PVOID;
+extern "opengl32" fn wglGetProcAddress(fn_name: windows.LPCSTR) callconv(windows.WINAPI) ?windows.PVOID;
 extern "opengl32" fn glGetString(name: u32) callconv(.C) [*:0]u8;
 
 pub export fn WindowProc(
