@@ -1427,11 +1427,37 @@ pub fn destroyWindow(hWnd: HWND) !void {
     }
 }
 
-// TODO (Thomas): Add wrapper function like the other ones
-pub extern "user32" fn LoadCursorA(hInstance: HINSTANCE, lpCursorName: LPCSTR) callconv(WINAPI) HCURSOR;
+pub extern "user32" fn LoadCursorA(hInstance: HINSTANCE, lpCursorName: [*:0]const u8) callconv(WINAPI) ?HCURSOR;
+pub fn loadCursor(hInstance: HINSTANCE, lpCursorName: [*:0]const 8) !HCURSOR {
+    const hcursor = LoadCursorA(hInstance, lpCursorName);
+    if (hcursor) |cursor| return cursor;
+    // TODO (Thomas): Are there more cases we should cover here?
+    switch (GetLastError()) {
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
 
-// TODO (Thomas): Add wrapper function like the other ones
-pub extern "user32" fn LoadCursorW(hInstance: HINSTANCE, lpCursorName: LPCSTR) callconv(WINAPI) HCURSOR;
+pub extern "user32" fn LoadCursorW(hInstance: HINSTANCE, lpCursorName: [*:0]const u16) callconv(WINAPI) ?HCURSOR;
+pub var pfnLoadCursorW: *const @TypeOf(LoadCursorW) = undefined;
+// TODO(Thomas): Implement this, and figure out how to do it correctly!
+pub fn loadCursorW(hInstance: HINSTANCE, lpCursorName: [*:0]const u16) !HCURSOR {
+    _ = hInstance;
+    _ = lpCursorName;
+    const function = selectSymbol(loadCursorW, pfnLoadCursorW, .win2k);
+
+    _ = function;
+
+    // TODO (Thomas): Not sure about the correctness of this at all!
+    //if (function(lpCursorName, hInstance == 0)) {
+    //    switch (GetLastError()) {
+    //        .INVALID_PARAMETER => unreachable,
+    //        else => |err| return windows.unexpectedError(err),
+    //    }
+    //}
+
+    return null;
+}
 
 pub extern "user32" fn GetDC(hWnd: ?HWND) callconv(WINAPI) ?HDC;
 pub fn getDC(hWnd: ?HWND) !HDC {
