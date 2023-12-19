@@ -174,7 +174,7 @@ pub fn main() !void {
         0,
         wc.lpszClassName,
         u8to16le("Wiz"),
-        user32.WS_OVERLAPPED | user32.WS_VISIBLE,
+        user32.WS_OVERLAPPEDWINDOW | user32.WS_VISIBLE,
         0,
         0,
         640,
