@@ -1,6 +1,7 @@
 const std = @import("std");
 const windows = std.os.windows;
 const user32 = @import("user32.zig");
+const gdi32 = @import("gdi32.zig");
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
 const WINAPI = windows.WINAPI;
@@ -40,48 +41,6 @@ extern "opengl32" fn wglDeleteContext(hglrc: windows.HGLRC) callconv(windows.WIN
 extern "opengl32" fn wglGetProcAccress(fn_name: windows.LPCSTR) callconv(windows.WINAPI) ?windows.PVOID;
 extern "opengl32" fn glGetString(name: u32) callconv(.C) [*:0]u8;
 
-const PIXELFORMATDESCRIPTOR = extern struct {
-    nSize: windows.WORD,
-    nVersion: windows.WORD,
-    dwFlags: windows.DWORD,
-    iPixelType: u8,
-    cColorBits: u8,
-    cRedBits: u8,
-    cRedShift: u8,
-    cGreenBits: u8,
-    cGreenShift: u8,
-    cBlueBits: u8,
-    cBlueShift: u8,
-    cAlphaBits: u8,
-    cAlphaShift: u8,
-    cAccumBits: u8,
-    cAccumRedBits: u8,
-    cAccumGreenBits: u8,
-    cAccumBlueBits: u8,
-    cAccumAlphaBits: u8,
-    cDepthBits: u8,
-    cStencilBits: u8,
-    cAuxBuffers: u8,
-    iLayerType: u8,
-    bReserved: u8,
-    dwLayerMask: windows.DWORD,
-    dwVisibleMask: windows.DWORD,
-    dwDamageMask: windows.DWORD,
-};
-
-const PFD_TYPE_RGBA: u8 = 0;
-const PFD_DOUBLEBUFFER: u32 = 0x00000001;
-const PFD_DRAW_TO_WINDOW: u32 = 0x00000004;
-const PFD_SUPPORT_OPENGL: u32 = 0x00000020;
-
-extern "gdi32" fn ChoosePixelFormat(hdc: windows.HDC, ppfd: ?*PIXELFORMATDESCRIPTOR) callconv(windows.WINAPI) windows.INT;
-
-extern "gdi32" fn SetPixelFormat(
-    hdc: windows.HDC,
-    iPixelFormat: i32,
-    ppfd: ?*PIXELFORMATDESCRIPTOR,
-) callconv(windows.WINAPI) windows.BOOL;
-
 pub export fn WindowProc(
     hWnd: windows.HWND,
     message: windows.UINT,
@@ -90,11 +49,11 @@ pub export fn WindowProc(
 ) callconv(windows.WINAPI) windows.LRESULT {
     switch (message) {
         user32.WM_CREATE => {
-            var pfd = PIXELFORMATDESCRIPTOR{
-                .nSize = @sizeOf(PIXELFORMATDESCRIPTOR),
+            var pfd = gdi32.PIXELFORMATDESCRIPTOR{
+                .nSize = @sizeOf(gdi32.PIXELFORMATDESCRIPTOR),
                 .nVersion = 1,
-                .dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
-                .iPixelType = PFD_TYPE_RGBA,
+                .dwFlags = gdi32.PFD_DRAW_TO_WINDOW | gdi32.PFD_SUPPORT_OPENGL | gdi32.PFD_DOUBLEBUFFER,
+                .iPixelType = gdi32.PFD_TYPE_RGBA,
                 .cColorBits = 32,
                 .cRedBits = 0,
                 .cRedShift = 0,
@@ -121,10 +80,10 @@ pub export fn WindowProc(
 
             const our_window_handle_to_device_context = user32.GetDC(hWnd);
 
-            const let_windows_choose_pixel_format = ChoosePixelFormat(our_window_handle_to_device_context.?, &pfd);
+            const let_windows_choose_pixel_format = gdi32.ChoosePixelFormat(our_window_handle_to_device_context.?, &pfd);
 
             // TODO: handle return value
-            _ = SetPixelFormat(our_window_handle_to_device_context.?, let_windows_choose_pixel_format, &pfd);
+            _ = gdi32.SetPixelFormat(our_window_handle_to_device_context.?, let_windows_choose_pixel_format, &pfd);
 
             const our_opengl_rendering_context = wglCreateContext(our_window_handle_to_device_context.?);
 
