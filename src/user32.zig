@@ -66,6 +66,7 @@ pub const MSG = extern struct {
     }
 };
 
+// Compiled by the WINE team @ https://wiki.winehq.org/List_Of_Windows_Messages
 pub const WM_NULL = 0x0000;
 pub const WM_CREATE = 0x0001;
 pub const WM_DESTROY = 0x0002;
