@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const builtin = @import("builtin");
 const windows = std.os.windows;
 
@@ -1459,11 +1460,275 @@ pub fn loadCursorW(hInstance: HINSTANCE, lpCursorName: [*:0]const u16) !HCURSOR 
     return null;
 }
 
+pub const SW_HIDE = 0;
+pub const SW_SHOWNORMAL = 1;
+pub const SW_NORMAL = 1;
+pub const SW_SHOWMINIMIZED = 2;
+pub const SW_SHOWMAXIMIZED = 3;
+pub const SW_MAXIMIZE = 3;
+pub const SW_SHOWNOACTIVATE = 4;
+pub const SW_SHOW = 5;
+pub const SW_MINIMIZE = 6;
+pub const SW_SHOWMINNOACTIVE = 7;
+pub const SW_SHOWNA = 8;
+pub const SW_RESTORE = 9;
+pub const SW_SHOWDEFAULT = 10;
+pub const SW_FORCEMINIMIZE = 11;
+pub const SW_MAX = 11;
+
+pub extern "user32" fn ShowWindow(hWnd: HWND, nCmdShow: i32) callconv(WINAPI) BOOL;
+pub fn showWindow(hWnd: HWND, nCmdShow: i32) bool {
+    return (ShowWindow(hWnd, nCmdShow) == TRUE);
+}
+
+pub extern "user32" fn UpdateWindow(hWnd: HWND) callconv(WINAPI) BOOL;
+pub fn updateWindow(hWnd: HWND) !void {
+    if (UpdateWindow(hWnd) == 0) {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+pub extern "user32" fn AdjustWindowRectEx(lpRect: *RECT, dwStyle: DWORD, bMenu: BOOL, dwExStyle: DWORD) callconv(WINAPI) BOOL;
+pub fn adjustWindowRectEx(lpRect: *RECT, dwStyle: u32, bMenu: bool, dwExStyle: u32) !void {
+    assert(dwStyle & WS_OVERLAPPED == 0);
+
+    if (AdjustWindowRectEx(lpRect, dwStyle, @intFromBool(bMenu), dwExStyle) == 0) {
+        switch (GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+pub const GWL_WNDPROC = -4;
+pub const GWL_HINSTANCE = -6;
+pub const GWL_HWNDPARENT = -8;
+pub const GWL_STYLE = -16;
+pub const GWL_EXSTYLE = -20;
+pub const GWL_USERDATA = -21;
+pub const GWL_ID = -12;
+
+pub extern "user32" fn GetWindowLongA(hWnd: HWND, nIndex: i32) callconv(WINAPI) LONG;
+pub fn getWindowLongA(hWnd: HWND, nIndex: i32) !i32 {
+    const value = GetWindowLongA(hWnd, nIndex);
+    if (value != 0) return value;
+
+    switch (GetLastError()) {
+        .SUCCESS => return 0,
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn GetWindowLongW(hWnd: HWND, nIndex: i32) callconv(WINAPI) LONG;
+pub var pfnGetWindowLongW: *const @TypeOf(GetWindowLongW) = undefined;
+pub fn getWindowLongW(hWnd: HWND, nIndex: i32) !i32 {
+    const function = selectSymbol(GetWindowLongW, pfnGetWindowLongW, .win2k);
+
+    const value = function(hWnd, nIndex);
+    if (value != 0) return value;
+
+    switch (GetLastError()) {
+        .SUCCESS => return 0,
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn GetWindowLongPtrA(hWnd: HWND, nIndex: i32) callconv(WINAPI) LONG_PTR;
+pub fn getWindowLongPtrA(hWnd: HWND, nIndex: i32) !isize {
+    // "When compiling for 32-bit Windows, GetWindowLongPtr is defined as a call to the GetWindowLong function."
+    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowlongptrw
+    if (@sizeOf(LONG_PTR) == 4) return getWindowLongA(hWnd, nIndex);
+
+    const value = GetWindowLongPtrA(hWnd, nIndex);
+    if (value != 0) return value;
+
+    switch (GetLastError()) {
+        .SUCCESS => return 0,
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn GetWindowLongPtrW(hWnd: HWND, nIndex: i32) callconv(WINAPI) LONG_PTR;
+pub var pfnGetWindowLongPtrW: *const @TypeOf(GetWindowLongPtrW) = undefined;
+pub fn getWindowLongPtrW(hWnd: HWND, nIndex: i32) !isize {
+    if (@sizeOf(LONG_PTR) == 4) return getWindowLongW(hWnd, nIndex);
+    const function = selectSymbol(GetWindowLongPtrW, pfnGetWindowLongPtrW, .win2k);
+
+    const value = function(hWnd, nIndex);
+    if (value != 0) return value;
+
+    switch (GetLastError()) {
+        .SUCCESS => return 0,
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn SetWindowLongA(hWnd: HWND, nIndex: i32, dwNewLong: LONG) callconv(WINAPI) LONG;
+pub fn setWindowLongA(hWnd: HWND, nIndex: i32, dwNewLong: i32) !i32 {
+    // [...] you should clear the last error information by calling SetLastError with 0 before calling SetWindowLong.
+    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowlonga
+    SetLastError(.SUCCESS);
+
+    const value = SetWindowLongA(hWnd, nIndex, dwNewLong);
+    if (value != 0) return value;
+
+    switch (GetLastError()) {
+        .SUCCESS => return 0,
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn SetWindowLongW(hWnd: HWND, nIndex: i32, dwNewLong: LONG) callconv(WINAPI) LONG;
+pub var pfnSetWindowLongW: *const @TypeOf(SetWindowLongW) = undefined;
+pub fn setWindowLongW(hWnd: HWND, nIndex: i32, dwNewLong: i32) !i32 {
+    const function = selectSymbol(SetWindowLongW, pfnSetWindowLongW, .win2k);
+
+    SetLastError(.SUCCESS);
+    const value = function(hWnd, nIndex, dwNewLong);
+    if (value != 0) return value;
+
+    switch (GetLastError()) {
+        .SUCCESS => return 0,
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn SetWindowLongPtrA(hWnd: HWND, nIndex: i32, dwNewLong: LONG_PTR) callconv(WINAPI) LONG_PTR;
+pub fn setWindowLongPtrA(hWnd: HWND, nIndex: i32, dwNewLong: isize) !isize {
+    // "When compiling for 32-bit Windows, GetWindowLongPtr is defined as a call to the GetWindowLong function."
+    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowlongptrw
+    if (@sizeOf(LONG_PTR) == 4) return setWindowLongA(hWnd, nIndex, dwNewLong);
+
+    SetLastError(.SUCCESS);
+    const value = SetWindowLongPtrA(hWnd, nIndex, dwNewLong);
+    if (value != 0) return value;
+
+    switch (GetLastError()) {
+        .SUCCESS => return 0,
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn SetWindowLongPtrW(hWnd: HWND, nIndex: i32, dwNewLong: LONG_PTR) callconv(WINAPI) LONG_PTR;
+pub var pfnSetWindowLongPtrW: *const @TypeOf(SetWindowLongPtrW) = undefined;
+pub fn setWindowLongPtrW(hWnd: HWND, nIndex: i32, dwNewLong: isize) !isize {
+    if (@sizeOf(LONG_PTR) == 4) return setWindowLongW(hWnd, nIndex, dwNewLong);
+    const function = selectSymbol(SetWindowLongPtrW, pfnSetWindowLongPtrW, .win2k);
+
+    SetLastError(.SUCCESS);
+    const value = function(hWnd, nIndex, dwNewLong);
+    if (value != 0) return value;
+
+    switch (GetLastError()) {
+        .SUCCESS => return 0,
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
 pub extern "user32" fn GetDC(hWnd: ?HWND) callconv(WINAPI) ?HDC;
 pub fn getDC(hWnd: ?HWND) !HDC {
     const hdc = GetDC(hWnd);
     if (hdc) |h| return h;
 
+    switch (GetLastError()) {
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn ReleaseDC(hWnd: ?HWND, hDC: HDC) callconv(WINAPI) i32;
+pub fn releaseDC(hWnd: ?HWND, hDC: HDC) bool {
+    return if (ReleaseDC(hWnd, hDC) == 1) true else false;
+}
+
+// === Modal dialogue boxes ===
+
+pub const MB_OK = 0x00000000;
+pub const MB_OKCANCEL = 0x00000001;
+pub const MB_ABORTRETRYIGNORE = 0x00000002;
+pub const MB_YESNOCANCEL = 0x00000003;
+pub const MB_YESNO = 0x00000004;
+pub const MB_RETRYCANCEL = 0x00000005;
+pub const MB_CANCELTRYCONTINUE = 0x00000006;
+pub const MB_ICONHAND = 0x00000010;
+pub const MB_ICONQUESTION = 0x00000020;
+pub const MB_ICONEXCLAMATION = 0x00000030;
+pub const MB_ICONASTERISK = 0x00000040;
+pub const MB_USERICON = 0x00000080;
+pub const MB_ICONWARNING = MB_ICONEXCLAMATION;
+pub const MB_ICONERROR = MB_ICONHAND;
+pub const MB_ICONINFORMATION = MB_ICONASTERISK;
+pub const MB_ICONSTOP = MB_ICONHAND;
+pub const MB_DEFBUTTON1 = 0x00000000;
+pub const MB_DEFBUTTON2 = 0x00000100;
+pub const MB_DEFBUTTON3 = 0x00000200;
+pub const MB_DEFBUTTON4 = 0x00000300;
+pub const MB_APPLMODAL = 0x00000000;
+pub const MB_SYSTEMMODAL = 0x00001000;
+pub const MB_TASKMODAL = 0x00002000;
+pub const MB_HELP = 0x00004000;
+pub const MB_NOFOCUS = 0x00008000;
+pub const MB_SETFOREGROUND = 0x00010000;
+pub const MB_DEFAULT_DESKTOP_ONLY = 0x00020000;
+pub const MB_TOPMOST = 0x00040000;
+pub const MB_RIGHT = 0x00080000;
+pub const MB_RTLREADING = 0x00100000;
+pub const MB_TYPEMASK = 0x0000000F;
+pub const MB_ICONMASK = 0x000000F0;
+pub const MB_DEFMASK = 0x00000F00;
+pub const MB_MODEMASK = 0x00003000;
+pub const MB_MISCMASK = 0x0000C000;
+
+pub const IDOK = 1;
+pub const IDCANCEL = 2;
+pub const IDABORT = 3;
+pub const IDRETRY = 4;
+pub const IDIGNORE = 5;
+pub const IDYES = 6;
+pub const IDNO = 7;
+pub const IDCLOSE = 8;
+pub const IDHELP = 9;
+pub const IDTRYAGAIN = 10;
+pub const IDCONTINUE = 11;
+
+pub extern "user32" fn MessageBoxA(hWnd: ?HWND, lpText: [*:0]const u8, lpCaption: [*:0]const u8, uType: UINT) callconv(WINAPI) i32;
+pub fn messageBoxA(hWnd: ?HWND, lpText: [*:0]const u8, lpCaption: [*:0]const u8, uType: u32) !i32 {
+    const value = MessageBoxA(hWnd, lpText, lpCaption, uType);
+    if (value != 0) return value;
+    switch (GetLastError()) {
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn MessageBoxW(hWnd: ?HWND, lpText: [*:0]const u16, lpCaption: ?[*:0]const u16, uType: UINT) callconv(WINAPI) i32;
+pub var pfnMessageBoxW: *const @TypeOf(MessageBoxW) = undefined;
+pub fn messageBoxW(hWnd: ?HWND, lpText: [*:0]const u16, lpCaption: [*:0]const u16, uType: u32) !i32 {
+    const function = selectSymbol(MessageBoxW, pfnMessageBoxW, .win2k);
+    const value = function(hWnd, lpText, lpCaption, uType);
+    if (value != 0) return value;
     switch (GetLastError()) {
         .INVALID_WINDOW_HANDLE => unreachable,
         .INVALID_PARAMETER => unreachable,
