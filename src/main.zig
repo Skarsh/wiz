@@ -10,23 +10,6 @@ const WindowOptions = @import("windows.zig").WindowOptions;
 
 const WINAPI = windows.WINAPI;
 
-extern "user32" fn MessageBoxA(
-    h_wnd: ?windows.HANDLE,
-    lp_text: ?windows.LPCSTR,
-    lp_caption: ?windows.LPCSTR,
-    u_type: windows.UINT,
-) callconv(WINAPI) windows.INT;
-
-extern "kernel32" fn AllocConsole() callconv(WINAPI) windows.BOOL;
-
-extern "kernel32" fn WriteConsoleA(
-    h_console_output: ?windows.HANDLE,
-    lp_buffer: [*c]const u8,
-    n_number_of_chars_to_write: windows.UINT,
-    lp_number_of_chars_to_written: ?*windows.UINT,
-    lp_reserved: ?*anyopaque,
-) callconv(WINAPI) windows.BOOL;
-
 const STD_HANDLE = enum(windows.UINT) {
     INPUT_HANDLE = 4294967286,
     OUTPUT_HANDLE = 4294967285,
@@ -80,22 +63,34 @@ pub export fn WindowProc(
 
             const our_window_handle_to_device_context = user32.GetDC(hWnd);
 
-            const let_windows_choose_pixel_format = gdi32.ChoosePixelFormat(our_window_handle_to_device_context.?, &pfd);
+            const let_windows_choose_pixel_format = gdi32.ChoosePixelFormat(
+                our_window_handle_to_device_context.?,
+                &pfd,
+            );
 
             // TODO: handle return value
-            _ = gdi32.SetPixelFormat(our_window_handle_to_device_context.?, let_windows_choose_pixel_format, &pfd);
+            _ = gdi32.SetPixelFormat(
+                our_window_handle_to_device_context.?,
+                let_windows_choose_pixel_format,
+                &pfd,
+            );
 
-            const our_opengl_rendering_context = wglCreateContext(our_window_handle_to_device_context.?);
+            const our_opengl_rendering_context = wglCreateContext(
+                our_window_handle_to_device_context.?,
+            );
 
             // TODO: handle return value
-            _ = wglMakeCurrent(our_window_handle_to_device_context.?, our_opengl_rendering_context.?);
+            _ = wglMakeCurrent(
+                our_window_handle_to_device_context.?,
+                our_opengl_rendering_context.?,
+            );
 
             // TOOD (Thomas): What is this magic number?
             const gl_version = glGetString(7938);
             std.debug.print("OpenGL Version: {s}\n", .{gl_version});
 
             // TODO: handle return value
-            _ = MessageBoxA(null, gl_version, "OPENGL VERSION", 0);
+            _ = user32.messageBoxA(null, gl_version, "OPENGL VERSION", 0) catch unreachable;
 
             // TODO: handle return value
             _ = wglDeleteContext(our_opengl_rendering_context.?);
@@ -106,31 +101,6 @@ pub export fn WindowProc(
         },
     }
     return 0;
-}
-
-fn win32MainWindowCallback(
-    window: windows.HWND,
-    message: windows.UINT,
-    w_param: windows.WPARAM,
-    l_param: windows.LPARAM,
-) callconv(WINAPI) windows.LRESULT {
-    var result: windows.LRESULT = 0;
-
-    switch (message) {
-        user32.WM_CLOSE => {
-            std.debug.print("closing\n", .{});
-            global_running = false;
-        },
-        user32.WM_DESTROY => {
-            std.debug.print("destroying window\n", .{});
-            global_running = false;
-        },
-        else => {
-            result = user32.defWindowProcW(window, message, w_param, l_param);
-        },
-    }
-
-    return result;
 }
 
 fn win32ProcessPendingMessages() !void {
@@ -151,41 +121,9 @@ fn win32ProcessPendingMessages() !void {
 }
 
 pub fn main() !void {
-    const hInstance: windows.HINSTANCE = @ptrCast(kernel32.GetModuleHandleW(null));
-
-    var wc = user32.WNDCLASSEXW{
-        .style = 0,
-        .lpfnWndProc = win32MainWindowCallback,
-        .cbClsExtra = 0,
-        .cbWndExtra = 0,
-        .hInstance = hInstance,
-        .hIcon = null,
-        .hCursor = null,
-        .hbrBackground = null,
-        .lpszMenuName = null,
-        .lpszClassName = u8to16le("Test Window"),
-        .hIconSm = null,
-    };
-
-    _ = try user32.registerClassExW(&wc);
-
-    const hwnd = try user32.createWindowExW(
-        0,
-        wc.lpszClassName,
-        u8to16le("Wiz"),
-        user32.WS_OVERLAPPEDWINDOW | user32.WS_VISIBLE,
-        0,
-        0,
-        640,
-        480,
-        null,
-        null,
-        hInstance,
-        null,
-    );
-
-    const hdc = try user32.getDC(hwnd);
-    _ = hdc;
+    const win_opts = WindowOptions{ .width = 640, .height = 480 };
+    const win = try Window.init(win_opts);
+    _ = win;
 
     while (global_running) {
         try win32ProcessPendingMessages();
