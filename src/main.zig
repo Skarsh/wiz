@@ -158,7 +158,7 @@ pub fn main() !void {
         .lpfnWndProc = win32MainWindowCallback,
         .cbClsExtra = 0,
         .cbWndExtra = 0,
-        .hInstance = @ptrCast(hInstance),
+        .hInstance = hInstance,
         .hIcon = null,
         .hCursor = null,
         .hbrBackground = null,
@@ -180,7 +180,7 @@ pub fn main() !void {
         480,
         null,
         null,
-        @ptrCast(hInstance),
+        hInstance,
         null,
     );
 
