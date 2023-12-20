@@ -1,8 +1,12 @@
 const std = @import("std");
 const windows = std.os.windows;
+const kernel32 = windows.kernel32;
 const user32 = @import("user32.zig");
 const gdi32 = @import("gdi32.zig");
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
+
+const Window = @import("windows.zig").Window;
+const WindowOptions = @import("windows.zig").WindowOptions;
 
 const WINAPI = windows.WINAPI;
 
@@ -28,10 +32,6 @@ const STD_HANDLE = enum(windows.UINT) {
     OUTPUT_HANDLE = 4294967285,
     ERROR_HANDLE = 4294967284,
 };
-
-extern "kernel32" fn GetStdHandle(n_std_handle: STD_HANDLE) callconv(WINAPI) windows.HANDLE;
-extern "kernel32" fn GetModuleHandleA(lp_module_name: ?windows.LPCSTR) callconv(WINAPI) windows.HMODULE;
-extern "kernel32" fn GetModuleHandleW(lp_moudle_name: ?windows.LPCSTR) callconv(WINAPI) windows.HMODULE;
 
 var global_running = true;
 
@@ -151,11 +151,10 @@ fn win32ProcessPendingMessages() !void {
 }
 
 pub fn main() !void {
-    const hInstance: windows.HMODULE = @ptrCast(GetModuleHandleA(null));
+    const hInstance: windows.HINSTANCE = @ptrCast(kernel32.GetModuleHandleW(null));
 
     var wc = user32.WNDCLASSEXW{
         .style = 0,
-        //.lpfnWndProc = WindowProc,
         .lpfnWndProc = win32MainWindowCallback,
         .cbClsExtra = 0,
         .cbWndExtra = 0,
