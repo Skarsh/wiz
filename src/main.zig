@@ -103,29 +103,14 @@ pub export fn WindowProc(
     return 0;
 }
 
-fn win32ProcessPendingMessages() !void {
-    var msg = user32.MSG.default();
-    while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
-        switch (msg.message) {
-            user32.WM_QUIT => {
-                global_running = false;
-                break;
-            },
-            else => {
-                // TODO(Thomas): Deal with return values here
-                _ = user32.translateMessage(&msg);
-                _ = user32.dispatchMessageW(&msg);
-            },
-        }
-    }
-}
-
 pub fn main() !void {
     const win_opts = WindowOptions{ .width = 640, .height = 480 };
-    const win = try Window.init(win_opts);
-    _ = win;
+    var win = try Window.init(win_opts);
 
-    while (global_running) {
-        try win32ProcessPendingMessages();
+    while (win.running) {
+        try win.processPendingMessages();
     }
+    std.debug.print("Exiting app\n", .{});
+
+    try win.deinit();
 }
