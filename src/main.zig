@@ -3,6 +3,8 @@ const windows = std.os.windows;
 const kernel32 = windows.kernel32;
 const user32 = @import("user32.zig");
 const gdi32 = @import("gdi32.zig");
+const input = @import("input.zig");
+const Event = input.Event;
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
 const Window = @import("windows.zig").Window;
@@ -107,9 +109,13 @@ pub fn main() !void {
     const win_opts = WindowOptions{ .width = 640, .height = 480 };
     var win = try Window.init(win_opts);
 
+    var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {
-        try win.processPendingMessages();
+        while (try win.pollEvent(&event)) {
+            std.debug.print("Event: {}\n", .{event});
+        }
     }
+
     std.debug.print("Exiting app\n", .{});
 
     try win.deinit();

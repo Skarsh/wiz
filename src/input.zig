@@ -1,3 +1,5 @@
+const Window = @import("windows.zig").Window;
+
 pub const EvenType = enum {
     WindowResized,
     WindowDestroyed,
@@ -43,11 +45,11 @@ pub const Event = union(EvenType) {
     // TODO (Thomas): I don't know about these Window specific events.
     // Do they belong in here?
 
-    //WindowResized: *Window,
-    //WindowDestroyed: *Window,
-    //WindowDamaged: struct {window: *Window, x: u16, y: u16, w: u16, h: u16},
-    //WindowVBlank: *Window,
-    //AppTerminated: void,
+    WindowResized: *Window,
+    WindowDestroyed: *Window,
+    WindowDamaged: struct { window: *Window, x: u16, y: u16, w: u16, h: u16 },
+    WindowVBlank: *Window,
+    AppTerminated: void,
     KeyDown: KeyEvent,
     KeyUp: KeyEvent,
     MouseButtonDown: MouseButtonEvent,

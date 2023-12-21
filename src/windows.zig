@@ -1,9 +1,16 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const windows = std.os.windows;
-const user32 = @import("user32.zig");
 
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
+
+const user32 = @import("user32.zig");
+const input = @import("input.zig");
+const Event = input.Event;
+const MouseButton = input.MouseButton;
+const MouseMotionEvent = input.MouseMotionEvent;
+const MouseButtonEvent = input.MouseButtonEvent;
+const KeyEvent = input.KeyEvent;
 
 pub const WindowOptions = struct {
     width: i32,
@@ -96,9 +103,7 @@ pub const Window = struct {
             user32.WM_SIZE => {
                 std.debug.print("window resize\n", .{});
             },
-            user32.WM_PAINT => {
-                std.debug.print("window paint\n", .{});
-            },
+            user32.WM_PAINT => {},
             user32.WM_MOUSEMOVE,
             user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
             user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
@@ -123,6 +128,11 @@ pub const Window = struct {
     pub fn processPendingMessages(self: Window) !void {
         _ = self;
         var msg = user32.MSG.default();
+        // NOTE (Thomas)
+        // PeekMessage retrieves messages associated with the window identified by the hWnd parameter or any of its children
+        // as specified by the IsChild function, and within the range of message values given by the wMsgFilterMin and wMsgFilterMax parameters.
+        // Note that an application can only use the low word in the wMsgFilterMin and wMsgFilterMax parameters;
+        // the high word is reserved for the system.
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
             switch (msg.message) {
                 // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mousemove
@@ -151,9 +161,37 @@ pub const Window = struct {
         }
     }
 
-    fn processMouseMotion() void {}
+    pub fn pollEvent(self: Window, event: *Event) !bool {
+        _ = self;
 
-    fn processMouseButton() void {}
+        var msg = user32.MSG.default();
+        const has_msg = try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE);
+        if (has_msg) {
+            switch (msg.message) {
+                // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mousemove
+                user32.WM_MOUSEMOVE => {
+                    event.* = Event{ .MouseMotion = MouseMotionEvent{ .x = 0, .y = 0 } };
+                },
+                user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
+                user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
+                user32.WM_RBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttondown
+                user32.WM_RBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttonup
+                user32.WM_MBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttondown
+                user32.WM_MBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttonup
+                => {
+                    event.* = Event{ .MouseButtonUp = MouseButtonEvent{ .x = 0, .y = 0, .button = MouseButton.left } };
+                },
+                user32.WM_KEYDOWN, user32.WM_KEYUP => {
+                    event.* = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
+                },
 
-    fn processKeyboard() void {}
+                else => {
+                    // TODO(Thomas): Deal with return values here
+                    _ = user32.translateMessage(&msg);
+                    _ = user32.dispatchMessageW(&msg);
+                },
+            }
+        }
+        return has_msg;
+    }
 };
