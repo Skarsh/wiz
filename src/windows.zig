@@ -103,7 +103,11 @@ pub const Window = struct {
             user32.WM_SIZE => {
                 std.debug.print("window resize\n", .{});
             },
-            user32.WM_PAINT => {},
+            user32.WM_PAINT => {
+                // TODO (Thomas): Deal with software renderer here, for now we just returnd default window proc
+                // so that message loop finishes.
+                result = user32.defWindowProcW(window, message, w_param, l_param);
+            },
             user32.WM_MOUSEMOVE,
             user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
             user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
@@ -125,45 +129,8 @@ pub const Window = struct {
         return result;
     }
 
-    pub fn processPendingMessages(self: Window) !void {
+    pub fn pollEvent(self: *Window, event: *Event) !bool {
         _ = self;
-        var msg = user32.MSG.default();
-        // NOTE (Thomas)
-        // PeekMessage retrieves messages associated with the window identified by the hWnd parameter or any of its children
-        // as specified by the IsChild function, and within the range of message values given by the wMsgFilterMin and wMsgFilterMax parameters.
-        // Note that an application can only use the low word in the wMsgFilterMin and wMsgFilterMax parameters;
-        // the high word is reserved for the system.
-        while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
-            switch (msg.message) {
-                // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mousemove
-                user32.WM_MOUSEMOVE => {
-                    std.debug.print("mouse move\n", .{});
-                },
-                user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
-                user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
-                user32.WM_RBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttondown
-                user32.WM_RBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttonup
-                user32.WM_MBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttondown
-                user32.WM_MBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttonup
-                => {
-                    std.debug.print("mouse button\n", .{});
-                },
-                user32.WM_KEYDOWN, user32.WM_KEYUP => {
-                    std.debug.print("key button\n", .{});
-                },
-
-                else => {
-                    // TODO(Thomas): Deal with return values here
-                    _ = user32.translateMessage(&msg);
-                    _ = user32.dispatchMessageW(&msg);
-                },
-            }
-        }
-    }
-
-    pub fn pollEvent(self: Window, event: *Event) !bool {
-        _ = self;
-
         var msg = user32.MSG.default();
         const has_msg = try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE);
         if (has_msg) {
