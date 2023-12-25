@@ -1439,26 +1439,8 @@ pub fn loadCursor(hInstance: HINSTANCE, lpCursorName: [*:0]const 8) !HCURSOR {
     }
 }
 
+// TODO(Thomas): Write wrapper like for the others
 pub extern "user32" fn LoadCursorW(hInstance: HINSTANCE, lpCursorName: [*:0]const u16) callconv(WINAPI) ?HCURSOR;
-pub var pfnLoadCursorW: *const @TypeOf(LoadCursorW) = undefined;
-// TODO(Thomas): Implement this, and figure out how to do it correctly!
-pub fn loadCursorW(hInstance: HINSTANCE, lpCursorName: [*:0]const u16) !HCURSOR {
-    _ = hInstance;
-    _ = lpCursorName;
-    const function = selectSymbol(loadCursorW, pfnLoadCursorW, .win2k);
-
-    _ = function;
-
-    // TODO (Thomas): Not sure about the correctness of this at all!
-    //if (function(lpCursorName, hInstance == 0)) {
-    //    switch (GetLastError()) {
-    //        .INVALID_PARAMETER => unreachable,
-    //        else => |err| return windows.unexpectedError(err),
-    //    }
-    //}
-
-    return null;
-}
 
 pub const SW_HIDE = 0;
 pub const SW_SHOWNORMAL = 1;
@@ -1733,5 +1715,25 @@ pub fn messageBoxW(hWnd: ?HWND, lpText: [*:0]const u16, lpCaption: [*:0]const u1
         .INVALID_WINDOW_HANDLE => unreachable,
         .INVALID_PARAMETER => unreachable,
         else => |err| return windows.unexpectedError(err),
+    }
+}
+
+pub extern "user32" fn GetWindowRect(hWnd: ?HWND, lpRect: ?*RECT) callconv(WINAPI) BOOL;
+pub fn getWindowRect(hwnd: ?HWND, lpRect: ?*RECT) !void {
+    if (GetWindowRect(hwnd, lpRect) == 0) {
+        // TODO(Thomas): Are there any cases we should deal with specifially?
+        switch (GetLastError()) {
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+pub extern "user32" fn GetClientRect(hWnd: ?HWND, lpRect: ?*RECT) callconv(WINAPI) BOOL;
+pub fn getClientRect(hwnd: ?HWND, lpRect: ?*RECT) !void {
+    if (GetClientRect(hwnd, lpRect) == 0) {
+        // TODO(Thomas): Are there any cases we should deal with specifially?
+        switch (GetLastError()) {
+            else => |err| return windows.unexpectedError(err),
+        }
     }
 }
