@@ -112,7 +112,7 @@ pub fn main() !void {
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {
         while (try win.pollEvent(&event)) {
-            std.debug.print("Event: {}", .{event});
+            std.debug.print("Event: {}\n", .{event});
         }
     }
 

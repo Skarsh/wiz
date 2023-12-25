@@ -101,7 +101,9 @@ pub const Window = struct {
                 std.debug.print("window create\n", .{});
             },
             user32.WM_SIZE => {
-                std.debug.print("window resize\n", .{});
+                var window_rect = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 };
+                user32.getWindowRect(window, &window_rect) catch unreachable;
+                std.debug.print("window resize, window rect: {}\n", .{window_rect});
             },
             user32.WM_PAINT => {
                 // TODO (Thomas): Deal with software renderer here, for now we just returnd default window proc
