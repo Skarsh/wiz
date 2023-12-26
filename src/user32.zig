@@ -13,6 +13,7 @@ pub const HDC = windows.HDC;
 pub const LONG = windows.LONG;
 pub const LONG_PTR = windows.LONG_PTR;
 pub const LPCSTR = windows.LPCSTR;
+pub const LPCWSTR = windows.LPCWSTR;
 pub const WINAPI = windows.WINAPI;
 pub const RECT = windows.RECT;
 pub const DWORD = windows.DWORD;
@@ -1202,6 +1203,36 @@ pub const WNDCLASSEXW = extern struct {
     hIconSm: ?HICON,
 };
 
+pub const CREATESTRUCTA = extern struct {
+    lpCreateParams: LPVOID,
+    hInstance: HINSTANCE,
+    hMenu: HMENU,
+    hwndParent: HWND,
+    cy: i32,
+    cx: i32,
+    y: i32,
+    x: i32,
+    style: LONG,
+    lpszName: LPCSTR,
+    lpszClass: LPCSTR,
+    dwExStyle: DWORD,
+};
+
+pub const CREATESTRUCTW = extern struct {
+    lpCreateParams: LPVOID,
+    hInstance: HINSTANCE,
+    hMenu: HMENU,
+    hwndParent: HWND,
+    cy: i32,
+    cx: i32,
+    y: i32,
+    x: i32,
+    style: LONG,
+    lpszName: LPCWSTR,
+    lpszClass: LPCWSTR,
+    dwExStyle: DWORD,
+};
+
 pub extern "user32" fn RegisterClassA(*const WNDCLASSA) callconv(WINAPI) ATOM;
 pub fn registerClassA(window_class: *const WNDCLASSA) !ATOM {
     const atom = RegisterClassA(window_class);
@@ -1486,13 +1517,13 @@ pub fn adjustWindowRectEx(lpRect: *RECT, dwStyle: u32, bMenu: bool, dwExStyle: u
     }
 }
 
-pub const GWL_WNDPROC = -4;
-pub const GWL_HINSTANCE = -6;
+pub const GWLP_WNDPROC = -4;
+pub const GWLP_HINSTANCE = -6;
 pub const GWL_HWNDPARENT = -8;
 pub const GWL_STYLE = -16;
 pub const GWL_EXSTYLE = -20;
-pub const GWL_USERDATA = -21;
-pub const GWL_ID = -12;
+pub const GWLP_USERDATA = -21;
+pub const GWLP_ID = -12;
 
 pub extern "user32" fn GetWindowLongA(hWnd: HWND, nIndex: i32) callconv(WINAPI) LONG;
 pub fn getWindowLongA(hWnd: HWND, nIndex: i32) !i32 {
