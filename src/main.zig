@@ -106,8 +106,10 @@ pub export fn WindowProc(
 }
 
 pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
     const win_opts = WindowOptions{ .width = 640, .height = 480 };
-    var win = try Window.init(win_opts);
+    var win = try Window.init(allocator, win_opts);
 
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {

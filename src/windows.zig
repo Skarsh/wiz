@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const windows = std.os.windows;
 
@@ -26,7 +27,7 @@ pub const Window = struct {
     running: bool,
     self: *Window = undefined,
 
-    pub fn init(options: WindowOptions) !Window {
+    pub fn init(allocator: Allocator, options: WindowOptions) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
         if (windows.kernel32.GetModuleHandleW(null)) |hinst| {
             h_instance = @ptrCast(hinst);
@@ -51,14 +52,14 @@ pub const Window = struct {
 
         _ = try user32.registerClassExW(&wc);
 
-        var window = Window{
-            .h_instance = h_instance,
-            .hwnd = null,
-            .lp_class_name = wc.lpszClassName,
-            .width = options.width,
-            .height = options.height,
-            .running = true,
-        };
+        var window = try allocator.create(Window);
+
+        window.h_instance = h_instance;
+        window.hwnd = null;
+        window.lp_class_name = wc.lpszClassName;
+        window.width = options.width;
+        window.height = options.height;
+        window.running = true;
 
         const hwnd = try user32.createWindowExW(
             0,
@@ -72,7 +73,7 @@ pub const Window = struct {
             null,
             null,
             h_instance,
-            &window,
+            window,
         );
 
         window.hwnd = hwnd;
