@@ -19,11 +19,12 @@ pub const WindowOptions = struct {
 
 pub const Window = struct {
     h_instance: windows.HINSTANCE,
-    hwnd: windows.HWND,
+    hwnd: ?windows.HWND,
     lp_class_name: [*:0]const u16,
     width: i32,
     height: i32,
     running: bool,
+    self: *Window = undefined,
 
     pub fn init(options: WindowOptions) !Window {
         var h_instance: windows.HINSTANCE = undefined;
@@ -50,6 +51,15 @@ pub const Window = struct {
 
         _ = try user32.registerClassExW(&wc);
 
+        var window = Window{
+            .h_instance = h_instance,
+            .hwnd = null,
+            .lp_class_name = wc.lpszClassName,
+            .width = options.width,
+            .height = options.height,
+            .running = true,
+        };
+
         const hwnd = try user32.createWindowExW(
             0,
             wc.lpszClassName,
@@ -62,17 +72,12 @@ pub const Window = struct {
             null,
             null,
             h_instance,
-            null,
+            &window,
         );
 
-        return Window{
-            .h_instance = h_instance,
-            .hwnd = hwnd,
-            .lp_class_name = wc.lpszClassName,
-            .width = options.width,
-            .height = options.height,
-            .running = true,
-        };
+        window.hwnd = hwnd;
+
+        return window;
     }
 
     pub fn deinit(self: Window) !void {
@@ -91,6 +96,13 @@ pub const Window = struct {
         switch (message) {
             user32.WM_CLOSE => {
                 std.debug.print("closing\n", .{});
+                const window_opt: ?*Window = @ptrFromInt(@as(usize, @intCast(user32.GetWindowLongPtrW(window, user32.GWLP_USERDATA))));
+
+                // TODO (Thomas) Is this the right ordering, and is this also the right place to set the running variable?
+                if (window_opt) |win| {
+                    std.debug.print("Setting running to false\n", .{});
+                    win.running = false;
+                }
                 _ = user32.destroyWindow(window) catch unreachable;
             },
             user32.WM_DESTROY => {
@@ -99,11 +111,26 @@ pub const Window = struct {
 
             user32.WM_CREATE => {
                 std.debug.print("window create\n", .{});
+                const create_info_opt: ?*user32.CREATESTRUCTW = @ptrFromInt(@as(usize, @intCast(l_param)));
+                if (create_info_opt) |create_info| {
+                    std.debug.print("create_info: {}\n", .{create_info});
+                    const window_ptr: *const Window = @ptrCast(@alignCast(create_info.lpCreateParams));
+                    std.debug.print("window.width: {}\n", .{window_ptr.width});
+                    _ = user32.SetWindowLongPtrW(window, user32.GWLP_USERDATA, @intCast(@intFromPtr(create_info.lpCreateParams)));
+                }
             },
             user32.WM_SIZE => {
-                var window_rect = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 };
-                user32.getWindowRect(window, &window_rect) catch unreachable;
-                std.debug.print("window resize, window rect: {}\n", .{window_rect});
+                // NOTE (Thomas): This only deals with the size of the window, should also set the rect of what is actually drawable.
+                const window_opt: ?*Window = @ptrFromInt(@as(usize, @intCast(user32.GetWindowLongPtrW(window, user32.GWLP_USERDATA))));
+                if (window_opt) |win| {
+                    std.debug.print("Resize: width = {}\n", .{win.width});
+                    const dim: [2]u16 = @bitCast(@as(u32, @intCast(l_param)));
+                    std.debug.print("Resize: dim[0] = {}, dim[1] = {}\n", .{ dim[0], dim[1] });
+                    if (dim[0] != win.width or dim[1] != win.height) {
+                        win.width = dim[0];
+                        win.height = dim[1];
+                    }
+                }
             },
             user32.WM_PAINT => {
                 // TODO (Thomas): Deal with software renderer here, for now we just returnd default window proc
