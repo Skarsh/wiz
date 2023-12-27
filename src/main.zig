@@ -110,7 +110,7 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     const win_opts = WindowOptions{ .width = 640, .height = 480 };
     var win = try Window.init(allocator, win_opts);
-
+    win.setWindowSizeCallback(windowSizeCallback);
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {
         while (try win.pollEvent(&event)) {
@@ -119,4 +119,11 @@ pub fn main() !void {
     }
 
     std.debug.print("Exiting app\n", .{});
+}
+
+pub fn windowSizeCallback(window: *Window, width: i32, height: i32) void {
+    window.width = width;
+    window.height = height;
+    std.debug.print("WindowSizeCallback!\n", .{});
+    std.debug.print("window.width: {}, new width: {}, new height: {}\n ", .{ window.width, width, height });
 }

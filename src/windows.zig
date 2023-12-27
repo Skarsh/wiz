@@ -18,6 +18,13 @@ pub const WindowOptions = struct {
     height: i32,
 };
 
+pub const windowSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
+
+pub const WindowCallbacks = struct {
+    window_resize: *const fn (window: *Window, width: i32, height: i32) void = undefined,
+    //window_resize: @TypeOf(windowSizeCallbackType),
+};
+
 pub const Window = struct {
     h_instance: windows.HINSTANCE,
     hwnd: ?windows.HWND,
@@ -26,6 +33,7 @@ pub const Window = struct {
     height: i32,
     running: bool,
     self: *Window = undefined,
+    callbacks: WindowCallbacks,
 
     pub fn init(allocator: Allocator, options: WindowOptions) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
@@ -60,6 +68,9 @@ pub const Window = struct {
         window.width = options.width;
         window.height = options.height;
         window.running = true;
+
+        const callbacks = WindowCallbacks{ .window_resize = defaultWindowSizeCallback };
+        window.callbacks = callbacks;
 
         const hwnd = try user32.createWindowExW(
             0,
@@ -124,12 +135,12 @@ pub const Window = struct {
                 // NOTE (Thomas): This only deals with the size of the window, should also set the rect of what is actually drawable.
                 const window_opt: ?*Window = @ptrFromInt(@as(usize, @intCast(user32.GetWindowLongPtrW(window, user32.GWLP_USERDATA))));
                 if (window_opt) |win| {
-                    std.debug.print("Resize: width = {}\n", .{win.width});
                     const dim: [2]u16 = @bitCast(@as(u32, @intCast(l_param)));
-                    std.debug.print("Resize: dim[0] = {}, dim[1] = {}\n", .{ dim[0], dim[1] });
                     if (dim[0] != win.width or dim[1] != win.height) {
-                        win.width = dim[0];
-                        win.height = dim[1];
+                        //win.width = dim[0];
+                        //win.height = dim[1];
+
+                        win.callbacks.window_resize(win, dim[0], dim[1]);
                     }
                 }
             },
@@ -190,5 +201,14 @@ pub const Window = struct {
             }
         }
         return has_msg;
+    }
+
+    pub fn setWindowSizeCallback(self: *Window, cbFun: @TypeOf(windowSizeCallbackType)) void {
+        self.callbacks.window_resize = cbFun;
+    }
+
+    pub fn defaultWindowSizeCallback(window: *Window, width: i32, height: i32) void {
+        window.width = width;
+        window.height = height;
     }
 };
