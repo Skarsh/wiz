@@ -14,21 +14,34 @@ const MouseButtonEvent = input.MouseButtonEvent;
 const KeyEvent = input.KeyEvent;
 
 pub const WindowOptions = struct {
+    x_pos: i32,
+    y_pos: i32,
+    min_x: i32,
+    min_y: i32,
+    max_x: i32,
+    max_y: i32,
     width: i32,
     height: i32,
 };
 
+pub const windowPosCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
 pub const windowSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
 
 pub const WindowCallbacks = struct {
+    window_pos: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined,
     window_resize: *const fn (window: *Window, width: i32, height: i32) void = undefined,
-    //window_resize: @TypeOf(windowSizeCallbackType),
 };
 
 pub const Window = struct {
     h_instance: windows.HINSTANCE,
     hwnd: ?windows.HWND,
     lp_class_name: [*:0]const u16,
+    x_pos: i32,
+    y_pos: i32,
+    min_x: i32,
+    min_y: i32,
+    max_x: i32,
+    max_y: i32,
     width: i32,
     height: i32,
     running: bool,
@@ -65,6 +78,12 @@ pub const Window = struct {
         window.h_instance = h_instance;
         window.hwnd = null;
         window.lp_class_name = wc.lpszClassName;
+        window.x_pos = options.x_pos;
+        window.y_pos = options.y_pos;
+        window.min_x = options.min_x;
+        window.min_y = options.min_y;
+        window.max_x = options.max_x;
+        window.max_y = options.max_y;
         window.width = options.width;
         window.height = options.height;
         window.running = true;
@@ -97,8 +116,13 @@ pub const Window = struct {
         try user32.unregisterClassW(self.lp_class_name, self.h_instance);
     }
 
+    fn get_window_from_hwnd(hwnd: windows.HWND) ?*Window {
+        const window_opt: ?*Window = @ptrFromInt(@as(usize, @intCast(user32.GetWindowLongPtrW(hwnd, user32.GWLP_USERDATA))));
+        return window_opt;
+    }
+
     fn windowProc(
-        window: windows.HWND,
+        hwnd: windows.HWND,
         message: windows.UINT,
         w_param: windows.WPARAM,
         l_param: windows.LPARAM,
@@ -108,14 +132,14 @@ pub const Window = struct {
         switch (message) {
             user32.WM_CLOSE => {
                 std.debug.print("closing\n", .{});
-                const window_opt: ?*Window = @ptrFromInt(@as(usize, @intCast(user32.GetWindowLongPtrW(window, user32.GWLP_USERDATA))));
+                const window_opt = get_window_from_hwnd(hwnd);
 
                 // TODO (Thomas) Is this the right ordering, and is this also the right place to set the running variable?
                 if (window_opt) |win| {
                     std.debug.print("Setting running to false\n", .{});
                     win.running = false;
                 }
-                _ = user32.destroyWindow(window) catch unreachable;
+                _ = user32.destroyWindow(hwnd) catch unreachable;
             },
             user32.WM_DESTROY => {
                 std.debug.print("destroying window\n", .{});
@@ -128,26 +152,40 @@ pub const Window = struct {
                     std.debug.print("create_info: {}\n", .{create_info});
                     const window_ptr: *const Window = @ptrCast(@alignCast(create_info.lpCreateParams));
                     std.debug.print("window.width: {}\n", .{window_ptr.width});
-                    _ = user32.SetWindowLongPtrW(window, user32.GWLP_USERDATA, @intCast(@intFromPtr(create_info.lpCreateParams)));
+                    _ = user32.SetWindowLongPtrW(hwnd, user32.GWLP_USERDATA, @intCast(@intFromPtr(create_info.lpCreateParams)));
                 }
             },
             user32.WM_SIZE => {
                 // NOTE (Thomas): This only deals with the size of the window, should also set the rect of what is actually drawable.
-                const window_opt: ?*Window = @ptrFromInt(@as(usize, @intCast(user32.GetWindowLongPtrW(window, user32.GWLP_USERDATA))));
+                const window_opt = get_window_from_hwnd(hwnd);
                 if (window_opt) |win| {
                     const dim: [2]u16 = @bitCast(@as(u32, @intCast(l_param)));
                     if (dim[0] != win.width or dim[1] != win.height) {
-                        //win.width = dim[0];
-                        //win.height = dim[1];
+                        const width = dim[0];
+                        const height = dim[1];
 
-                        win.callbacks.window_resize(win, dim[0], dim[1]);
+                        win.callbacks.window_resize(win, width, height);
                     }
+                }
+            },
+            user32.WM_MOVE => {
+                const window_opt = get_window_from_hwnd(hwnd);
+                if (window_opt) |window| {
+                    _ = window;
+                    // TODO (Thomas): if this is within min and max values.
+                    // const xPos = @as(i16, @intCast(l_param & 0xFFFF)); // Get lower 16 bits for x position
+                    // const yPos = @as(i16, @intCast((l_param >> 16) & 0xFFFF)); // Get higher 16 bits for y position
+                    //if ((xPos >= window.min_x and xPos < window.max_x) and (yPos >= window.min_y and yPos < window.max_y)) {
+                    //    window.x_pos = xPos;
+                    //    window.y_pos = yPos;
+                    //    std.debug.print("window x_pos: {}, y_pos: {}\n", .{ window.x_pos, window.y_pos });
+                    // }
                 }
             },
             user32.WM_PAINT => {
                 // TODO (Thomas): Deal with software renderer here, for now we just returnd default window proc
                 // so that message loop finishes.
-                result = user32.defWindowProcW(window, message, w_param, l_param);
+                result = user32.defWindowProcW(hwnd, message, w_param, l_param);
             },
             user32.WM_MOUSEMOVE,
             user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
@@ -163,7 +201,7 @@ pub const Window = struct {
             },
 
             else => {
-                result = user32.defWindowProcW(window, message, w_param, l_param);
+                result = user32.defWindowProcW(hwnd, message, w_param, l_param);
             },
         }
 
@@ -203,8 +241,19 @@ pub const Window = struct {
         return has_msg;
     }
 
-    pub fn setWindowSizeCallback(self: *Window, cbFun: @TypeOf(windowSizeCallbackType)) void {
-        self.callbacks.window_resize = cbFun;
+    pub fn setWindowPosCallback(self: *Window, cb_fun: @TypeOf(windowPosCallbackType)) void {
+        self.callbacks.window_pos = cb_fun;
+    }
+
+    pub fn setWindowSizeCallback(self: *Window, cb_fun: @TypeOf(windowSizeCallbackType)) void {
+        self.callbacks.window_resize = cb_fun;
+    }
+
+    // TODO (Thomas): Probably setting
+    pub fn defaultWindowPosCallback(window: *Window, x_pos: i32, y_pos: i32) void {
+        _ = window;
+        _ = x_pos;
+        _ = y_pos;
     }
 
     pub fn defaultWindowSizeCallback(window: *Window, width: i32, height: i32) void {

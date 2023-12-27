@@ -108,13 +108,22 @@ pub export fn WindowProc(
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
-    const win_opts = WindowOptions{ .width = 640, .height = 480 };
+    const win_opts = WindowOptions{
+        .x_pos = 0,
+        .y_pos = 0,
+        .min_x = 0,
+        .min_y = 0,
+        .max_x = 2560,
+        .max_y = 1440,
+        .width = 640,
+        .height = 480,
+    };
     var win = try Window.init(allocator, win_opts);
     win.setWindowSizeCallback(windowSizeCallback);
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {
         while (try win.pollEvent(&event)) {
-            std.debug.print("Event: {}\n", .{event});
+            //std.debug.print("Event: {}\n", .{event});
         }
     }
 
