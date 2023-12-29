@@ -135,7 +135,7 @@ pub const Window = struct {
         return window_opt;
     }
 
-    fn getLParamDims(l_param: isize) [2]i16 {
+    inline fn getLParamDims(l_param: isize) [2]i16 {
         const dim: [2]i16 = @bitCast(@as(i32, @intCast(l_param)));
         return dim;
     }
