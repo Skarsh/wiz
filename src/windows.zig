@@ -26,12 +26,14 @@ pub const WindowOptions = struct {
 
 pub const windowPosCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
 pub const windowSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
+pub const windowFramebufferSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
 pub const mouseMoveCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
 
 pub const WindowCallbacks = struct {
-    window_pos: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined,
-    window_resize: *const fn (window: *Window, width: i32, height: i32) void = undefined,
-    mouse_move: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined,
+    window_pos: ?*const fn (window: *Window, x_pos: i32, y_pos: i32) void = null,
+    window_resize: ?*const fn (window: *Window, width: i32, height: i32) void = null,
+    window_framebuffer_resize: ?*const fn (window: *Window, width: i32, height: i32) void = null,
+    mouse_move: ?*const fn (window: *Window, x_pos: i32, y_pos: i32) void = null,
 };
 
 pub const Window = struct {
@@ -94,12 +96,7 @@ pub const Window = struct {
         window.mouse_x = 0;
         window.mouse_y = 0;
 
-        const callbacks = WindowCallbacks{
-            .window_resize = defaultWindowSizeCallback,
-            .window_pos = defaultWindowPosCallback,
-            .mouse_move = defaultMoseMoveCallback,
-        };
-        window.callbacks = callbacks;
+        window.callbacks = WindowCallbacks{};
 
         const hwnd = try user32.createWindowExW(
             0,
@@ -175,15 +172,19 @@ pub const Window = struct {
                 }
             },
             user32.WM_SIZE => {
-                // TODO (Thomas): This only deals with the size of the window, should also set the rect of what is actually drawable.
                 const window_opt = getWindowFromHwnd(hwnd);
-                if (window_opt) |win| {
+                if (window_opt) |window| {
                     const dim = getLParamDims(l_param);
-                    if (dim[0] != win.width or dim[1] != win.height) {
+                    if (dim[0] != window.width or dim[1] != window.height) {
                         const width = dim[0];
                         const height = dim[1];
 
-                        win.callbacks.window_resize(win, width, height);
+                        if (window.callbacks.window_resize) |cb| {
+                            cb(window, width, height);
+                        }
+                        if (window.callbacks.window_framebuffer_resize) |cb| {
+                            cb(window, width, height);
+                        }
                     }
                 }
             },
@@ -193,7 +194,9 @@ pub const Window = struct {
                     const pos = getLParamDims(l_param);
                     const x = pos[0];
                     const y = pos[1];
-                    window.callbacks.window_pos(window, x, y);
+                    if (window.callbacks.window_pos) |cb| {
+                        cb(window, x, y);
+                    }
                 }
             },
             user32.WM_PAINT => {
@@ -208,7 +211,9 @@ pub const Window = struct {
                     const pos = getLParamDims(l_param);
                     const x = pos[0];
                     const y = pos[1];
-                    window.callbacks.mouse_move(window, x, y);
+                    if (window.callbacks.mouse_move) |cb| {
+                        cb(window, x, y);
+                    }
                 }
             },
             user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
@@ -273,10 +278,15 @@ pub const Window = struct {
         self.callbacks.window_resize = cb_fun;
     }
 
+    pub fn setWindowFramebufferSizeCallback(self: *Window, cb_fun: @TypeOf(windowFramebufferSizeCallbackType)) void {
+        self.callbacks.window_framebuffer_resize = cb_fun;
+    }
+
     pub fn setMouseMoveCallback(self: *Window, cb_fun: @TypeOf(mouseMoveCallbackType)) void {
         self.callbacks.mouse_move = cb_fun;
     }
 
+    // TODO (Thomas): What to do with the default callbacks? Are they really necessary?
     fn defaultWindowPosCallback(window: *Window, x_pos: i32, y_pos: i32) void {
         window.x_pos = x_pos;
         window.y_pos = y_pos;
@@ -285,6 +295,12 @@ pub const Window = struct {
     fn defaultWindowSizeCallback(window: *Window, width: i32, height: i32) void {
         window.width = width;
         window.height = height;
+    }
+
+    fn defaultWindowFramebufferSizeCallback(window: *Window, width: i32, height: i32) void {
+        _ = window;
+        _ = width;
+        _ = height;
     }
 
     fn defaultMoseMoveCallback(window: *Window, x_pos: i32, y_pos: i32) void {
