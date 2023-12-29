@@ -135,16 +135,9 @@ pub const Window = struct {
         return window_opt;
     }
 
-    fn getXLParam(l_param: isize) i32 {
-        const l_param_i32 = @as(i32, @intCast(l_param));
-        const x: i32 = (l_param_i32 & 0xFFFF);
-        return x;
-    }
-
-    fn getYLParam(l_param: isize) i32 {
-        const l_param_i32 = @as(i32, @intCast(l_param));
-        const y: i32 = (l_param_i32 >> 16) & 0xFFFF;
-        return y;
+    fn getLParamDims(l_param: isize) [2]i16 {
+        const dim: [2]i16 = @bitCast(@as(i32, @intCast(l_param)));
+        return dim;
     }
 
     fn windowProc(
@@ -185,7 +178,7 @@ pub const Window = struct {
                 // TODO (Thomas): This only deals with the size of the window, should also set the rect of what is actually drawable.
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |win| {
-                    const dim: [2]u16 = @bitCast(@as(u32, @intCast(l_param)));
+                    const dim = getLParamDims(l_param);
                     if (dim[0] != win.width or dim[1] != win.height) {
                         const width = dim[0];
                         const height = dim[1];
@@ -197,9 +190,9 @@ pub const Window = struct {
             user32.WM_MOVE => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
-                    const x = getXLParam(l_param);
-                    const y = getYLParam(l_param);
-
+                    const pos = getLParamDims(l_param);
+                    const x = pos[0];
+                    const y = pos[1];
                     window.callbacks.window_pos(window, x, y);
                 }
             },
@@ -212,8 +205,9 @@ pub const Window = struct {
             user32.WM_MOUSEMOVE => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
-                    const x = getXLParam(l_param);
-                    const y = getYLParam(l_param);
+                    const pos = getLParamDims(l_param);
+                    const x = pos[0];
+                    const y = pos[1];
                     window.callbacks.mouse_move(window, x, y);
                 }
             },
