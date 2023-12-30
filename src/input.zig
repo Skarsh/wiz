@@ -67,15 +67,15 @@ pub const Event = union(EventType) {
 pub const EventQueue = struct {
     allocator: Allocator,
     queue: []Event,
-    front: isize = -1,
-    rear: isize = -1,
+    head: isize = -1,
+    tail: isize = -1,
 
     pub fn init(allocator: Allocator, num_elements: usize) !EventQueue {
         const queue = try allocator.alloc(Event, num_elements);
         for (queue) |*event| {
             event.* = Event{ .Empty = undefined };
         }
-        return EventQueue{ .allocator = allocator, .queue = queue, .front = -1, .rear = -1 };
+        return EventQueue{ .allocator = allocator, .queue = queue };
     }
 
     pub fn deinit(self: EventQueue) void {
@@ -83,46 +83,19 @@ pub const EventQueue = struct {
     }
 
     pub fn enqueue(self: *EventQueue, event: Event) void {
-        // Initial case
-        if (self.front == -1 and self.rear == -1) {
-            self.front = 0;
-            self.rear += 1;
-            self.queue[@intCast(self.rear)] = event;
-        }
-
-        // Other cases to handle:
-        // 1. front < rear, just increase rear by 1, deal with potential wrap
-        // 2. front > rear + 1, just increase rear by 1 and set element
-        // 3. rear + 1 == front, increate front by 1 (deal with wrap), increase rear by 1 and set element,
-
-        if (self.front < self.rear) {
-            // We need to check if front is 0 here
-            if (self.rear == self.queue.len) {
-                if (self.front == 0) {
-                    self.rear = 0;
-                    self.queue[@intCast(self.rear)] = event;
-                    self.front += 1;
-                } else {
-                    self.rear = 0;
-                    self.queue[@intCast(self.rear)] = event;
-                }
-            } else {
-                self.rear += 1;
-                self.queue[@intCast(self.rear)] = event;
-            }
-        } else if (self.front > self.rear + 1) {
-            self.rear += 1;
-            self.queue[@intCast(self.rear)] = event;
-        } else if (self.rear + 1 == self.front) {
-            if (self.front == self.queue.len) {
-                self.rear += 1;
-                self.queue[@intCast(self.rear)] = event;
-                self.front = 0;
-            } else {
-                self.rear += 1;
-                self.queue[@intCast(self.rear)] = event;
-                self.front += 1;
-            }
+        // if the next position for tail is at the head, then we need to increment
+        // bot head and tail, with modulo for handling wrapping.
+        if (@mod(self.tail + 1, @as(isize, @intCast(self.queue.len))) == self.head) {
+            self.tail += 1;
+            self.queue[@intCast(self.tail)] = event;
+            self.head = @mod(self.head + 1, @as(isize, @intCast(self.queue.len)));
+        } else if (self.head == -1) {
+            self.head = 0;
+            self.tail = 0;
+            self.queue[@intCast(self.tail)] = event;
+        } else {
+            self.tail = @mod(self.tail + 1, @as(isize, @intCast(self.queue.len)));
+            self.queue[@intCast(self.tail)] = event;
         }
     }
 
@@ -133,35 +106,19 @@ pub const EventQueue = struct {
     /// Polls the queue to see if there are new unprocessed elements to handle.
     /// When polled, returns the event at the rear
     pub fn poll(self: *EventQueue, event: *Event) bool {
-        // Cases to handle:
-        // 1. Simplest case, rear > front
-        // 2. Rear has wrapped, so rear < front
-        // 3. There is only one element left, meaning rear == front
-
-        if (self.rear == -1) {
+        // Queue is empty
+        if (self.head == -1) {
             return false;
-        }
-
-        event.* = self.queue[@intCast(self.rear)];
-        if (self.rear > self.front) {
-            self.rear -= 1;
+        } else if (self.head == self.tail) {
+            event.* = self.queue[@intCast(self.head)];
+            self.head = -1;
+            self.tail = -1;
             return true;
-        } else if (self.rear < self.front) {
-            // Check if at 0, if so need to wrap around backward
-            if (self.rear == 0) {
-                self.rear = @as(isize, @intCast(self.queue.len)) - 1;
-                return true;
-            } else {
-                self.rear -= 1;
-                return true;
-            }
-        } else if (self.rear == self.front) {
-            self.front = -1;
-            self.rear = -1;
+        } else {
+            event.* = self.queue[@intCast(self.head)];
+            self.head = @mod((self.head + 1), @as(isize, @intCast(self.queue.len)));
             return true;
         }
-
-        return false;
     }
 
     pub fn print(self: EventQueue) void {
@@ -189,8 +146,8 @@ test "EnqueueTest initial condition" {
 
     const event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
     event_queue.enqueue(event);
-    try expectEqual(event_queue.front, 0);
-    try expectEqual(event_queue.rear, 0);
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 0);
     try expectEqual(event_queue.queue[0], event);
 }
 
@@ -202,13 +159,38 @@ test "Poll initial condition" {
 
     const event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 15 } };
     event_queue.enqueue(event);
-    try expectEqual(event_queue.front, 0);
-    try expectEqual(event_queue.rear, 0);
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 0);
     try expectEqual(event_queue.queue[0], event);
 
     var out_event: Event = Event{ .Empty = undefined };
     try expect(event_queue.poll(&out_event));
     try expectEqual(out_event, event);
-    try expectEqual(event_queue.front, -1);
-    try expectEqual(event_queue.rear, -1);
+    try expectEqual(event_queue.head, -1);
+    try expectEqual(event_queue.tail, -1);
+}
+
+test "Poll two elements" {
+    const allocator = std.testing.allocator;
+    const num_elements: usize = 10;
+    var event_queue = try EventQueue.init(allocator, num_elements);
+    defer event_queue.deinit();
+
+    const event1: Event = Event{ .KeyDown = KeyEvent{ .scancode = 1 } };
+    event_queue.enqueue(event1);
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 0);
+    try expectEqual(event_queue.queue[0], event1);
+
+    const event2 = Event{ .KeyDown = KeyEvent{ .scancode = 2 } };
+    event_queue.enqueue(event2);
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 1);
+    try expectEqual(event_queue.queue[1], event2);
+
+    var out_event: Event = Event{ .Empty = undefined };
+    try expect(event_queue.poll(&out_event));
+    try expectEqual(out_event, event1);
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 0);
 }
