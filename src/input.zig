@@ -86,8 +86,7 @@ pub const EventQueue = struct {
         // if the next position for tail is at the head, then we need to increment
         // bot head and tail, with modulo for handling wrapping.
         if (@mod(self.tail + 1, @as(isize, @intCast(self.queue.len))) == self.head) {
-            // TODO (Thomas): Does this correctly and as we want to? This will leave
-            self.tail += 1;
+            self.tail = @mod(self.tail + 1, @as(isize, @intCast(self.queue.len)));
             self.queue[@intCast(self.tail)] = event;
             self.head = @mod(self.head + 1, @as(isize, @intCast(self.queue.len)));
         } else if (self.head == -1) {
@@ -243,4 +242,49 @@ test "Wrap around tail" {
     try expectEqual(event_queue.head, 1);
     try expectEqual(event_queue.tail, 0);
     try expectEqual(event_queue.queue[0], event4);
+}
+
+test "Wrap around head synthetic" {
+    const allocator = std.testing.allocator;
+    const num_elements: usize = 3;
+    var event_queue = try EventQueue.init(allocator, num_elements);
+    defer event_queue.deinit();
+
+    event_queue.head = 2;
+    event_queue.tail = 1;
+    const event1: Event = Event{ .KeyDown = KeyEvent{ .scancode = 1 } };
+    event_queue.enqueue(event1);
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 2);
+    try expectEqual(event_queue.queue[2], event1);
+}
+
+test "Wrap around head with enqueue" {
+    const allocator = std.testing.allocator;
+    const num_elements: usize = 3;
+    var event_queue = try EventQueue.init(allocator, num_elements);
+    defer event_queue.deinit();
+
+    const event1: Event = Event{ .KeyDown = KeyEvent{ .scancode = 1 } };
+    event_queue.enqueue(event1);
+    const event2: Event = Event{ .KeyDown = KeyEvent{ .scancode = 2 } };
+    event_queue.enqueue(event2);
+    const event3: Event = Event{ .KeyDown = KeyEvent{ .scancode = 3 } };
+    event_queue.enqueue(event3);
+
+    // Wrapping around here
+    const event4: Event = Event{ .KeyDown = KeyEvent{ .scancode = 4 } };
+    event_queue.enqueue(event4);
+    // Head = 1
+
+    const event5: Event = Event{ .KeyDown = KeyEvent{ .scancode = 5 } };
+    event_queue.enqueue(event5);
+
+    // Head = 2
+    const event6: Event = Event{ .KeyDown = KeyEvent{ .scancode = 6 } };
+    event_queue.enqueue(event6);
+
+    // Head = 0
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 2);
 }
