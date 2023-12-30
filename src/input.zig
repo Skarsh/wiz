@@ -86,6 +86,7 @@ pub const EventQueue = struct {
         // if the next position for tail is at the head, then we need to increment
         // bot head and tail, with modulo for handling wrapping.
         if (@mod(self.tail + 1, @as(isize, @intCast(self.queue.len))) == self.head) {
+            // TODO (Thomas): Does this correctly and as we want to? This will leave
             self.tail += 1;
             self.queue[@intCast(self.tail)] = event;
             self.head = @mod(self.head + 1, @as(isize, @intCast(self.queue.len)));
@@ -191,6 +192,55 @@ test "Poll two elements" {
     var out_event: Event = Event{ .Empty = undefined };
     try expect(event_queue.poll(&out_event));
     try expectEqual(out_event, event1);
+    try expectEqual(event_queue.head, 1);
+    try expectEqual(event_queue.tail, 1);
+
+    out_event = Event{ .Empty = undefined };
+    try expect(event_queue.poll(&out_event));
+    try expectEqual(out_event, event2);
+    try expectEqual(event_queue.head, -1);
+    try expectEqual(event_queue.tail, -1);
+}
+
+test "Poll before enqueue" {
+    const allocator = std.testing.allocator;
+    const num_elements: usize = 10;
+    var event_queue = try EventQueue.init(allocator, num_elements);
+    defer event_queue.deinit();
+
+    const expected_event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 1 } };
+    var out_event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 1 } };
+    try expect(!event_queue.poll(&out_event));
+    try expectEqual(expected_event, out_event);
+}
+
+test "Wrap around tail" {
+    const allocator = std.testing.allocator;
+    const num_elements: usize = 3;
+    var event_queue = try EventQueue.init(allocator, num_elements);
+    defer event_queue.deinit();
+
+    const event1: Event = Event{ .KeyDown = KeyEvent{ .scancode = 1 } };
+    event_queue.enqueue(event1);
     try expectEqual(event_queue.head, 0);
     try expectEqual(event_queue.tail, 0);
+    try expectEqual(event_queue.queue[0], event1);
+
+    const event2: Event = Event{ .KeyDown = KeyEvent{ .scancode = 2 } };
+    event_queue.enqueue(event2);
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 1);
+    try expectEqual(event_queue.queue[1], event2);
+
+    const event3: Event = Event{ .KeyDown = KeyEvent{ .scancode = 3 } };
+    event_queue.enqueue(event3);
+    try expectEqual(event_queue.head, 0);
+    try expectEqual(event_queue.tail, 2);
+    try expectEqual(event_queue.queue[2], event3);
+
+    const event4: Event = Event{ .KeyDown = KeyEvent{ .scancode = 4 } };
+    event_queue.enqueue(event4);
+    try expectEqual(event_queue.head, 1);
+    try expectEqual(event_queue.tail, 0);
+    try expectEqual(event_queue.queue[0], event4);
 }
