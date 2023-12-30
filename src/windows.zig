@@ -224,9 +224,17 @@ pub const Window = struct {
             user32.WM_MBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttonup
             => {
                 //event.* = Event{ .MouseButtonUp = MouseButtonEvent{ .x = 0, .y = 0, .button = MouseButton.left } };
+
+                // Should never be able to reach this until we move
+                // the event handling code here from pollEvent();
+                assert(false);
             },
             user32.WM_KEYDOWN, user32.WM_KEYUP => {
                 //event.* = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
+
+                // Should never be able to reach this until we move
+                // the event handling code here from pollEvent();
+                assert(false);
             },
 
             else => {
