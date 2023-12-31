@@ -165,6 +165,7 @@ pub const Window = struct {
                 _ = user32.destroyWindow(hwnd) catch unreachable;
             },
             // TODO(Thomas): Need to deal with window handle etc here, due to the cases where there's multiple windows.
+            // In general do the different types of cleanups necessary here
             user32.WM_DESTROY => {
                 std.debug.print("destroying window\n", .{});
             },
@@ -222,13 +223,12 @@ pub const Window = struct {
                     if (window.callbacks.mouse_move) |cb| {
                         cb(window, x, y);
                     } else {
-                        std.debug.print("wat?\n", .{});
                         const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y } };
                         window.event_queue.enqueue(event);
                     }
                 }
             },
-            // TODO (Thomas): Move the code into the different cases, this is just placeholder stuff.
+            // TODO (Thomas): Add mouse scroll etc.
             user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
             user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
             user32.WM_RBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttondown
@@ -243,20 +243,32 @@ pub const Window = struct {
                     const y = pos[1];
 
                     if (window.callbacks.mouse_button) |cb| {
-                        cb(window, x, y, MouseButton.left);
+                        // TODO (Thomas): Need to know wheter it was button up or down in callback
+                        cb(window, x, y, MouseButton.middle);
                     } else {
-                        std.debug.print("wat?\n", .{});
-                        const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y } };
+                        const data = MouseButtonEvent{
+                            .x = x,
+                            .y = y,
+                            .button = switch (message) {
+                                user32.WM_LBUTTONDOWN, user32.WM_LBUTTONUP => .left,
+                                user32.WM_MBUTTONDOWN, user32.WM_MBUTTONUP => .middle,
+                                user32.WM_RBUTTONDOWN, user32.WM_RBUTTONUP => .right,
+                                else => unreachable,
+                            },
+                        };
+                        const event: Event =
+                            if ((message == user32.WM_LBUTTONDOWN) or (message == user32.WM_MBUTTONDOWN) or (message == user32.WM_RBUTTONDOWN))
+                            Event{ .MouseButtonDown = data }
+                        else
+                            Event{ .MouseButtonUp = data };
+
                         window.event_queue.enqueue(event);
                     }
                 }
             },
             user32.WM_KEYDOWN, user32.WM_KEYUP => {
-                //event.* = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
-
-                // Should never be able to reach this until we move
-                // the event handling code here from pollEvent();
-                assert(false);
+                // TODO (Thomas): Deal with key presses
+                result = user32.defWindowProcW(hwnd, message, w_param, l_param);
             },
 
             else => {
@@ -267,38 +279,16 @@ pub const Window = struct {
         return result;
     }
 
-    pub fn pollEvent(self: *Window, event: *Event) !bool {
-        _ = self;
-        _ = event;
+    pub fn processMessages() !void {
         var msg = user32.MSG.default();
-        const has_msg = try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE);
-        if (has_msg) {
+        while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
             switch (msg.message) {
-                // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mousemove
-                //user32.WM_MOUSEMOVE => {
-                //    event.* = Event{ .MouseMotion = MouseMotionEvent{ .x = 0, .y = 0 } };
-                //},
-                //user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
-                //user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
-                //user32.WM_RBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttondown
-                //user32.WM_RBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttonup
-                //user32.WM_MBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttondown
-                //user32.WM_MBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttonup
-                //=> {
-                //    event.* = Event{ .MouseButtonUp = MouseButtonEvent{ .x = 0, .y = 0, .button = MouseButton.left } };
-                //},
-                //user32.WM_KEYDOWN, user32.WM_KEYUP => {
-                //    event.* = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
-                //},
-
                 else => {
-                    // TODO(Thomas): Deal with return values here
                     _ = user32.translateMessage(&msg);
                     _ = user32.dispatchMessageW(&msg);
                 },
             }
         }
-        return has_msg;
     }
 
     pub fn setWindowPosCallback(self: *Window, cb_fun: @TypeOf(windowPosCallbackType)) void {

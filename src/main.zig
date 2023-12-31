@@ -122,12 +122,11 @@ pub fn main() !void {
     win.setWindowSizeCallback(windowSizeCallback);
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {
-        while (try win.pollEvent(&event)) {
-            //std.debug.print("Event: {}\n", .{event});
-        }
+        try Window.processMessages();
         while (win.event_queue.poll(&event)) {
             std.debug.print("Event: {}\n", .{event});
         }
+        // Equals 1ms sleep, just so CPU don't blow up
         std.time.sleep(1_000_000);
     }
 
