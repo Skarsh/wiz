@@ -62,8 +62,8 @@ pub const Event = union(EventType) {
 };
 
 /// Circular Event FIFO Queue
-/// Front always holds the index of the oldest element
-/// Rear always holds the index of the newest element
+/// Head always holds the index of the oldest element
+/// Tail always holds the index of the newest element
 pub const EventQueue = struct {
     allocator: Allocator,
     queue: []Event,
@@ -82,6 +82,8 @@ pub const EventQueue = struct {
         self.allocator.free(self.queue);
     }
 
+    /// Pushes a new event onto the queue. Will wrap around and
+    /// overwrite older values if full.
     pub fn enqueue(self: *EventQueue, event: Event) void {
         // if the next position for tail is at the head, then we need to increment
         // bot head and tail, with modulo for handling wrapping.
@@ -97,10 +99,6 @@ pub const EventQueue = struct {
             self.tail = @mod(self.tail + 1, @as(isize, @intCast(self.queue.len)));
             self.queue[@intCast(self.tail)] = event;
         }
-    }
-
-    pub fn dequeue(self: *EventQueue) ?Event {
-        _ = self;
     }
 
     /// Polls the queue to see if there are new unprocessed elements to handle.
@@ -129,13 +127,14 @@ pub const EventQueue = struct {
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 
-// TODO (Thomas): Test for whether all has the right initialized Event value?
 test "Init test" {
     const allocator = std.testing.allocator;
     const num_elements: usize = 10;
     var event_queue = try EventQueue.init(allocator, num_elements);
     defer event_queue.deinit();
     try expectEqual(event_queue.queue.len, 10);
+    try expectEqual(event_queue.head, -1);
+    try expectEqual(event_queue.tail, -1);
 }
 
 test "EnqueueTest initial condition" {
