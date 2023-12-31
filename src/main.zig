@@ -125,6 +125,10 @@ pub fn main() !void {
         while (try win.pollEvent(&event)) {
             //std.debug.print("Event: {}\n", .{event});
         }
+        while (win.event_queue.poll(&event)) {
+            std.debug.print("Event: {}\n", .{event});
+        }
+        std.time.sleep(1_000_000);
     }
 
     std.debug.print("Exiting app\n", .{});

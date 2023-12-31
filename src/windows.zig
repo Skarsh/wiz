@@ -8,6 +8,7 @@ const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 const user32 = @import("user32.zig");
 const input = @import("input.zig");
 const Event = input.Event;
+const EventQueue = input.EventQueue;
 const MouseButton = input.MouseButton;
 const MouseMotionEvent = input.MouseMotionEvent;
 const MouseButtonEvent = input.MouseButtonEvent;
@@ -28,15 +29,18 @@ pub const windowPosCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: 
 pub const windowSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
 pub const windowFramebufferSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
 pub const mouseMoveCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
+pub const mouseButtonCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32, button: MouseButton) void = undefined;
 
 pub const WindowCallbacks = struct {
     window_pos: ?*const fn (window: *Window, x_pos: i32, y_pos: i32) void = null,
     window_resize: ?*const fn (window: *Window, width: i32, height: i32) void = null,
     window_framebuffer_resize: ?*const fn (window: *Window, width: i32, height: i32) void = null,
     mouse_move: ?*const fn (window: *Window, x_pos: i32, y_pos: i32) void = null,
+    mouse_button: ?*const fn (window: *Window, x_pos: i32, y_pos: i32, button: MouseButton) void = null,
 };
 
 pub const Window = struct {
+    allocator: Allocator,
     h_instance: windows.HINSTANCE,
     hwnd: ?windows.HWND,
     lp_class_name: [*:0]const u16,
@@ -53,6 +57,7 @@ pub const Window = struct {
     mouse_y: i32,
     self: *Window = undefined,
     callbacks: WindowCallbacks,
+    event_queue: EventQueue,
 
     pub fn init(allocator: Allocator, options: WindowOptions) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
@@ -81,6 +86,7 @@ pub const Window = struct {
 
         var window = try allocator.create(Window);
 
+        window.allocator = allocator;
         window.h_instance = h_instance;
         window.hwnd = null;
         window.lp_class_name = wc.lpszClassName;
@@ -97,6 +103,8 @@ pub const Window = struct {
         window.mouse_y = 0;
 
         window.callbacks = WindowCallbacks{};
+
+        window.event_queue = try EventQueue.init(allocator, 1000);
 
         const hwnd = try user32.createWindowExW(
             0,
@@ -213,9 +221,14 @@ pub const Window = struct {
                     const y = pos[1];
                     if (window.callbacks.mouse_move) |cb| {
                         cb(window, x, y);
+                    } else {
+                        std.debug.print("wat?\n", .{});
+                        const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y } };
+                        window.event_queue.enqueue(event);
                     }
                 }
             },
+            // TODO (Thomas): Move the code into the different cases, this is just placeholder stuff.
             user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
             user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
             user32.WM_RBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttondown
@@ -223,11 +236,20 @@ pub const Window = struct {
             user32.WM_MBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttondown
             user32.WM_MBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttonup
             => {
-                //event.* = Event{ .MouseButtonUp = MouseButtonEvent{ .x = 0, .y = 0, .button = MouseButton.left } };
+                const window_opt = getWindowFromHwnd(hwnd);
+                if (window_opt) |window| {
+                    const pos = getLParamDims(l_param);
+                    const x = pos[0];
+                    const y = pos[1];
 
-                // Should never be able to reach this until we move
-                // the event handling code here from pollEvent();
-                assert(false);
+                    if (window.callbacks.mouse_button) |cb| {
+                        cb(window, x, y, MouseButton.left);
+                    } else {
+                        std.debug.print("wat?\n", .{});
+                        const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y } };
+                        window.event_queue.enqueue(event);
+                    }
+                }
             },
             user32.WM_KEYDOWN, user32.WM_KEYUP => {
                 //event.* = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
@@ -247,26 +269,27 @@ pub const Window = struct {
 
     pub fn pollEvent(self: *Window, event: *Event) !bool {
         _ = self;
+        _ = event;
         var msg = user32.MSG.default();
         const has_msg = try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE);
         if (has_msg) {
             switch (msg.message) {
                 // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mousemove
-                user32.WM_MOUSEMOVE => {
-                    event.* = Event{ .MouseMotion = MouseMotionEvent{ .x = 0, .y = 0 } };
-                },
-                user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
-                user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
-                user32.WM_RBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttondown
-                user32.WM_RBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttonup
-                user32.WM_MBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttondown
-                user32.WM_MBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttonup
-                => {
-                    event.* = Event{ .MouseButtonUp = MouseButtonEvent{ .x = 0, .y = 0, .button = MouseButton.left } };
-                },
-                user32.WM_KEYDOWN, user32.WM_KEYUP => {
-                    event.* = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
-                },
+                //user32.WM_MOUSEMOVE => {
+                //    event.* = Event{ .MouseMotion = MouseMotionEvent{ .x = 0, .y = 0 } };
+                //},
+                //user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
+                //user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
+                //user32.WM_RBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttondown
+                //user32.WM_RBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttonup
+                //user32.WM_MBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttondown
+                //user32.WM_MBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttonup
+                //=> {
+                //    event.* = Event{ .MouseButtonUp = MouseButtonEvent{ .x = 0, .y = 0, .button = MouseButton.left } };
+                //},
+                //user32.WM_KEYDOWN, user32.WM_KEYUP => {
+                //    event.* = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
+                //},
 
                 else => {
                     // TODO(Thomas): Deal with return values here
