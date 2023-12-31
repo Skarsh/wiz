@@ -61,6 +61,10 @@ pub const Event = union(EventType) {
     MouseMotion: MouseMotionEvent,
 };
 
+// TODO (Thomas): What about thread safety for the EventQueue?
+// Its fine when only the main thread is putting on events from the
+// window proc.
+
 /// Circular Event FIFO Queue
 /// Head always holds the index of the oldest element
 /// Tail always holds the index of the newest element
