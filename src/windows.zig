@@ -246,7 +246,7 @@ pub const Window = struct {
                         // TODO (Thomas): Need to know wheter it was button up or down in callback
                         cb(window, x, y, MouseButton.middle);
                     } else {
-                        const data = MouseButtonEvent{
+                        const button_event = MouseButtonEvent{
                             .x = x,
                             .y = y,
                             .button = switch (message) {
@@ -258,17 +258,24 @@ pub const Window = struct {
                         };
                         const event: Event =
                             if ((message == user32.WM_LBUTTONDOWN) or (message == user32.WM_MBUTTONDOWN) or (message == user32.WM_RBUTTONDOWN))
-                            Event{ .MouseButtonDown = data }
+                            Event{ .MouseButtonDown = button_event }
                         else
-                            Event{ .MouseButtonUp = data };
+                            Event{ .MouseButtonUp = button_event };
 
                         window.event_queue.enqueue(event);
                     }
                 }
             },
             user32.WM_KEYDOWN, user32.WM_KEYUP => {
-                // TODO (Thomas): Deal with key presses
-                result = user32.defWindowProcW(hwnd, message, w_param, l_param);
+                const window_opt = getWindowFromHwnd(hwnd);
+                if (window_opt) |window| {
+                    // TODO (Thomas): Is this correct????
+                    const key_event = KeyEvent{
+                        .scancode = @as(u8, @truncate(@as(u32, @intCast((l_param >> 16))))),
+                    };
+                    const event = if (message == user32.WM_KEYDOWN) Event{ .KeyDown = key_event } else Event{ .KeyUp = key_event };
+                    window.event_queue.enqueue(event);
+                }
             },
 
             else => {
