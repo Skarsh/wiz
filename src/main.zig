@@ -3,6 +3,7 @@ const windows = std.os.windows;
 const kernel32 = windows.kernel32;
 const user32 = @import("user32.zig");
 const gdi32 = @import("gdi32.zig");
+const opengl32 = @import("opengl32.zig");
 const input = @import("input.zig");
 const Event = input.Event;
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
@@ -119,13 +120,27 @@ pub fn main() !void {
         .height = 480,
     };
     var win = try Window.init(allocator, win_opts);
+    win.makeOpenGLContext();
     win.setWindowSizeCallback(windowSizeCallback);
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {
         try Window.processMessages();
         while (win.event_queue.poll(&event)) {
-            std.debug.print("Event: {}\n", .{event});
+            switch (event) {
+                .KeyDown => {
+                    // Hardcoded for now, 1 = ESCAPE
+                    if (event.KeyDown.scancode == 1) {
+                        win.windowShouldClose(true);
+                    }
+                },
+                else => {
+                    std.debug.print("Event: {}\n", .{event});
+                },
+            }
         }
+
+        opengl32.glClearColor(255.0, 0.0, 255.0, 0.0);
+        opengl32.glClear(opengl32.GL_COLOR_BUFFER_BIT);
         // Equals 1ms sleep, just so CPU don't blow up
         std.time.sleep(1_000_000);
     }

@@ -6,6 +6,8 @@ const windows = std.os.windows;
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
 const user32 = @import("user32.zig");
+const gdi32 = @import("gdi32.zig");
+const opengl32 = @import("opengl32.zig");
 const input = @import("input.zig");
 const Event = input.Event;
 const EventQueue = input.EventQueue;
@@ -43,6 +45,7 @@ pub const Window = struct {
     allocator: Allocator,
     h_instance: windows.HINSTANCE,
     hwnd: ?windows.HWND,
+    hglrc: ?windows.HGLRC,
     lp_class_name: [*:0]const u16,
     x_pos: i32,
     y_pos: i32,
@@ -89,6 +92,7 @@ pub const Window = struct {
         window.allocator = allocator;
         window.h_instance = h_instance;
         window.hwnd = null;
+        window.hglrc = null;
         window.lp_class_name = wc.lpszClassName;
         window.x_pos = options.x_pos;
         window.y_pos = options.y_pos;
@@ -126,9 +130,78 @@ pub const Window = struct {
         return window;
     }
 
+    pub fn makeOpenGLContext(self: *Window) void {
+        var pfd = gdi32.PIXELFORMATDESCRIPTOR{
+            .nSize = @sizeOf(gdi32.PIXELFORMATDESCRIPTOR),
+            .nVersion = 1,
+            .dwFlags = gdi32.PFD_DRAW_TO_WINDOW | gdi32.PFD_SUPPORT_OPENGL | gdi32.PFD_DOUBLEBUFFER,
+            .iPixelType = gdi32.PFD_TYPE_RGBA,
+            .cColorBits = 32,
+            .cRedBits = 0,
+            .cRedShift = 0,
+            .cGreenBits = 0,
+            .cGreenShift = 0,
+            .cBlueBits = 0,
+            .cBlueShift = 0,
+            .cAlphaBits = 0,
+            .cAlphaShift = 0,
+            .cAccumBits = 0,
+            .cAccumRedBits = 0,
+            .cAccumGreenBits = 0,
+            .cAccumBlueBits = 0,
+            .cAccumAlphaBits = 0,
+            .cDepthBits = 24, // Number of bits for the depthbuffer
+            .cStencilBits = 8, // Number of bits for the stencilbuffer
+            .cAuxBuffers = 0, // Number of Aux buffers in the framebuffer
+            .iLayerType = 0, // NOTE: This is PFD_MAIN_PLANE in the Khronos example https://www.khronos.org/opengl/wiki/Creating_an_OpenGL_Context_(WGL), but this is suppposed to not be needed anymore?
+            .bReserved = 0,
+            .dwLayerMask = 0,
+            .dwVisibleMask = 0,
+            .dwDamageMask = 0,
+        };
+
+        const our_window_handle_to_device_context = user32.GetDC(self.hwnd);
+
+        const let_windows_choose_pixel_format = gdi32.ChoosePixelFormat(
+            our_window_handle_to_device_context.?,
+            &pfd,
+        );
+
+        // TODO: handle return value
+        _ = gdi32.SetPixelFormat(
+            our_window_handle_to_device_context.?,
+            let_windows_choose_pixel_format,
+            &pfd,
+        );
+
+        const our_opengl_rendering_context = opengl32.wglCreateContext(
+            our_window_handle_to_device_context.?,
+        );
+
+        self.hglrc = our_opengl_rendering_context;
+
+        // TODO: handle return value
+        _ = opengl32.wglMakeCurrent(
+            our_window_handle_to_device_context.?,
+            our_opengl_rendering_context.?,
+        );
+
+        // TOOD (Thomas): What is this magic number?
+        const gl_version = opengl32.glGetString(7938);
+        std.debug.print("OpenGL Version: {s}\n", .{gl_version});
+
+        // TODO: handle return value
+        _ = user32.messageBoxA(null, gl_version, "OPENGL VERSION", 0) catch unreachable;
+    }
+
     pub fn deinit(self: Window) !void {
         try user32.destroyWindow(self.hwnd);
         try user32.unregisterClassW(self.lp_class_name, self.h_instance);
+
+        // TODO: handle return value
+        if (self.hglrc) |hglrc| {
+            _ = opengl32.wglDeleteContext(hglrc);
+        }
     }
 
     pub fn windowShouldClose(self: *Window, value: bool) void {
