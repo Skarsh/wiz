@@ -130,7 +130,7 @@ pub const Window = struct {
         return window;
     }
 
-    pub fn makeOpenGLContext(self: *Window) void {
+    pub fn makeOpenGLContext(self: *Window) !void {
         var pfd = gdi32.PIXELFORMATDESCRIPTOR{
             .nSize = @sizeOf(gdi32.PIXELFORMATDESCRIPTOR),
             .nVersion = 1,
@@ -161,30 +161,30 @@ pub const Window = struct {
         };
 
         // TODO (Thomas): Deal with optionals
-        const our_window_handle_to_device_context = user32.GetDC(self.hwnd);
-        defer _ = user32.releaseDC(self.hwnd, our_window_handle_to_device_context.?);
+        const hdc = try user32.getDC(self.hwnd);
+        defer _ = user32.releaseDC(self.hwnd, hdc);
 
         const let_windows_choose_pixel_format = gdi32.ChoosePixelFormat(
-            our_window_handle_to_device_context.?,
+            hdc,
             &pfd,
         );
 
         // TODO: handle return value
         _ = gdi32.SetPixelFormat(
-            our_window_handle_to_device_context.?,
+            hdc,
             let_windows_choose_pixel_format,
             &pfd,
         );
 
         const our_opengl_rendering_context = opengl32.wglCreateContext(
-            our_window_handle_to_device_context.?,
+            hdc,
         );
 
         self.hglrc = our_opengl_rendering_context;
 
         // TODO: handle return value
         _ = opengl32.wglMakeCurrent(
-            our_window_handle_to_device_context.?,
+            hdc,
             our_opengl_rendering_context.?,
         );
     }

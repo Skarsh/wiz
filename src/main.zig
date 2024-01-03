@@ -120,7 +120,7 @@ pub fn main() !void {
         .height = 480,
     };
     var win = try Window.init(allocator, win_opts);
-    win.makeOpenGLContext();
+    try win.makeOpenGLContext();
     win.setWindowSizeCallback(windowSizeCallback);
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {
