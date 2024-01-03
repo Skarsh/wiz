@@ -199,6 +199,12 @@ pub const Window = struct {
         }
     }
 
+    pub fn swapBuffers(self: *Window) !void {
+        const hdc = try user32.getDC(self.hwnd);
+        // TODO (Thomas): What to do with boolean value here? Return it to the caller?
+        _ = gdi32.SwapBuffers(hdc);
+    }
+
     pub fn windowShouldClose(self: *Window, value: bool) void {
         self.running = !value;
     }

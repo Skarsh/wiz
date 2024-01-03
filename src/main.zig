@@ -143,8 +143,8 @@ pub fn main() !void {
 
         opengl32.glClearColor(1.0, 0.0, 1.0, 0.0);
         opengl32.glClear(opengl32.GL_COLOR_BUFFER_BIT);
-        const hdc = try user32.getDC(win.hwnd);
-        _ = gdi32.SwapBuffers(hdc);
+        try win.swapBuffers();
+
         // Equals 1ms sleep, just so CPU don't blow up
         std.time.sleep(1_000_000);
     }
