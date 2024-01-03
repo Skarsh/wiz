@@ -160,7 +160,9 @@ pub const Window = struct {
             .dwDamageMask = 0,
         };
 
+        // TODO (Thomas): Deal with optionals
         const our_window_handle_to_device_context = user32.GetDC(self.hwnd);
+        defer _ = user32.releaseDC(self.hwnd, our_window_handle_to_device_context.?);
 
         const let_windows_choose_pixel_format = gdi32.ChoosePixelFormat(
             our_window_handle_to_device_context.?,
@@ -185,13 +187,6 @@ pub const Window = struct {
             our_window_handle_to_device_context.?,
             our_opengl_rendering_context.?,
         );
-
-        // TOOD (Thomas): What is this magic number?
-        const gl_version = opengl32.glGetString(7938);
-        std.debug.print("OpenGL Version: {s}\n", .{gl_version});
-
-        // TODO: handle return value
-        _ = user32.messageBoxA(null, gl_version, "OPENGL VERSION", 0) catch unreachable;
     }
 
     pub fn deinit(self: Window) !void {
