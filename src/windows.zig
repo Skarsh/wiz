@@ -200,9 +200,11 @@ pub const Window = struct {
     }
 
     pub fn swapBuffers(self: *Window) !void {
-        const hdc = try user32.getDC(self.hwnd);
         // TODO (Thomas): What to do with boolean value here? Return it to the caller?
-        _ = gdi32.SwapBuffers(hdc);
+        if (self.hwnd) |hwnd| {
+            const hdc = try user32.getDC(hwnd);
+            _ = gdi32.SwapBuffers(hdc);
+        }
     }
 
     pub fn windowShouldClose(self: *Window, value: bool) void {
@@ -229,11 +231,9 @@ pub const Window = struct {
 
         switch (message) {
             user32.WM_CLOSE => {
-                std.debug.print("closing\n", .{});
                 const window_opt = getWindowFromHwnd(hwnd);
 
                 if (window_opt) |win| {
-                    std.debug.print("Setting running to false\n", .{});
                     win.windowShouldClose(true);
                 }
                 _ = user32.destroyWindow(hwnd) catch unreachable;
@@ -241,7 +241,10 @@ pub const Window = struct {
             // TODO(Thomas): Need to deal with window handle etc here, due to the cases where there's multiple windows.
             // In general do the different types of cleanups necessary here
             user32.WM_DESTROY => {
-                std.debug.print("destroying window\n", .{});
+                const window_opt = getWindowFromHwnd(hwnd);
+                if (window_opt) |window| {
+                    window.hwnd = null;
+                }
             },
 
             user32.WM_CREATE => {
