@@ -62,7 +62,7 @@ pub const Window = struct {
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
 
-    pub fn init(allocator: Allocator, options: WindowOptions) !*Window {
+    pub fn init(allocator: Allocator, options: WindowOptions, comptime name: []const u8) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
         if (windows.kernel32.GetModuleHandleW(null)) |hinst| {
             h_instance = @ptrCast(hinst);
@@ -81,7 +81,8 @@ pub const Window = struct {
             .hCursor = null,
             .hbrBackground = null,
             .lpszMenuName = null,
-            .lpszClassName = u8to16le("Test Window"),
+            // TODO (Thomas): Add some postfix for the classname?
+            .lpszClassName = u8to16le(name),
             .hIconSm = null,
         };
 
@@ -108,12 +109,13 @@ pub const Window = struct {
 
         window.callbacks = WindowCallbacks{};
 
+        // TODO (Thomas): Make event queue size configureable?
         window.event_queue = try EventQueue.init(allocator, 1000);
 
         const hwnd = try user32.createWindowExW(
             0,
             wc.lpszClassName,
-            u8to16le("Wiz"),
+            u8to16le(name),
             user32.WS_OVERLAPPEDWINDOW | user32.WS_VISIBLE,
             0,
             0,

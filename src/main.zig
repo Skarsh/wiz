@@ -24,10 +24,12 @@ pub fn main() !void {
         .width = 640,
         .height = 480,
     };
-    var win = try Window.init(allocator, win_opts);
+    var win = try Window.init(allocator, win_opts, "win1");
     try win.makeOpenGLContext();
     win.setWindowSizeCallback(windowSizeCallback);
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
+    const win2 = try Window.init(allocator, win_opts, "win2");
+    _ = win2;
     while (win.running) {
         try Window.processMessages();
         while (win.event_queue.poll(&event)) {
