@@ -25,6 +25,14 @@ pub fn main() !void {
         .height = 480,
     };
     var win = try Window.init(allocator, win_opts, "win1");
+    const monitor_handle = try user32.monitorFromWindow(win.hwnd, 0);
+    var monitor_info = user32.MONITORINFO{
+        .rcWork = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 },
+        .rcMonitor = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 },
+        .dwFlags = 0,
+    };
+    try user32.getMonitorInfoW(monitor_handle, &monitor_info);
+    std.debug.print("monitor_info: {}", .{monitor_info});
     try win.makeOpenGLContext();
     win.setWindowSizeCallback(windowSizeCallback);
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };

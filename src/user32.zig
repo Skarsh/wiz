@@ -1752,19 +1752,94 @@ pub fn messageBoxW(hWnd: ?HWND, lpText: [*:0]const u16, lpCaption: [*:0]const u1
 pub extern "user32" fn GetWindowRect(hWnd: ?HWND, lpRect: ?*RECT) callconv(WINAPI) BOOL;
 pub fn getWindowRect(hwnd: ?HWND, lpRect: ?*RECT) !void {
     if (GetWindowRect(hwnd, lpRect) == 0) {
-        // TODO(Thomas): Are there any cases we should deal with specifially?
         switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
             else => |err| return windows.unexpectedError(err),
         }
     }
 }
 
 pub extern "user32" fn GetClientRect(hWnd: ?HWND, lpRect: ?*RECT) callconv(WINAPI) BOOL;
+
+/// [in] hwnd
+/// [out] lpRect
 pub fn getClientRect(hwnd: ?HWND, lpRect: ?*RECT) !void {
     if (GetClientRect(hwnd, lpRect) == 0) {
-        // TODO(Thomas): Are there any cases we should deal with specifially?
         switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
             else => |err| return windows.unexpectedError(err),
         }
+    }
+}
+
+// === Monitor ===
+
+pub const MONITORINFO = extern struct {
+    cbSize: UINT = @sizeOf(MONITORINFO),
+    rcMonitor: RECT,
+    rcWork: RECT,
+    dwFlags: DWORD,
+};
+
+// TODO (Thomas): What about MONITORINFOEXA and MONITORINFOEXW?
+//pub const MONITORINFOEXA = extern struct {
+//    cbSize: UINT = @sizeOf(MONITORINFOEXA),
+//    rcMonitor: RECT,
+//    rcWork: RECT,
+//    dwFlags: DWORD,
+//    szDevice: ????,
+//};
+//
+//pub const MONITORINFOEXW = extern struct {
+//    cbSize: UINT = @sizeOf(MONITORINFOEXA),
+//    rcMonitor: RECT,
+//    rcWork: RECT,
+//    dwFlags: DWORD,
+//    szDevice: ????,
+//};
+
+pub extern "user32" fn MonitorFromWindow(hwnd: ?HWND, dwFlags: DWORD) callconv(WINAPI) ?*anyopaque;
+pub fn monitorFromWindow(hwnd: ?HWND, dwFlags: DWORD) !?*anyopaque {
+    if (MonitorFromWindow(hwnd, dwFlags)) |monitor_handle| {
+        return monitor_handle;
+    } else {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+pub extern "user32" fn GetMonitorInfoA(hMonitor: ?*anyopaque, lpmi: *MONITORINFO) callconv(WINAPI) BOOL;
+
+/// [in] hMonitor
+/// [out] lpmi
+pub fn getMonitorInfoA(hMonitor: ?*anyopaque, lpmi: *MONITORINFO) !void {
+    if (GetMonitorInfoA(hMonitor, lpmi) == 0) {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+pub extern "user32" fn GetMonitorInfoW(hMonitor: ?*anyopaque, lpmi: *MONITORINFO) callconv(WINAPI) BOOL;
+
+pub var pfnGetMonitorInfoW: *const @TypeOf(GetMonitorInfoW) = undefined;
+
+/// [in] hMonitor
+/// [out] lpmi
+pub fn getMonitorInfoW(hMonitor: ?*anyopaque, lpmi: *MONITORINFO) !void {
+    const function = selectSymbol(GetMonitorInfoW, pfnGetMonitorInfoW, .win2k);
+    const value = function(hMonitor, lpmi);
+    if (value != 0) return;
+    switch (GetLastError()) {
+        .INVALID_WINDOW_HANDLE => unreachable,
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
     }
 }
