@@ -141,6 +141,11 @@ pub const Window = struct {
         switch (format) {
             .windowed => {},
             .fullscreen => {
+
+                // TODO(Thomas): This sets it to fullscreen, but "forgets" everything else, e.g.
+                // windows is not cleared to pink from OpenGL etc.
+                _ = try user32.setWindowLongPtrW(hwnd, user32.GWL_STYLE, user32.WS_POPUP);
+
                 try user32.setWindowPos(
                     hwnd,
                     null,
@@ -148,8 +153,11 @@ pub const Window = struct {
                     window.min_y,
                     window.max_x - window.min_x,
                     window.max_y - window.min_y,
-                    user32.SWP_NOZORDER | user32.SWP_FRAMECHANGED,
+                    user32.SWP_NOZORDER | user32.SWP_NOACTIVATE | user32.SWP_FRAMECHANGED,
                 );
+
+                window.width = window.max_x - window.min_x;
+                window.height = window.max_y - window.min_y;
             },
             .borderless => {},
         }

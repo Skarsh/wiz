@@ -21,10 +21,13 @@ pub fn main() !void {
         .width = 640,
         .height = 480,
     };
-    var win = try Window.init(allocator, win_opts, WindowFormat.fullscreen, "win1");
+    var win = try Window.init(allocator, win_opts, WindowFormat.windowed, "win1");
 
     try win.makeOpenGLContext();
+    opengl32.glViewport(0, 0, win.width, win.height);
+
     win.setWindowSizeCallback(windowSizeCallback);
+    win.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
     //const win2 = try Window.init(allocator, win_opts, "win2");
     //win2.setWindowSizeCallback(windowSizeCallback);
@@ -68,4 +71,9 @@ pub fn windowSizeCallback(window: *Window, width: i32, height: i32) void {
     window.height = height;
     std.debug.print("WindowSizeCallback!\n", .{});
     std.debug.print("window.width: {}, new width: {}, new height: {}\n ", .{ window.width, width, height });
+}
+
+pub fn framebufferSizeCallback(window: *Window, width: i32, height: i32) void {
+    _ = window;
+    opengl32.glViewport(0, 0, width, height);
 }
