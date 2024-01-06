@@ -37,3 +37,4 @@ pub extern "opengl32" fn glGetString(name: GLenum) callconv(WINAPI) [*:0]u8;
 
 pub extern "opengl32" fn glClear(mask: GLbitfield) callconv(WINAPI) void;
 pub extern "opengl32" fn glClearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf) callconv(WINAPI) void;
+pub extern "opengl32" fn glViewport(x: i32, y: i32, width: i32, height: i32) callconv(WINAPI) void;
