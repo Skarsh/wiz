@@ -16,13 +16,15 @@ const MouseMotionEvent = input.MouseMotionEvent;
 const MouseButtonEvent = input.MouseButtonEvent;
 const KeyEvent = input.KeyEvent;
 
+pub const WindowFormat = enum {
+    windowed,
+    fullscreen,
+    borderless,
+};
+
 pub const WindowOptions = struct {
     x_pos: i32,
     y_pos: i32,
-    min_x: i32,
-    min_y: i32,
-    max_x: i32,
-    max_y: i32,
     width: i32,
     height: i32,
 };
@@ -62,7 +64,7 @@ pub const Window = struct {
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
 
-    pub fn init(allocator: Allocator, options: WindowOptions, comptime name: []const u8) !*Window {
+    pub fn init(allocator: Allocator, options: WindowOptions, format: WindowFormat, comptime name: []const u8) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
         if (windows.kernel32.GetModuleHandleW(null)) |hinst| {
             h_instance = @ptrCast(hinst);
@@ -89,18 +91,12 @@ pub const Window = struct {
         _ = try user32.registerClassExW(&wc);
 
         var window = try allocator.create(Window);
-
         window.allocator = allocator;
         window.h_instance = h_instance;
-        window.hwnd = null;
         window.hglrc = null;
         window.lp_class_name = wc.lpszClassName;
         window.x_pos = options.x_pos;
         window.y_pos = options.y_pos;
-        window.min_x = options.min_x;
-        window.min_y = options.min_y;
-        window.max_x = options.max_x;
-        window.max_y = options.max_y;
         window.width = options.width;
         window.height = options.height;
         window.running = true;
@@ -119,8 +115,8 @@ pub const Window = struct {
             user32.WS_OVERLAPPEDWINDOW | user32.WS_VISIBLE,
             0,
             0,
-            options.width,
-            options.height,
+            window.width,
+            window.height,
             null,
             null,
             h_instance,
@@ -128,6 +124,35 @@ pub const Window = struct {
         );
 
         window.hwnd = hwnd;
+
+        const monitor_handle = try user32.monitorFromWindow(hwnd, 0);
+        var monitor_info = user32.MONITORINFO{
+            .rcWork = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 },
+            .rcMonitor = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 },
+            .dwFlags = 0,
+        };
+        try user32.getMonitorInfoW(monitor_handle, &monitor_info);
+
+        window.min_x = monitor_info.rcMonitor.left;
+        window.min_y = monitor_info.rcMonitor.top;
+        window.max_x = monitor_info.rcMonitor.right;
+        window.max_y = monitor_info.rcMonitor.bottom;
+
+        switch (format) {
+            .windowed => {},
+            .fullscreen => {
+                try user32.setWindowPos(
+                    hwnd,
+                    null,
+                    window.min_x,
+                    window.min_y,
+                    window.max_x - window.min_x,
+                    window.max_y - window.min_y,
+                    user32.SWP_NOZORDER | user32.SWP_FRAMECHANGED,
+                );
+            },
+            .borderless => {},
+        }
 
         return window;
     }
