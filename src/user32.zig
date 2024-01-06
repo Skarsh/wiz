@@ -1675,6 +1675,36 @@ pub fn releaseDC(hWnd: ?HWND, hDC: HDC) bool {
     return if (ReleaseDC(hWnd, hDC) == 1) true else false;
 }
 
+// === Window sizing and positioning flags ===
+pub const SWP_NOSIZE = 0x0001;
+pub const SWP_NOMOVE = 0x0002;
+pub const SWP_NOZORDER = 0x0004;
+pub const SWP_NOREDRAW = 0x0008;
+pub const SWP_NOACTIVATE = 0x0010;
+pub const SWP_FRAMECHANGED = 0x0020; // The frame changed: send WM_NCCALCSIZE
+pub const SWP_SHOWWINDOW = 0x0040;
+pub const SWP_HIDEWINDOW = 0x0080;
+pub const SWP_NOCOPYBITS = 0x0100;
+pub const SWP_NOOWNERZORDER = 0x0200; // Don't do owner Z ordering
+
+pub const SWP_DRAWFRAME = SWP_FRAMECHANGED;
+pub const SWP_NOREPOSITION = SWP_NOOWNERZORDER;
+
+pub const SWP_NOSENDCHANGING = 0x0400;
+pub const SWP_DEFERERASE = 0x2000;
+pub const SWP_ASYNCWINDOWPOS = 0x4000;
+
+pub extern "user32" fn SetWindowPos(hWnd: HWND, hWndInsertAfter: ?HWND, x: i32, y: i32, cx: i32, cy: i32, uFlags: UINT) callconv(WINAPI) BOOL;
+pub fn setWindowPos(hWnd: HWND, hWndInsertAfter: ?HWND, x: i32, y: i32, cx: i32, cy: i32, uFlags: UINT) !void {
+    if (SetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags) == 0) {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
 // === Modal dialogue boxes ===
 
 pub const MB_OK = 0x00000000;
