@@ -21,7 +21,7 @@ pub fn main() !void {
         .width = 640,
         .height = 480,
     };
-    var win = try Window.init(allocator, win_opts, WindowFormat.windowed, "win1");
+    var win = try Window.init(allocator, win_opts, WindowFormat.fullscreen, "win1");
 
     try win.makeOpenGLContext();
     opengl32.glViewport(0, 0, win.width, win.height);
