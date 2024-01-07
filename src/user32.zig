@@ -1460,7 +1460,7 @@ pub fn destroyWindow(hWnd: HWND) !void {
 }
 
 pub extern "user32" fn LoadCursorA(hInstance: HINSTANCE, lpCursorName: [*:0]const u8) callconv(WINAPI) ?HCURSOR;
-pub fn loadCursor(hInstance: HINSTANCE, lpCursorName: [*:0]const 8) !HCURSOR {
+pub fn loadCursor(hInstance: HINSTANCE, lpCursorName: [*:0]const u8) !HCURSOR {
     const hcursor = LoadCursorA(hInstance, lpCursorName);
     if (hcursor) |cursor| return cursor;
     // TODO (Thomas): Are there more cases we should cover here?
