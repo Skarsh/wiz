@@ -44,6 +44,9 @@ pub fn main() !void {
                     } else {
                         std.debug.print("Event: {}\n", .{event});
                     }
+                    if (event.KeyDown.scancode == 33) {
+                        try win.toggleFullscreen();
+                    }
                 },
                 else => {
                     std.debug.print("Event: {}\n", .{event});

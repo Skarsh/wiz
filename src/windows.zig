@@ -410,6 +410,55 @@ pub const Window = struct {
         return result;
     }
 
+    // TODO(Thomas): This is still very buggy!
+    pub fn toggleFullscreen(self: *Window) !void {
+        const dwStyle = try user32.getWindowLongW(self.hwnd.?, user32.GWL_STYLE);
+        if ((dwStyle & @as(i32, user32.WS_OVERLAPPEDWINDOW)) != 0) {
+            const monitor_handle = try user32.monitorFromWindow(self.hwnd, 0);
+            var monitor_info = user32.MONITORINFO{
+                .rcWork = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 },
+                .rcMonitor = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 },
+                .dwFlags = 0,
+            };
+            try user32.getMonitorInfoW(monitor_handle, &monitor_info);
+
+            self.min_x = monitor_info.rcMonitor.left;
+            self.min_y = monitor_info.rcMonitor.top;
+            self.max_x = monitor_info.rcMonitor.right;
+            self.max_y = monitor_info.rcMonitor.bottom;
+
+            _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle & ~@as(i32, user32.WS_OVERLAPPEDWINDOW));
+
+            try user32.setWindowPos(
+                self.hwnd.?,
+                null,
+                self.min_x,
+                self.min_y,
+                self.max_x - self.min_x,
+                self.max_y - self.min_y,
+                user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
+            );
+
+            self.width = self.max_x - self.min_x;
+            self.height = self.max_y - self.min_y;
+        } else {
+            _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle | @as(i32, user32.WS_OVERLAPPEDWINDOW));
+
+            // TODO(Thomas): Verify if this is needed, if it is
+            //SetWindowPlacement(hwnd, &g_wpPrev);
+
+            try user32.setWindowPos(
+                self.hwnd.?,
+                null,
+                0,
+                0,
+                0,
+                0,
+                user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
+            );
+        }
+    }
+
     pub fn processMessages() !void {
         var msg = user32.MSG.default();
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
