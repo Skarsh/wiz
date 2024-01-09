@@ -73,6 +73,15 @@ pub const Window = struct {
             unreachable;
         }
 
+        // NOTE(Thomas): This mimics what the MAKEINTRESOURCE win32 macro does.
+        // TODO(Thomas): This only works for the 2-byte aligned IDC/IDI constants.
+        const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
+
+        // NOTE(Thomas) Use null for the hInstance here, this makes windows figure out which hInstance is the correct one.
+        // When passing our own this becomes wrong.
+        //const cursor = user32.LoadCursorW(null, arrow);
+        const cursor = try user32.loadCursorW(null, arrow);
+
         var wc = user32.WNDCLASSEXW{
             .style = 0,
             .lpfnWndProc = windowProc,
@@ -80,7 +89,7 @@ pub const Window = struct {
             .cbWndExtra = 0,
             .hInstance = h_instance,
             .hIcon = null,
-            .hCursor = null,
+            .hCursor = cursor,
             .hbrBackground = null,
             .lpszMenuName = null,
             // TODO (Thomas): Add some postfix for the classname?
