@@ -1459,7 +1459,38 @@ pub fn destroyWindow(hWnd: HWND) !void {
     }
 }
 
-pub extern "user32" fn LoadCursorA(hInstance: HINSTANCE, lpCursorName: [*:0]const u8) callconv(WINAPI) ?HCURSOR;
+// Predefined resources - from https://github.com/wine-mirror/wine/blob/d1d13e50ec505e2cf4e40b9293853975bf3945e2/include/winuser.h#L2273C1-L2301C48
+// NOTE(Thomas): When used in C code, this is usually passed through a
+pub const IDI_APPLICATION = 32512;
+pub const IDI_HAND = 32513;
+pub const IDI_QUESTION = 32514;
+pub const IDI_EXCLAMATION = 32515;
+pub const IDI_ASTERISK = 32516;
+pub const IDI_WINLOGO = 32517;
+
+pub const IDI_WARNING = IDI_EXCLAMATION;
+pub const IDI_ERROR = IDI_HAND;
+pub const IDI_INFORMATION = IDI_ASTERISK;
+
+pub const IDC_ARROW = 32512;
+pub const IDC_IBEAM = 32513;
+pub const IDC_WAIT = 32514;
+pub const IDC_CROSS = 32515;
+pub const IDC_UPARROW = 32516;
+pub const IDC_PEN = 32631;
+pub const IDC_SIZE = 32640;
+pub const IDC_ICON = 32641;
+pub const IDC_SIZENWSE = 32642;
+pub const IDC_SIZENESW = 32643;
+pub const IDC_SIZEWE = 32644;
+pub const IDC_SIZENS = 32645;
+pub const IDC_SIZEALL = 32646;
+pub const IDC_NO = 32648;
+pub const IDC_HAND = 32649;
+pub const IDC_APPSTARTING = 32650;
+pub const IDC_HELP = 32651;
+
+pub extern "user32" fn LoadCursorA(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u8) callconv(WINAPI) ?HCURSOR;
 pub fn loadCursor(hInstance: HINSTANCE, lpCursorName: [*:0]const u8) !HCURSOR {
     const hcursor = LoadCursorA(hInstance, lpCursorName);
     if (hcursor) |cursor| return cursor;
@@ -1471,7 +1502,22 @@ pub fn loadCursor(hInstance: HINSTANCE, lpCursorName: [*:0]const u8) !HCURSOR {
 }
 
 // TODO(Thomas): Write wrapper like for the others
-pub extern "user32" fn LoadCursorW(hInstance: HINSTANCE, lpCursorName: [*:0]const u16) callconv(WINAPI) ?HCURSOR;
+pub extern "user32" fn LoadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) callconv(WINAPI) ?HCURSOR;
+pub var pfnLoadCursorW: *const @TypeOf(LoadCursorW) = undefined;
+pub fn loadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) !HCURSOR {
+    const function = selectSymbol(LoadCursorW, pfnLoadCursorW, .win2k);
+
+    const cursor = function(hInstance, lpCursorName);
+    if (cursor) |cur| return cur;
+
+    switch (GetLastError()) {
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
+
+// TODO(Thomas): Write wrapper like for the others
+pub extern "user32" fn SetCursor(hCursor: ?HCURSOR) callconv(WINAPI) HCURSOR;
 
 pub const SW_HIDE = 0;
 pub const SW_SHOWNORMAL = 1;
