@@ -1721,6 +1721,38 @@ pub fn releaseDC(hWnd: ?HWND, hDC: HDC) bool {
     return if (ReleaseDC(hWnd, hDC) == 1) true else false;
 }
 
+pub const WINDOWPLACEMENT = struct {
+    length: UINT = @sizeOf(WINDOWPLACEMENT),
+    flags: UINT,
+    showCmd: UINT,
+    ptMinPosition: POINT,
+    ptMaxPosition: POINT,
+    rcNormalPosition: RECT,
+    rcDevice: RECT,
+};
+
+pub extern "user32" fn GetWindowPlacement(hWnd: ?HWND, lpwndpl: ?*WINDOWPLACEMENT) callconv(WINAPI) BOOL;
+pub fn getWindowPlacement(hWnd: ?HWND, lpwndpl: ?*WINDOWPLACEMENT) !void {
+    if (GetWindowPlacement(hWnd, lpwndpl) == 0) {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+pub extern "user32" fn SetWindowPlacement(hWnd: ?HWND, lpwndpl: ?*WINDOWPLACEMENT) callconv(WINAPI) BOOL;
+pub fn setWindowPlacement(hWnd: ?HWND, lpwndpl: ?*WINDOWPLACEMENT) !void {
+    if (SetWindowPlacement(hWnd, lpwndpl) == 0) {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
 // === Window sizing and positioning flags ===
 pub const SWP_NOSIZE = 0x0001;
 pub const SWP_NOMOVE = 0x0002;
@@ -1904,7 +1936,6 @@ pub fn getMonitorInfoA(hMonitor: ?*anyopaque, lpmi: *MONITORINFO) !void {
 }
 
 pub extern "user32" fn GetMonitorInfoW(hMonitor: ?*anyopaque, lpmi: *MONITORINFO) callconv(WINAPI) BOOL;
-
 pub var pfnGetMonitorInfoW: *const @TypeOf(GetMonitorInfoW) = undefined;
 
 /// [in] hMonitor
