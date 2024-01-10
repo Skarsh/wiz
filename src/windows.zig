@@ -16,6 +16,9 @@ const MouseMotionEvent = input.MouseMotionEvent;
 const MouseButtonEvent = input.MouseButtonEvent;
 const KeyEvent = input.KeyEvent;
 
+pub const default_window_width: i32 = 640;
+pub const default_window_height: i32 = 480;
+
 pub const WindowFormat = enum {
     windowed,
     fullscreen,
@@ -60,6 +63,7 @@ pub const Window = struct {
     running: bool,
     mouse_x: i32,
     mouse_y: i32,
+    wp_prev: user32.WINDOWPLACEMENT,
     self: *Window = undefined,
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
@@ -111,11 +115,20 @@ pub const Window = struct {
         window.running = true;
         window.mouse_x = 0;
         window.mouse_y = 0;
+        window.wp_prev = user32.WINDOWPLACEMENT{
+            .flags = 0,
+            .showCmd = 0,
+            .ptMinPosition = user32.POINT{ .x = 0, .y = 0 },
+            .ptMaxPosition = user32.POINT{ .x = 0, .y = 0 },
+            .rcNormalPosition = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 },
+            .rcDevice = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 },
+        };
 
         window.callbacks = WindowCallbacks{};
 
         // TODO (Thomas): Make event queue size configureable?
-        window.event_queue = try EventQueue.init(allocator, 1000);
+        const event_queue_size: usize = 1000;
+        window.event_queue = try EventQueue.init(allocator, event_queue_size);
 
         const hwnd = try user32.createWindowExW(
             0,
@@ -147,29 +160,50 @@ pub const Window = struct {
         window.max_x = monitor_info.rcMonitor.right;
         window.max_y = monitor_info.rcMonitor.bottom;
 
+        const dwStyle = try user32.getWindowLongW(window.hwnd.?, user32.GWL_STYLE);
         switch (format) {
-            .windowed => {},
-            .fullscreen => {
-                // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
-
-                // TODO (Thomas): This works, but might be a little cleaner, should probably be moved into
-                // own toggleFullscreen function or something like that. Since this is something we'd want to
-                // be able to do from other places aswell.
-                const dwStyle: i32 = try user32.getWindowLongW(hwnd, user32.GWL_STYLE);
-                _ = try user32.setWindowLongPtrW(hwnd, user32.GWL_STYLE, dwStyle & ~@as(i32, user32.WS_OVERLAPPEDWINDOW));
+            .windowed => {
+                _ = try user32.setWindowLongPtrW(window.hwnd.?, user32.GWL_STYLE, dwStyle | @as(i32, user32.WS_OVERLAPPEDWINDOW));
+                try user32.setWindowPlacement(window.hwnd, &window.wp_prev);
 
                 try user32.setWindowPos(
-                    hwnd,
+                    window.hwnd.?,
                     null,
-                    window.min_x,
-                    window.min_y,
-                    window.max_x - window.min_x,
-                    window.max_y - window.min_y,
-                    user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
+                    0,
+                    0,
+                    0,
+                    0,
+                    user32.SWP_NOMOVE | user32.SWP_NOSIZE | user32.SWP_NOZORDER |
+                        user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
                 );
+            },
+            .fullscreen => {
+                // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
+                if ((dwStyle & @as(i32, user32.WS_OVERLAPPEDWINDOW)) != 0) {
+                    if (user32.GetWindowPlacement(window.hwnd.?, &window.wp_prev) != 0 and user32.GetMonitorInfoW(monitor_handle, &monitor_info) != 0) {
+                        try user32.getMonitorInfoW(monitor_handle, &monitor_info);
 
-                window.width = window.max_x - window.min_x;
-                window.height = window.max_y - window.min_y;
+                        window.min_x = monitor_info.rcMonitor.left;
+                        window.min_y = monitor_info.rcMonitor.top;
+                        window.max_x = monitor_info.rcMonitor.right;
+                        window.max_y = monitor_info.rcMonitor.bottom;
+
+                        _ = try user32.setWindowLongPtrW(window.hwnd.?, user32.GWL_STYLE, dwStyle & ~@as(i32, user32.WS_OVERLAPPEDWINDOW));
+
+                        try user32.setWindowPos(
+                            window.hwnd.?,
+                            null,
+                            window.min_x,
+                            window.min_y,
+                            window.max_x - window.min_x,
+                            window.max_y - window.min_y,
+                            user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
+                        );
+
+                        window.width = window.max_x - window.min_x;
+                        window.height = window.max_y - window.min_y;
+                    }
+                }
             },
             .borderless => {},
         }
@@ -411,8 +445,10 @@ pub const Window = struct {
     }
 
     // TODO(Thomas): This is still very buggy!
+    // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
     pub fn toggleFullscreen(self: *Window) !void {
         const dwStyle = try user32.getWindowLongW(self.hwnd.?, user32.GWL_STYLE);
+
         if ((dwStyle & @as(i32, user32.WS_OVERLAPPEDWINDOW)) != 0) {
             const monitor_handle = try user32.monitorFromWindow(self.hwnd, 0);
             var monitor_info = user32.MONITORINFO{
@@ -420,33 +456,34 @@ pub const Window = struct {
                 .rcMonitor = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 },
                 .dwFlags = 0,
             };
-            try user32.getMonitorInfoW(monitor_handle, &monitor_info);
 
-            self.min_x = monitor_info.rcMonitor.left;
-            self.min_y = monitor_info.rcMonitor.top;
-            self.max_x = monitor_info.rcMonitor.right;
-            self.max_y = monitor_info.rcMonitor.bottom;
+            // TODO(Thomas): Use wrapper calls here instead, this seems to be the same as the wrapper calls passing without errors
+            if (user32.GetWindowPlacement(self.hwnd.?, &self.wp_prev) != 0 and user32.GetMonitorInfoW(monitor_handle, &monitor_info) != 0) {
+                try user32.getMonitorInfoW(monitor_handle, &monitor_info);
 
-            _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle & ~@as(i32, user32.WS_OVERLAPPEDWINDOW));
+                self.min_x = monitor_info.rcMonitor.left;
+                self.min_y = monitor_info.rcMonitor.top;
+                self.max_x = monitor_info.rcMonitor.right;
+                self.max_y = monitor_info.rcMonitor.bottom;
 
-            try user32.setWindowPos(
-                self.hwnd.?,
-                null,
-                self.min_x,
-                self.min_y,
-                self.max_x - self.min_x,
-                self.max_y - self.min_y,
-                user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
-            );
+                _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle & ~@as(i32, user32.WS_OVERLAPPEDWINDOW));
 
-            self.width = self.max_x - self.min_x;
-            self.height = self.max_y - self.min_y;
+                try user32.setWindowPos(
+                    self.hwnd.?,
+                    null,
+                    self.min_x,
+                    self.min_y,
+                    self.max_x - self.min_x,
+                    self.max_y - self.min_y,
+                    user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
+                );
+
+                self.width = self.max_x - self.min_x;
+                self.height = self.max_y - self.min_y;
+            }
         } else {
             _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle | @as(i32, user32.WS_OVERLAPPEDWINDOW));
-
-            // TODO(Thomas): Verify if this is needed, if it is
-            //SetWindowPlacement(hwnd, &g_wpPrev);
-
+            try user32.setWindowPlacement(self.hwnd, &self.wp_prev);
             try user32.setWindowPos(
                 self.hwnd.?,
                 null,
@@ -454,7 +491,8 @@ pub const Window = struct {
                 0,
                 0,
                 0,
-                user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
+                user32.SWP_NOMOVE | user32.SWP_NOSIZE | user32.SWP_NOZORDER |
+                    user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
             );
         }
     }
