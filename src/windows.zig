@@ -298,8 +298,9 @@ pub const Window = struct {
     }
 
     inline fn getLParamDims(l_param: isize) [2]i16 {
-        const dim: [2]i16 = @bitCast(@as(i32, @intCast(l_param)));
-        return dim;
+        const x = @as(i16, @truncate(l_param & 0xFFFF));
+        const y = @as(i16, @truncate((l_param >> 16) & 0xFFFF));
+        return [2]i16{ x, y };
     }
 
     fn windowProc(
