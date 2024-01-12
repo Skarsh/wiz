@@ -25,13 +25,6 @@ pub const WindowFormat = enum {
     borderless,
 };
 
-pub const WindowOptions = struct {
-    x_pos: i32,
-    y_pos: i32,
-    width: i32,
-    height: i32,
-};
-
 pub const windowPosCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
 pub const windowSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
 pub const windowFramebufferSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
@@ -52,12 +45,6 @@ pub const Window = struct {
     hwnd: ?windows.HWND,
     hglrc: ?windows.HGLRC,
     lp_class_name: [*:0]const u16,
-    x_pos: i32,
-    y_pos: i32,
-    min_x: i32,
-    min_y: i32,
-    max_x: i32,
-    max_y: i32,
     width: i32,
     height: i32,
     running: bool,
@@ -68,7 +55,7 @@ pub const Window = struct {
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
 
-    pub fn init(allocator: Allocator, options: WindowOptions, format: WindowFormat, comptime name: []const u8) !*Window {
+    pub fn init(allocator: Allocator, width: i32, height: i32, format: WindowFormat, comptime name: []const u8) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
         if (windows.kernel32.GetModuleHandleW(null)) |hinst| {
             h_instance = @ptrCast(hinst);
@@ -83,7 +70,6 @@ pub const Window = struct {
 
         // NOTE(Thomas) Use null for the hInstance here, this makes windows figure out which hInstance is the correct one.
         // When passing our own this becomes wrong.
-        //const cursor = user32.LoadCursorW(null, arrow);
         const cursor = try user32.loadCursorW(null, arrow);
 
         var wc = user32.WNDCLASSEXW{
@@ -108,10 +94,9 @@ pub const Window = struct {
         window.h_instance = h_instance;
         window.hglrc = null;
         window.lp_class_name = wc.lpszClassName;
-        window.x_pos = options.x_pos;
-        window.y_pos = options.y_pos;
-        window.width = options.width;
-        window.height = options.height;
+        window.width = width;
+        window.height = height;
+
         window.running = true;
         window.mouse_x = 0;
         window.mouse_y = 0;
@@ -155,11 +140,6 @@ pub const Window = struct {
         };
         try user32.getMonitorInfoW(monitor_handle, &monitor_info);
 
-        window.min_x = monitor_info.rcMonitor.left;
-        window.min_y = monitor_info.rcMonitor.top;
-        window.max_x = monitor_info.rcMonitor.right;
-        window.max_y = monitor_info.rcMonitor.bottom;
-
         const dwStyle = try user32.getWindowLongW(window.hwnd.?, user32.GWL_STYLE);
         switch (format) {
             .windowed => {
@@ -183,25 +163,25 @@ pub const Window = struct {
                     if (user32.GetWindowPlacement(window.hwnd.?, &window.wp_prev) != 0 and user32.GetMonitorInfoW(monitor_handle, &monitor_info) != 0) {
                         try user32.getMonitorInfoW(monitor_handle, &monitor_info);
 
-                        window.min_x = monitor_info.rcMonitor.left;
-                        window.min_y = monitor_info.rcMonitor.top;
-                        window.max_x = monitor_info.rcMonitor.right;
-                        window.max_y = monitor_info.rcMonitor.bottom;
+                        const min_x = monitor_info.rcMonitor.left;
+                        const min_y = monitor_info.rcMonitor.top;
+                        const max_x = monitor_info.rcMonitor.right;
+                        const max_y = monitor_info.rcMonitor.bottom;
 
                         _ = try user32.setWindowLongPtrW(window.hwnd.?, user32.GWL_STYLE, dwStyle & ~@as(i32, user32.WS_OVERLAPPEDWINDOW));
 
                         try user32.setWindowPos(
                             window.hwnd.?,
                             null,
-                            window.min_x,
-                            window.min_y,
-                            window.max_x - window.min_x,
-                            window.max_y - window.min_y,
+                            min_x,
+                            min_y,
+                            max_x - min_x,
+                            max_y - min_y,
                             user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
                         );
 
-                        window.width = window.max_x - window.min_x;
-                        window.height = window.max_y - window.min_y;
+                        window.width = max_x - min_x;
+                        window.height = max_y - min_y;
                     }
                 }
             },
@@ -462,25 +442,25 @@ pub const Window = struct {
             if (user32.GetWindowPlacement(self.hwnd.?, &self.wp_prev) != 0 and user32.GetMonitorInfoW(monitor_handle, &monitor_info) != 0) {
                 try user32.getMonitorInfoW(monitor_handle, &monitor_info);
 
-                self.min_x = monitor_info.rcMonitor.left;
-                self.min_y = monitor_info.rcMonitor.top;
-                self.max_x = monitor_info.rcMonitor.right;
-                self.max_y = monitor_info.rcMonitor.bottom;
+                const min_x = monitor_info.rcMonitor.left;
+                const min_y = monitor_info.rcMonitor.top;
+                const max_x = monitor_info.rcMonitor.right;
+                const max_y = monitor_info.rcMonitor.bottom;
 
                 _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle & ~@as(i32, user32.WS_OVERLAPPEDWINDOW));
 
                 try user32.setWindowPos(
                     self.hwnd.?,
                     null,
-                    self.min_x,
-                    self.min_y,
-                    self.max_x - self.min_x,
-                    self.max_y - self.min_y,
+                    min_x,
+                    min_y,
+                    max_x - min_x,
+                    max_y - min_y,
                     user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
                 );
 
-                self.width = self.max_x - self.min_x;
-                self.height = self.max_y - self.min_y;
+                self.width = max_x - min_x;
+                self.height = max_y - min_y;
             }
         } else {
             _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle | @as(i32, user32.WS_OVERLAPPEDWINDOW));
@@ -528,8 +508,9 @@ pub const Window = struct {
 
     // TODO (Thomas): What to do with the default callbacks? Are they really necessary?
     fn defaultWindowPosCallback(window: *Window, x_pos: i32, y_pos: i32) void {
-        window.x_pos = x_pos;
-        window.y_pos = y_pos;
+        _ = window;
+        _ = x_pos;
+        _ = y_pos;
     }
 
     fn defaultWindowSizeCallback(window: *Window, width: i32, height: i32) void {

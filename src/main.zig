@@ -15,13 +15,9 @@ const WindowFormat = @import("windows.zig").WindowFormat;
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
-    const win_opts = WindowOptions{
-        .x_pos = 0,
-        .y_pos = 0,
-        .width = 640,
-        .height = 480,
-    };
-    var win = try Window.init(allocator, win_opts, WindowFormat.fullscreen, "win1");
+    const window_width = 640;
+    const window_height = 480;
+    var win = try Window.init(allocator, window_width, window_height, WindowFormat.fullscreen, "win1");
 
     try win.makeOpenGLContext();
     opengl32.glViewport(0, 0, win.width, win.height);
