@@ -20,6 +20,7 @@ pub fn main() !void {
     var win = try Window.init(allocator, window_width, window_height, WindowFormat.fullscreen, "win1");
 
     try win.makeOpenGLContext();
+    opengl32.loadOpenGLFunctions();
     opengl32.glViewport(0, 0, win.width, win.height);
 
     win.setWindowSizeCallback(windowSizeCallback);
