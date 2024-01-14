@@ -1,24 +1,18 @@
 const std = @import("std");
 const Build = std.Build;
 const ResolvedTarget = Build.ResolvedTarget;
+const Compile = Build.Step.Compile;
 
-fn buildOpengl(b: *Build, target: ResolvedTarget, optimize_mode: std.builtin.OptimizeMode) void {
-    const opengl = b.addExecutable(.{
-        .name = "opengl-example",
-        .root_source_file = .{ .path = "examples/opengl.zig" },
-        .target = target,
-        .optimize = optimize_mode,
-    });
-
+fn buildOpengl(b: *Build, opengl_exe: *Compile) void {
     const wiz_module = b.addModule("wiz", .{
         .root_source_file = .{ .path = "src/wiz.zig" },
     });
 
-    opengl.root_module.addImport("wiz", wiz_module);
+    opengl_exe.root_module.addImport("wiz", wiz_module);
 
-    b.installArtifact(opengl);
+    b.installArtifact(opengl_exe);
 
-    const opengl_run_cmd = b.addRunArtifact(opengl);
+    const opengl_run_cmd = b.addRunArtifact(opengl_exe);
     opengl_run_cmd.step.dependOn(b.getInstallStep());
 }
 
@@ -61,7 +55,23 @@ pub fn build(
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
-    buildOpengl(b, target, optimize);
+    const opengl_example_exe = b.addExecutable(.{
+        .name = "opengl-example",
+        .root_source_file = .{ .path = "examples/opengl.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    buildOpengl(b, opengl_example_exe);
+
+    const opengl_example_run_cmd = b.addRunArtifact(opengl_example_exe);
+    opengl_example_run_cmd.step.dependOn(b.getInstallStep());
+
+    if (b.args) |args| {
+        opengl_example_run_cmd.addArgs(args);
+    }
+
+    const opengl_example_run_step = b.step("run-opengl-example", "Run the OpenGL example");
+    opengl_example_run_step.dependOn(&opengl_example_run_cmd.step);
 
     const lib_unit_tests = b.addTest(.{
         .root_source_file = .{ .path = "src/root.zig" },
