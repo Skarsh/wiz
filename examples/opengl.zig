@@ -11,7 +11,7 @@ const WindowFormat = wiz.WindowFormat;
 pub fn main() !void {
     std.debug.print("hello world!\n", .{});
 
-    var window = try Window.init(std.heap.page_allocator, 640, 480, WindowFormat.fullscreen, "opengl-example");
+    var window = try Window.init(std.heap.page_allocator, 640, 480, WindowFormat.windowed, "opengl-example");
     try window.makeOpenGLContext();
     opengl32.glViewport(0, 0, window.width, window.height);
 
@@ -28,9 +28,7 @@ pub fn main() !void {
                         try window.toggleFullscreen();
                     }
                 },
-                else => {
-                    std.debug.print("Event: {}\n", .{event});
-                },
+                else => {},
             }
         }
         opengl32.glClearColor(1.0, 0.0, 1.0, 0.0);
