@@ -144,7 +144,9 @@ pub const Window = struct {
         switch (format) {
             .windowed => {
                 _ = try user32.setWindowLongPtrW(window.hwnd.?, user32.GWL_STYLE, dwStyle | @as(i32, user32.WS_OVERLAPPEDWINDOW));
-                try user32.setWindowPlacement(window.hwnd, &window.wp_prev);
+
+                // TODO (Thomas): This panics here, don't know why. Doesn't seem to be necessary on startup?
+                //try user32.setWindowPlacement(window.hwnd, &window.wp_prev);
 
                 try user32.setWindowPos(
                     window.hwnd.?,
