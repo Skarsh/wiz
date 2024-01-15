@@ -36,12 +36,12 @@ pub fn main() !void {
             switch (event) {
                 .KeyDown => {
                     // Hardcoded for now, 1 = ESCAPE
-                    if (event.KeyDown.scancode == 1) {
+                    if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_Escape)) {
                         win.windowShouldClose(true);
                     } else {
                         std.debug.print("Event: {}\n", .{event});
                     }
-                    if (event.KeyDown.scancode == 33) {
+                    if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_F)) {
                         try win.toggleFullscreen();
                     }
                 },
