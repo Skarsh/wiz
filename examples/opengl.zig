@@ -39,6 +39,7 @@ pub fn main() !void {
     try window.makeOpenGLContext();
     gl.loadOpenGLFunctions();
     gl.glViewport(0, 0, window.width, window.height);
+    window.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
     // build and compile our shader program
     const vertex_shader = gl.glCreateShader(gl.GL_VERTEX_SHADER);
@@ -106,4 +107,9 @@ pub fn main() !void {
     }
 
     std.debug.print("Exiting app\n", .{});
+}
+
+pub fn framebufferSizeCallback(window: *Window, width: i32, height: i32) void {
+    _ = window;
+    gl.glViewport(0, 0, width, height);
 }
