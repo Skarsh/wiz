@@ -312,12 +312,8 @@ pub const Window = struct {
             },
 
             user32.WM_CREATE => {
-                std.debug.print("window create\n", .{});
                 const create_info_opt: ?*user32.CREATESTRUCTW = @ptrFromInt(@as(usize, @intCast(l_param)));
                 if (create_info_opt) |create_info| {
-                    std.debug.print("create_info: {}\n", .{create_info});
-                    const window_ptr: *const Window = @ptrCast(@alignCast(create_info.lpCreateParams));
-                    std.debug.print("window.width: {}\n", .{window_ptr.width});
                     _ = user32.SetWindowLongPtrW(hwnd, user32.GWLP_USERDATA, @intCast(@intFromPtr(create_info.lpCreateParams)));
                 }
             },

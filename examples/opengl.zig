@@ -33,8 +33,6 @@ const vertices = [_]f32{
 };
 
 pub fn main() !void {
-    std.debug.print("hello world!\n", .{});
-
     var window = try Window.init(std.heap.page_allocator, 640, 480, WindowFormat.windowed, "opengl-example");
     try window.makeOpenGLContext();
     gl.loadOpenGLFunctions();
