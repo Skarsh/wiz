@@ -407,10 +407,10 @@ pub const Window = struct {
                     }
                 }
             },
+            // TODO (Thomas): What about WM_SYSKEYDOWN/WM_SYSKEYUP
             user32.WM_KEYDOWN, user32.WM_KEYUP => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
-                    // TODO (Thomas): Is this correct????
                     const key_event = KeyEvent{
                         .scancode = @as(u8, @truncate(@as(u32, @intCast((l_param >> 16))))),
                     };
