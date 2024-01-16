@@ -1,11 +1,13 @@
 # Bugs
+- glViewport scaling does not work properly when going into fullscreen
 
 # Features
-- Make cursor normal inside window
-- Add multiple windows to see how that works.
+- Add multiple windows to see how that works (This kinda works, still needs to be managed properly though)
 - Add Software renderer backend support
-- Add OpenGL backend support.
-
+- Add OpenGL backend support (Basic version done).
 
 # Examples
-- Add basic OpenGL example
+- [ ] Add software renderer example
+- [x] Add basic triangle OpenGL example
+- [ ] Add basic triangle Vulkan example
+- [ ] Add basic triangle DirectX example
