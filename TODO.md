@@ -2,6 +2,7 @@
 - glViewport scaling does not work properly when going into fullscreen
 
 # Features
+- Add functionality for consuming mouse/cursor
 - Add multiple windows to see how that works (This kinda works, still needs to be managed properly though)
 - Add Software renderer backend support
 - Add OpenGL backend support (Basic version done).
