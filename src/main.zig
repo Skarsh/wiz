@@ -5,6 +5,7 @@ const user32 = @import("user32.zig");
 const gdi32 = @import("gdi32.zig");
 const opengl32 = @import("opengl32.zig");
 const input = @import("input.zig");
+const wiz = @import("wiz.zig");
 const Event = input.Event;
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
@@ -29,8 +30,12 @@ pub fn main() !void {
     //const win2 = try Window.init(allocator, win_opts, "win2");
     //win2.setWindowSizeCallback(windowSizeCallback);
 
+    var perf_counter: i64 = 0;
+    var perf_freq: i64 = 0;
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
     while (win.running) {
+        try wiz.queryPerformanceCounter(&perf_counter);
+        try wiz.queryPerformanceFrequency(&perf_freq);
         try Window.processMessages();
         while (win.event_queue.poll(&event)) {
             switch (event) {
