@@ -1,6 +1,7 @@
 const input = @import("input.zig");
 pub const Event = input.Event;
 pub const KeyEvent = input.KeyEvent;
+pub const Scancode = input.Scancode;
 
 const windows = @import("windows.zig");
 pub const Window = windows.Window;
