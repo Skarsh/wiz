@@ -1516,8 +1516,16 @@ pub fn loadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) !HCURSOR
     }
 }
 
-// TODO(Thomas): Write wrapper like for the others
-pub extern "user32" fn SetCursor(hCursor: ?HCURSOR) callconv(WINAPI) HCURSOR;
+pub extern "user32" fn SetCursor(hCursor: ?HCURSOR) callconv(WINAPI) ?HCURSOR;
+// TODO(Thomas): This is buggy and does not work as expected
+pub fn setCursor(hCursor: ?HCURSOR) !HCURSOR {
+    const cursor = SetCursor(hCursor);
+    if (cursor) |cur| return cur;
+    switch (GetLastError()) {
+        .INVALID_PARAMETER => unreachable,
+        else => |err| return windows.unexpectedError(err),
+    }
+}
 
 pub const SW_HIDE = 0;
 pub const SW_SHOWNORMAL = 1;
