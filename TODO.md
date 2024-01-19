@@ -2,9 +2,8 @@
 - glViewport scaling does not work properly when going into fullscreen
 
 # Features
-- Add functions for retreiving PerformanceCounter and PerformanceFrequency
 - Add support for VSync
-- Add functionality for consuming mouse/cursor
+- Add functionality for mouse/cursor hiding
 - Add multiple windows to see how that works (This kinda works, still needs to be managed properly though)
 - Add Software renderer backend support
 - Add OpenGL backend support (Basic version done).
