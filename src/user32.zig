@@ -1527,6 +1527,12 @@ pub fn setCursor(hCursor: ?HCURSOR) !HCURSOR {
     }
 }
 
+// TODO(Thomas): Add wrapper function
+pub extern "user32" fn SetCapture(hWnd: ?HWND) callconv(WINAPI) ?HWND;
+
+// TODO(Thomas): Add wrapper function
+pub extern "user32" fn ReleaseCapture() callconv(WINAPI) BOOL;
+
 pub const SW_HIDE = 0;
 pub const SW_SHOWNORMAL = 1;
 pub const SW_NORMAL = 1;
