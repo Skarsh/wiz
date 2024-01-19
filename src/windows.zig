@@ -51,6 +51,7 @@ pub const Window = struct {
     mouse_x: i32,
     mouse_y: i32,
     wp_prev: user32.WINDOWPLACEMENT,
+    show_cursor: bool,
     self: *Window = undefined,
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
@@ -108,6 +109,7 @@ pub const Window = struct {
             .rcNormalPosition = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 },
             .rcDevice = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 },
         };
+        window.show_cursor = true;
 
         window.callbacks = WindowCallbacks{};
 
@@ -366,12 +368,12 @@ pub const Window = struct {
                 }
             },
             // TODO (Thomas): Add mouse scroll etc.
-            user32.WM_LBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttondown
-            user32.WM_LBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-lbuttonup
-            user32.WM_RBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttondown
-            user32.WM_RBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-rbuttonup
-            user32.WM_MBUTTONDOWN, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttondown
-            user32.WM_MBUTTONUP, // https://docs.microsoft.com/en-us/windows/win32/inputdev/wm-mbuttonup
+            user32.WM_LBUTTONDOWN,
+            user32.WM_LBUTTONUP,
+            user32.WM_RBUTTONDOWN,
+            user32.WM_RBUTTONUP,
+            user32.WM_MBUTTONDOWN,
+            user32.WM_MBUTTONUP,
             => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
@@ -414,6 +416,17 @@ pub const Window = struct {
                     window.event_queue.enqueue(event);
                 }
             },
+            user32.WM_SETCURSOR => {
+                const window_opt = getWindowFromHwnd(hwnd);
+                if (window_opt) |window| {
+                    if (!window.show_cursor) {
+                        // NOTE(Thomas): This is needed to ensure that mouse stays hidden
+                        // when re-entering and so on.
+                        // TODO(Thomas): Use wrapper setCursor instead
+                        _ = user32.SetCursor(null);
+                    }
+                }
+            },
 
             else => {
                 result = user32.defWindowProcW(hwnd, message, w_param, l_param);
@@ -423,7 +436,6 @@ pub const Window = struct {
         return result;
     }
 
-    // TODO(Thomas): This is still very buggy!
     // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
     pub fn toggleFullscreen(self: *Window) !void {
         const dwStyle = try user32.getWindowLongW(self.hwnd.?, user32.GWL_STYLE);
@@ -474,6 +486,21 @@ pub const Window = struct {
                     user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
             );
         }
+    }
+
+    pub fn hideCursor(self: *Window) void {
+        self.show_cursor = false;
+        // TODO(Thomas): Use wrapper setCursor
+        _ = user32.SetCursor(null);
+    }
+
+    pub fn showCursor(self: *Window) !void {
+        self.show_cursor = true;
+        // TODO(Thomas): use stored cursor icon/type/styling instead of hardcoded as IDC_ARROW
+        const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
+        const cursor = try user32.loadCursorW(null, arrow);
+        // TODO(Thomas): use wrapper setCursor
+        _ = user32.SetCursor(cursor);
     }
 
     pub fn processMessages() !void {
