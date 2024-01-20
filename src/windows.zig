@@ -302,6 +302,7 @@ pub const Window = struct {
                 if (window_opt) |win| {
                     win.windowShouldClose(true);
                 }
+                //TODO (Thomas): Better error handling here.
                 _ = user32.destroyWindow(hwnd) catch unreachable;
             },
             // TODO(Thomas): Need to deal with window handle etc here, due to the cases where there's multiple windows.
@@ -364,6 +365,10 @@ pub const Window = struct {
                     } else {
                         const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y } };
                         window.event_queue.enqueue(event);
+                        //if (!window.show_cursor) {
+                        //    // TODO(Thomas): Better error handling here? This will panic.
+                        //    _ = user32.setCursorPos(@divFloor(window.width, 2), @divFloor(window.height, 2)) catch unreachable;
+                        //}
                     }
                 }
             },
@@ -488,10 +493,14 @@ pub const Window = struct {
         }
     }
 
+    // TODO(Thomas) hideCursor and showCursor is for now used for capturing cursor.
+    // This is probably very very buggy in the current state. Think about moving it
+    // into a captureCursor function instead.
     pub fn hideCursor(self: *Window) void {
         self.show_cursor = false;
         // TODO(Thomas): Use wrapper setCursor
         _ = user32.SetCursor(null);
+        _ = user32.SetCapture(self.hwnd);
     }
 
     pub fn showCursor(self: *Window) !void {
@@ -501,6 +510,12 @@ pub const Window = struct {
         const cursor = try user32.loadCursorW(null, arrow);
         // TODO(Thomas): use wrapper setCursor
         _ = user32.SetCursor(cursor);
+        _ = user32.ReleaseCapture();
+    }
+
+    pub fn setCursorPos(self: *Window, x: i32, y: i32) !void {
+        _ = self;
+        _ = try user32.setCursorPos(x, y);
     }
 
     pub fn processMessages() !void {
