@@ -48,10 +48,10 @@ pub const Window = struct {
     width: i32,
     height: i32,
     running: bool,
-    mouse_x: i32,
-    mouse_y: i32,
+    mouse_x: i16,
+    mouse_y: i16,
     wp_prev: user32.WINDOWPLACEMENT,
-    show_cursor: bool,
+    capture_cursor: bool,
     self: *Window = undefined,
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
@@ -109,7 +109,7 @@ pub const Window = struct {
             .rcNormalPosition = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 },
             .rcDevice = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 },
         };
-        window.show_cursor = true;
+        window.capture_cursor = false;
 
         window.callbacks = WindowCallbacks{};
 
@@ -363,12 +363,22 @@ pub const Window = struct {
                     if (window.callbacks.mouse_move) |cb| {
                         cb(window, x, y);
                     } else {
-                        const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y } };
+                        var x_rel: i16 = 0;
+                        var y_rel: i16 = 0;
+                        if (window.capture_cursor) {
+                            const window_center_x: i32 = @divFloor(window.width, 2);
+                            const window_center_y: i32 = @divFloor(window.height, 2);
+                            x_rel = x - @as(i16, @intCast(window_center_x));
+                            y_rel = y - @as(i16, @intCast(window_center_y));
+                            // TODO(Thomas): Better error handling here? This will panic.
+                            _ = user32.setCursorPos(window_center_x, window_center_y) catch unreachable;
+                        } else {
+                            x_rel = window.mouse_x - x;
+                            y_rel = window.mouse_y - y;
+                        }
+
+                        const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
                         window.event_queue.enqueue(event);
-                        //if (!window.show_cursor) {
-                        //    // TODO(Thomas): Better error handling here? This will panic.
-                        //    _ = user32.setCursorPos(@divFloor(window.width, 2), @divFloor(window.height, 2)) catch unreachable;
-                        //}
                     }
                 }
             },
@@ -424,7 +434,7 @@ pub const Window = struct {
             user32.WM_SETCURSOR => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
-                    if (!window.show_cursor) {
+                    if (!window.capture_cursor) {
                         // NOTE(Thomas): This is needed to ensure that mouse stays hidden
                         // when re-entering and so on.
                         // TODO(Thomas): Use wrapper setCursor instead
@@ -493,29 +503,25 @@ pub const Window = struct {
         }
     }
 
-    // TODO(Thomas) hideCursor and showCursor is for now used for capturing cursor.
-    // This is probably very very buggy in the current state. Think about moving it
-    // into a captureCursor function instead.
-    pub fn hideCursor(self: *Window) void {
-        self.show_cursor = false;
-        // TODO(Thomas): Use wrapper setCursor
-        _ = user32.SetCursor(null);
-        _ = user32.SetCapture(self.hwnd);
-    }
-
-    pub fn showCursor(self: *Window) !void {
-        self.show_cursor = true;
-        // TODO(Thomas): use stored cursor icon/type/styling instead of hardcoded as IDC_ARROW
-        const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
-        const cursor = try user32.loadCursorW(null, arrow);
-        // TODO(Thomas): use wrapper setCursor
-        _ = user32.SetCursor(cursor);
-        _ = user32.ReleaseCapture();
-    }
-
     pub fn setCursorPos(self: *Window, x: i32, y: i32) !void {
         _ = self;
-        _ = try user32.setCursorPos(x, y);
+        try user32.setCursorPos(x, y);
+    }
+
+    pub fn setCaptureCursor(self: *Window, value: bool) !void {
+        self.capture_cursor = value;
+        if (value) {
+            // TODO(Thomas): Use wrapper setCursor
+            _ = user32.SetCursor(null);
+            _ = user32.SetCapture(self.hwnd);
+        } else {
+            // TODO(Thomas): use stored cursor icon/type/styling instead of hardcoded as IDC_ARROW
+            const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
+            const cursor = try user32.loadCursorW(null, arrow);
+            // TODO(Thomas): use wrappers here instead
+            _ = user32.SetCursor(cursor);
+            _ = user32.ReleaseCapture();
+        }
     }
 
     pub fn processMessages() !void {

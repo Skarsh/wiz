@@ -49,13 +49,6 @@ pub fn main() !void {
                     if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_F)) {
                         try win.toggleFullscreen();
                     }
-                    if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_R)) {
-                        if (win.show_cursor) {
-                            win.hideCursor();
-                        } else {
-                            try win.showCursor();
-                        }
-                    }
                 },
                 else => {
                     std.debug.print("Event: {}\n", .{event});

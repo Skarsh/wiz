@@ -110,6 +110,8 @@ pub const KeyEvent = struct {
 pub const MouseMotionEvent = struct {
     x: i16,
     y: i16,
+    x_rel: i16,
+    y_rel: i16,
 };
 
 pub const MouseButtonEvent = struct {
