@@ -1527,6 +1527,18 @@ pub fn setCursor(hCursor: ?HCURSOR) !HCURSOR {
     }
 }
 
+pub extern "user32" fn SetCursorPos(x: i32, y: i32) callconv(WINAPI) BOOL;
+pub fn setCursorPos(x: i32, y: i32) !void {
+    if (SetCursorPos(x, y) == 0) {
+        switch (GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+/// A handle to the window in the current thread that is to capture the mouse.
+/// The return value is a handle to the window that had previously captured the mouse. If there is no such window, the return value is NULL.
 // TODO(Thomas): Add wrapper function
 pub extern "user32" fn SetCapture(hWnd: ?HWND) callconv(WINAPI) ?HWND;
 
