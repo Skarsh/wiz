@@ -1,4 +1,5 @@
 # Bugs
+- when alt tabbing the CPU goes crazy and marsh app becomes very choppy and low framerate
 - cursor is not IDC_Arrow at the start of the window 
 - glViewport scaling does not work properly when going into fullscreen
 
