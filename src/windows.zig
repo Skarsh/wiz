@@ -434,7 +434,7 @@ pub const Window = struct {
             user32.WM_SETCURSOR => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
-                    if (!window.capture_cursor) {
+                    if (window.capture_cursor) {
                         // NOTE(Thomas): This is needed to ensure that mouse stays hidden
                         // when re-entering and so on.
                         // TODO(Thomas): Use wrapper setCursor instead
