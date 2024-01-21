@@ -64,8 +64,8 @@ pub fn main() !void {
         opengl32.glClear(opengl32.GL_COLOR_BUFFER_BIT);
         try win.swapBuffers();
 
-        // Equals 1ms sleep, just so CPU don't blow up
-        std.time.sleep(1_000_000);
+        // Equals 4ms sleep, just so CPU don't blow up
+        std.time.sleep(4_000_000);
     }
 
     std.debug.print("Exiting app\n", .{});
