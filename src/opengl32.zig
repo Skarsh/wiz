@@ -24,6 +24,7 @@ pub extern "opengl32" fn wglCreateContext(hdc: windows.HDC) callconv(WINAPI) ?wi
 pub extern "opengl32" fn wglMakeCurrent(hdc: windows.HDC, hglrc: windows.HGLRC) callconv(windows.WINAPI) windows.BOOL;
 pub extern "opengl32" fn wglDeleteContext(hglrc: windows.HGLRC) callconv(WINAPI) windows.BOOL;
 pub extern "opengl32" fn wglGetProcAddress(fn_name: windows.LPCSTR) callconv(WINAPI) ?windows.PVOID;
+pub extern "opengl32" fn glGetString(name: KhrGLenum) callconv(WINAPI) [*:0]const u8;
 
 extern "kernel32" fn GetProcAddress(h_module: windows.HMODULE, fn_name: windows.LPCSTR) callconv(windows.WINAPI) ?windows.FARPROC;
 extern "kernel32" fn LoadLibraryA(fn_name: windows.LPCSTR) callconv(windows.WINAPI) ?windows.HMODULE;
@@ -111,6 +112,9 @@ pub var glTexParameteri: *const fn (KhrGLenum, KhrGLenum, GLint) callconv(.C) vo
 pub var glGenerateMipmap: *const fn (KhrGLenum) callconv(.C) void = undefined;
 pub var glGetError: *const fn () callconv(.C) KhrGLenum = undefined;
 
+pub var wglSwapIntervalEXT: *const fn (windows.INT) callconv(WINAPI) windows.BOOL = undefined;
+pub var wglGetSwapIntervalEXT: *const fn () callconv(WINAPI) windows.INT = undefined;
+
 // TODO (Thomas): If loading of any of these fails the app will crash.
 // That might be reasonable for now because its pretty useless without rendering.
 // One can imagine that one can try other graphics APIs as fallbacks later?
@@ -134,6 +138,9 @@ pub fn loadOpenGLFunctions() void {
     } else {
         std.log.err("Unable to load opengl32.dll", .{});
     }
+
+    wglSwapIntervalEXT = @as(@TypeOf(wglSwapIntervalEXT), @ptrCast(@alignCast(wglGetProcAddress("wglSwapIntervalEXT"))));
+    wglGetSwapIntervalEXT = @as(@TypeOf(wglGetSwapIntervalEXT), @ptrCast(@alignCast(wglGetProcAddress("wglGetSwapIntervalEXT"))));
 
     // Load OpenGL extensions functions, which is defined by Windows as version > OpenGL 1.1
     glGenVertexArrays = @as(@TypeOf(glGenVertexArrays), @ptrCast(@alignCast(wglGetProcAddress("glGenVertexArrays"))));
