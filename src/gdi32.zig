@@ -46,12 +46,55 @@ pub extern "gdi32" fn SetPixelFormat(
     hdc: ?HDC,
     format: i32,
     ppfd: ?*const PIXELFORMATDESCRIPTOR,
-) callconv(WINAPI) bool;
+) callconv(WINAPI) windows.BOOL;
+
+pub fn setPixelFormat(hdc: ?HDC, format: windows.INT, ppfd: ?*const PIXELFORMATDESCRIPTOR) !void {
+    if (SetPixelFormat(hdc, format, ppfd) == 0) {
+        switch (windows.kernel32.GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
 
 pub extern "gdi32" fn ChoosePixelFormat(
     hdc: ?HDC,
     ppfd: ?*const PIXELFORMATDESCRIPTOR,
-) callconv(WINAPI) i32;
+) callconv(WINAPI) windows.INT;
+
+pub fn choosePixelFormat(hdc: ?HDC, ppfd: ?*const PIXELFORMATDESCRIPTOR) !i32 {
+    const pfd = ChoosePixelFormat(hdc, ppfd);
+    if (pfd == 0) {
+        switch (windows.kernel32.GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+    return pfd;
+}
+
+pub extern "gdi32" fn DescribePixelFormat(
+    hdc: ?HDC,
+    iPixelFormat: windows.INT,
+    nBytes: windows.INT,
+    ppfd: ?*const PIXELFORMATDESCRIPTOR,
+) callconv(WINAPI) windows.INT;
+
+pub fn describePixelFormat(
+    hdc: ?HDC,
+    iPixelFormat: windows.INT,
+    nBytes: windows.INT,
+    ppfd: ?*const PIXELFORMATDESCRIPTOR,
+) !i32 {
+    const result = DescribePixelFormat(hdc, iPixelFormat, nBytes, ppfd);
+    if (result == 0) {
+        switch (windows.kernel32.GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+    return result;
+}
 
 pub extern "gdi32" fn SwapBuffers(hdc: ?HDC) callconv(WINAPI) bool;
 pub extern "gdi32" fn wglCreateContext(hdc: ?HDC) callconv(WINAPI) ?HGLRC;
