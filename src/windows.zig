@@ -229,17 +229,13 @@ pub const Window = struct {
         const hdc = try user32.getDC(self.hwnd);
         defer _ = user32.releaseDC(self.hwnd, hdc);
 
-        const let_windows_choose_pixel_format = gdi32.ChoosePixelFormat(
-            hdc,
-            &pfd,
-        );
+        const format = try gdi32.choosePixelFormat(hdc, &pfd);
 
-        // TODO: handle return value
-        _ = gdi32.SetPixelFormat(
-            hdc,
-            let_windows_choose_pixel_format,
-            &pfd,
-        );
+        // TODO(Thomas): What about the nBytes field here, using @sizeOf the type.
+        // TODO(Thomas): Deal with return value here, look at https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-describepixelformat
+        _ = try gdi32.describePixelFormat(hdc, format, @sizeOf(gdi32.PIXELFORMATDESCRIPTOR), &pfd);
+
+        try gdi32.setPixelFormat(hdc, format, &pfd);
 
         const our_opengl_rendering_context = opengl32.wglCreateContext(
             hdc,
