@@ -1,4 +1,5 @@
 const std = @import("std");
+const Timer = std.time.Timer;
 const windows = std.os.windows;
 const kernel32 = windows.kernel32;
 const user32 = @import("user32.zig");
@@ -24,19 +25,42 @@ pub fn main() !void {
     opengl32.loadOpenGLFunctions();
     opengl32.glViewport(0, 0, win.width, win.height);
 
+    std.debug.print("extension: {s}\n", .{opengl32.glGetString(opengl32.GL_EXTENSIONS)});
+
+    const swap_interval = opengl32.wglGetSwapIntervalEXT();
+    std.debug.print("swap interval before setting it: {}\n", .{swap_interval});
+
+    const result = opengl32.wglSwapIntervalEXT(0);
+    if (result == 0) {
+        std.debug.print("setting wglSwapIntevalEXT failed\n", .{});
+    }
+    std.debug.print("swap interval after setting it: {}\n", .{swap_interval});
+
     win.setWindowSizeCallback(windowSizeCallback);
     win.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
     //const win2 = try Window.init(allocator, win_opts, "win2");
     //win2.setWindowSizeCallback(windowSizeCallback);
 
-    var perf_counter: i64 = 0;
-    var perf_freq: i64 = 0;
+    //var perf_counter: i64 = 0;
+    //var perf_freq: i64 = 0;
+    var frame_count: usize = 0;
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
+    var timer = try Timer.start();
+    //var last: u64 = 0;
     while (win.running) {
-        try wiz.queryPerformanceCounter(&perf_counter);
-        try wiz.queryPerformanceFrequency(&perf_freq);
+        frame_count += 1;
+        const delta_time = timer.lap();
+        timer.reset();
+        //try wiz.queryPerformanceCounter(&perf_counter);
+        //try wiz.queryPerformanceFrequency(&perf_freq);
         try Window.processMessages();
+
+        //last = now;
+        if (@mod(frame_count, 60) == 0) {
+            std.debug.print("delta_time: {d}ms\n", .{delta_time / std.time.ns_per_ms});
+        }
+
         while (win.event_queue.poll(&event)) {
             switch (event) {
                 .KeyDown => {
@@ -64,8 +88,8 @@ pub fn main() !void {
         opengl32.glClear(opengl32.GL_COLOR_BUFFER_BIT);
         try win.swapBuffers();
 
-        // Equals 4ms sleep, just so CPU don't blow up
-        std.time.sleep(4_000_000);
+        // Equals 1ms sleep, just so CPU don't blow up
+        std.time.sleep(1_000_000);
     }
 
     std.debug.print("Exiting app\n", .{});
