@@ -16,6 +16,8 @@ const MouseMotionEvent = input.MouseMotionEvent;
 const MouseButtonEvent = input.MouseButtonEvent;
 const KeyEvent = input.KeyEvent;
 
+const tracy = @import("tracy.zig");
+
 pub const default_window_width: i32 = 640;
 pub const default_window_height: i32 = 480;
 
@@ -44,6 +46,7 @@ pub const Window = struct {
     h_instance: windows.HINSTANCE,
     hwnd: ?windows.HWND,
     hglrc: ?windows.HGLRC,
+    hdc: ?windows.HDC,
     lp_class_name: [*:0]const u16,
     width: i32,
     height: i32,
@@ -94,6 +97,7 @@ pub const Window = struct {
         window.allocator = allocator;
         window.h_instance = h_instance;
         window.hglrc = null;
+        window.hdc = null;
         window.lp_class_name = wc.lpszClassName;
         window.width = width;
         window.height = height;
@@ -227,7 +231,7 @@ pub const Window = struct {
 
         // TODO (Thomas): Deal with optionals
         const hdc = try user32.getDC(self.hwnd);
-        defer _ = user32.releaseDC(self.hwnd, hdc);
+        self.hdc = hdc;
 
         const format = try gdi32.choosePixelFormat(hdc, &pfd);
 
@@ -264,12 +268,16 @@ pub const Window = struct {
         if (self.hglrc) |hglrc| {
             _ = opengl32.wglDeleteContext(hglrc);
         }
+
+        if (self.hdc) |hdc| {
+            _ = user32.releaseDC(self.hwnd, hdc);
+        }
     }
 
     pub fn swapBuffers(self: *Window) !void {
-        // TODO (Thomas): What to do with boolean value here? Return it to the caller?
-        if (self.hwnd) |hwnd| {
-            const hdc = try user32.getDC(hwnd);
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
+        if (self.hdc) |hdc| {
             _ = gdi32.SwapBuffers(hdc);
         }
     }
@@ -527,6 +535,8 @@ pub const Window = struct {
     }
 
     pub fn processMessages() !void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         var msg = user32.MSG.default();
         while (try user32.peekMessageW(&msg, null, 0, 0, user32.PM_REMOVE)) {
             switch (msg.message) {
