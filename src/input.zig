@@ -3,6 +3,8 @@ const Allocator = std.mem.Allocator;
 
 const Window = @import("windows.zig").Window;
 
+const tracy = @import("tracy.zig");
+
 // NOTE(Thomas): These scancodes are from https://learn.microsoft.com/nb-no/windows/win32/inputdev/about-keyboard-input
 pub const Scancode = enum(u32) {
     Keyboard_A = 0x001E,
@@ -177,6 +179,8 @@ pub const EventQueue = struct {
     /// Pushes a new event onto the queue. Will wrap around and
     /// overwrite older values if full.
     pub fn enqueue(self: *EventQueue, event: Event) void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         // if the next position for tail is at the head, then we need to increment
         // bot head and tail, with modulo for handling wrapping.
         if (@mod(self.tail + 1, @as(isize, @intCast(self.queue.len))) == self.head) {
@@ -196,6 +200,8 @@ pub const EventQueue = struct {
     /// Polls the queue to see if there are new unprocessed elements to handle.
     /// When polled, returns the event at the rear
     pub fn poll(self: *EventQueue, event: *Event) bool {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         // Queue is empty
         if (self.head == -1) {
             return false;
