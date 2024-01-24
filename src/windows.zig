@@ -237,17 +237,23 @@ pub const Window = struct {
 
         try gdi32.setPixelFormat(hdc, format, &pfd);
 
-        const our_opengl_rendering_context = opengl32.wglCreateContext(
+        const rendering_context = opengl32.wglCreateContext(
             hdc,
         );
 
-        self.hglrc = our_opengl_rendering_context;
+        // TODO(Thomas): This will make it crash, are there a more graceful way to deal with this?
+        if (rendering_context) |rc| {
+            self.hglrc = rc;
 
-        // TODO: handle return value
-        _ = opengl32.wglMakeCurrent(
-            hdc,
-            our_opengl_rendering_context.?,
-        );
+            const result = opengl32.wglMakeCurrent(
+                hdc,
+                rc,
+            );
+
+            assert(result != 0);
+        } else {
+            assert(false);
+        }
     }
 
     pub fn deinit(self: Window) !void {
