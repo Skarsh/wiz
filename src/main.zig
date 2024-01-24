@@ -7,12 +7,15 @@ const gdi32 = @import("gdi32.zig");
 const opengl32 = @import("opengl32.zig");
 const input = @import("input.zig");
 const wiz = @import("wiz.zig");
+const tracy = @import("tracy.zig");
+const build_options = @import("build_options");
 const Event = input.Event;
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
 const Window = @import("windows.zig").Window;
 const WindowOptions = @import("windows.zig").WindowOptions;
 const WindowFormat = @import("windows.zig").WindowFormat;
+const enable_tracy = build_options.enable_tracy;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -49,6 +52,8 @@ pub fn main() !void {
     var timer = try Timer.start();
     //var last: u64 = 0;
     while (win.running) {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         frame_count += 1;
         const delta_time = timer.lap();
         timer.reset();
