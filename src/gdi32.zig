@@ -35,6 +35,36 @@ pub const PIXELFORMATDESCRIPTOR = extern struct {
     dwLayerMask: DWORD,
     dwVisibleMask: DWORD,
     dwDamageMask: DWORD,
+
+    pub fn default() PIXELFORMATDESCRIPTOR {
+        return PIXELFORMATDESCRIPTOR{
+            .nVersion = 0,
+            .dwFlags = 0,
+            .iPixelType = 0,
+            .cColorBits = 0,
+            .cRedBits = 0,
+            .cRedShift = 0,
+            .cGreenBits = 0,
+            .cGreenShift = 0,
+            .cBlueBits = 0,
+            .cBlueShift = 0,
+            .cAlphaBits = 0,
+            .cAlphaShift = 0,
+            .cAccumBits = 0,
+            .cAccumRedBits = 0,
+            .cAccumGreenBits = 0,
+            .cAccumBlueBits = 0,
+            .cAccumAlphaBits = 0,
+            .cDepthBits = 0,
+            .cStencilBits = 0,
+            .cAuxBuffers = 0,
+            .iLayerType = 0,
+            .bReserved = 0,
+            .dwLayerMask = 0,
+            .dwVisibleMask = 0,
+            .dwDamageMask = 0,
+        };
+    }
 };
 
 pub const PFD_TYPE_RGBA: u8 = 0;
