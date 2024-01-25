@@ -2,7 +2,17 @@ const std = @import("std");
 const windows = std.os.windows;
 const SourceLocation = std.builtin.SourceLocation;
 
-const WINAPI = std.os.windows.WINAPI;
+const WINAPI = windows.WINAPI;
+const BOOL = windows.BOOL;
+const FARPROC = windows.FARPROC;
+const FLOAT = windows.FLOAT;
+const HDC = windows.HDC;
+const HGLRC = windows.HGLRC;
+const HMODULE = windows.HMODULE;
+const INT = windows.INT;
+const UINT = windows.UINT;
+const LPCSTR = windows.LPCSTR;
+const PVOID = windows.PVOID;
 
 pub const GL_TRIANGLES = 0x0004;
 pub const GL_FLOAT = 0x1406;
@@ -19,15 +29,35 @@ pub const GL_STATIC_DRAW = 0x88E4;
 pub const GL_TRUE = 1;
 pub const GL_FALSE = 0;
 
+// NOTE(Thomas):
+// Taken from here: https://github.com/KhronosGroup/OpenGL-Registry/blob/ca491a0576d5c026f06ebe29bfac7cbbcf1e8332/api/GL/wglext.h#L154
+// only grabbing the ones that are needed for now.
+pub const WGL_DRAW_TO_WINDOW_ARB = 0x2001;
+pub const WGL_SUPPORT_OPENGL_ARB = 0x2010;
+pub const WGL_DOUBLE_BUFFER_ARB = 0x2011;
+pub const WGL_PIXEL_TYPE_ARB = 0x2013;
+pub const WGL_COLOR_BITS_ARB = 0x2014;
+pub const WGL_DEPTH_BITS_ARB = 0x2022;
+pub const WGL_STENCIL_BITS_ARB = 0x2023;
+pub const WGL_TYPE_RGBA_ARB = 0x202B;
+
+pub const WGL_CONTEXT_MAJOR_VERSION_ARB = 0x2091;
+pub const WGL_CONTEXT_MINOR_VERSION_ARB = 0x2092;
+
+pub const WGL_CONTEXT_PROFILE_MASK_ARB = 0x9126;
+pub const WGL_CONTEXT_CORE_PROFILE_BIT_ARB = 0x00000001;
+pub const WGL_CONTEXT_DEBUG_BIT_ARB = 0x00000001;
+pub const WGL_CONTEXT_FLAGS_ARB = 0x2094;
+
 // TODO (Thomas): Make wrappers for these as been done in user32.zig
-pub extern "opengl32" fn wglCreateContext(hdc: windows.HDC) callconv(WINAPI) ?windows.HGLRC;
-pub extern "opengl32" fn wglMakeCurrent(hdc: windows.HDC, hglrc: windows.HGLRC) callconv(windows.WINAPI) windows.BOOL;
-pub extern "opengl32" fn wglDeleteContext(hglrc: windows.HGLRC) callconv(WINAPI) windows.BOOL;
-pub extern "opengl32" fn wglGetProcAddress(fn_name: windows.LPCSTR) callconv(WINAPI) ?windows.PVOID;
+pub extern "opengl32" fn wglCreateContext(hdc: HDC) callconv(WINAPI) ?HGLRC;
+pub extern "opengl32" fn wglMakeCurrent(hdc: HDC, hglrc: HGLRC) callconv(WINAPI) BOOL;
+pub extern "opengl32" fn wglDeleteContext(hglrc: HGLRC) callconv(WINAPI) BOOL;
+pub extern "opengl32" fn wglGetProcAddress(fn_name: LPCSTR) callconv(WINAPI) ?PVOID;
 pub extern "opengl32" fn glGetString(name: KhrGLenum) callconv(WINAPI) [*:0]const u8;
 
-extern "kernel32" fn GetProcAddress(h_module: windows.HMODULE, fn_name: windows.LPCSTR) callconv(windows.WINAPI) ?windows.FARPROC;
-extern "kernel32" fn LoadLibraryA(fn_name: windows.LPCSTR) callconv(windows.WINAPI) ?windows.HMODULE;
+extern "kernel32" fn GetProcAddress(h_module: HMODULE, fn_name: LPCSTR) callconv(WINAPI) ?FARPROC;
+extern "kernel32" fn LoadLibraryA(fn_name: LPCSTR) callconv(WINAPI) ?HMODULE;
 
 // TODO (Thomas) Change this to GLenum instead to match OpenGL better
 pub const KhrGLenum = c_uint;
@@ -112,8 +142,19 @@ pub var glTexParameteri: *const fn (KhrGLenum, KhrGLenum, GLint) callconv(.C) vo
 pub var glGenerateMipmap: *const fn (KhrGLenum) callconv(.C) void = undefined;
 pub var glGetError: *const fn () callconv(.C) KhrGLenum = undefined;
 
-pub var wglSwapIntervalEXT: *const fn (windows.INT) callconv(WINAPI) windows.BOOL = undefined;
-pub var wglGetSwapIntervalEXT: *const fn () callconv(WINAPI) windows.INT = undefined;
+pub var wglSwapIntervalEXT: *const fn (INT) callconv(WINAPI) BOOL = undefined;
+pub var wglGetSwapIntervalEXT: *const fn () callconv(WINAPI) INT = undefined;
+pub var wglGetExtensionsStringARB: *const fn (?HDC) callconv(WINAPI) ?[*:0]const u8 = undefined;
+pub var wglCreateContextAttribsARB: *const fn (hdc: ?HDC, hShareContext: ?HGLRC, attribList: [*c]INT) callconv(WINAPI) ?HGLRC = undefined;
+
+pub var wglChoosePixelFormatARB: *const fn (
+    hdc: ?HDC,
+    piAttribIList: [*c]const INT,
+    pfAttribFList: [*c]const FLOAT,
+    nMaxFormats: UINT,
+    piFormats: *INT,
+    nNumFormats: *UINT,
+) callconv(WINAPI) BOOL = undefined;
 
 // TODO (Thomas): If loading of any of these fails the app will crash.
 // That might be reasonable for now because its pretty useless without rendering.
@@ -141,6 +182,9 @@ pub fn loadOpenGLFunctions() void {
 
     wglSwapIntervalEXT = @as(@TypeOf(wglSwapIntervalEXT), @ptrCast(@alignCast(wglGetProcAddress("wglSwapIntervalEXT"))));
     wglGetSwapIntervalEXT = @as(@TypeOf(wglGetSwapIntervalEXT), @ptrCast(@alignCast(wglGetProcAddress("wglGetSwapIntervalEXT"))));
+    wglGetExtensionsStringARB = @as(@TypeOf(wglGetExtensionsStringARB), @ptrCast(@alignCast(wglGetProcAddress("wglGetExtensionsStringARB"))));
+    wglCreateContextAttribsARB = @as(@TypeOf(wglCreateContextAttribsARB), @ptrCast(@alignCast(wglGetProcAddress("wglCreateContextAttribsARB"))));
+    wglChoosePixelFormatARB = @as(@TypeOf(wglChoosePixelFormatARB), @ptrCast(@alignCast(wglGetProcAddress("wglChoosePixelFormatARB"))));
 
     // Load OpenGL extensions functions, which is defined by Windows as version > OpenGL 1.1
     glGenVertexArrays = @as(@TypeOf(glGenVertexArrays), @ptrCast(@alignCast(wglGetProcAddress("glGenVertexArrays"))));
