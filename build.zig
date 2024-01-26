@@ -46,7 +46,6 @@ pub fn build(
 ) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const enable_tracy = b.option(bool, "enable_tracy", "Whether tracy should be enabled.") orelse false;
 
     const lib = b.addStaticLibrary(.{
         .name = "wiz",
@@ -67,6 +66,8 @@ pub fn build(
     });
 
     const exe_options = b.addOptions();
+
+    const enable_tracy = b.option(bool, "enable_tracy", "Whether tracy should be enabled.") orelse false;
     exe_options.addOption(bool, "enable_tracy", enable_tracy);
     exe_options.addOption(bool, "enable_tracy_allocation", b.option(
         bool,
@@ -74,6 +75,7 @@ pub fn build(
         "Enable using TracyAllocator to monitor allocations.",
     ) orelse enable_tracy);
     exe_options.addOption(bool, "enable_tracy_callstack", b.option(bool, "enable_tracy_callstack", "Enable callstack graphs.") orelse enable_tracy);
+    exe_options.addOption(bool, "enable_tracy_gpu", b.option(bool, "enable_tracy_gpu", "Enable GPU zones") orelse enable_tracy);
     exe.root_module.addImport("build_options", exe_options.createModule());
 
     if (enable_tracy) {

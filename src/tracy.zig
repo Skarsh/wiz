@@ -30,6 +30,7 @@ const build_options = @import("build_options");
 pub const enable = if (builtin.is_test) false else build_options.enable_tracy;
 pub const enable_allocation = enable and build_options.enable_tracy_allocation;
 pub const enable_callstack = enable and build_options.enable_tracy_callstack;
+pub const enable_gpu = enable and build_options.enable_tracy_gpu;
 
 // TODO: make this configurable
 const callstack_depth = 10;
@@ -341,3 +342,29 @@ const ___tracy_source_location_data = extern struct {
     line: u32,
     color: u32,
 };
+
+// GPU stuff
+const ___tracy_gpu_zone_begin_data = extern struct {
+    gpu_time: i64,
+    query_id: u16,
+    context: u8,
+};
+
+const ___tracy_gpu_zone_end_data = extern struct {
+    query_id: u16,
+    context: u8,
+};
+
+pub const ___tracy_gpu_new_context_data = extern struct {
+    gpu_time: i64,
+    period: f32,
+    context: u8,
+    flags: u8,
+    type: u8,
+};
+
+pub extern fn ___tracy_emit_gpu_zone_begin(begin_data: ___tracy_gpu_zone_begin_data) void;
+
+pub extern fn ___tracy_emit_gpu_zone_end(end_data: ___tracy_gpu_zone_end_data) void;
+
+pub extern fn ___tracy_emit_gpu_new_context(ctx_data: ___tracy_gpu_new_context_data) void;
