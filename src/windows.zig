@@ -55,6 +55,7 @@ pub const Window = struct {
     mouse_y: i16,
     wp_prev: user32.WINDOWPLACEMENT,
     capture_cursor: bool,
+    is_vsync: bool,
     self: *Window = undefined,
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
@@ -114,6 +115,7 @@ pub const Window = struct {
             .rcDevice = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 },
         };
         window.capture_cursor = false;
+        window.is_vsync = false;
 
         window.callbacks = WindowCallbacks{};
 
@@ -328,8 +330,10 @@ pub const Window = struct {
 
             if (self.hdc) |hdc| {
                 const rc_opt = opengl32.wglCreateContextAttribsARB(hdc, null, &attrib);
-                const ok = opengl32.wglMakeCurrent(hdc, rc_opt.?);
-                std.debug.assert(ok == 1);
+                if (rc_opt) |rc| {
+                    const ok = opengl32.wglMakeCurrent(hdc, rc);
+                    std.debug.assert(ok == 1);
+                }
             }
         }
     }
@@ -606,6 +610,19 @@ pub const Window = struct {
             _ = user32.SetCursor(cursor);
             _ = user32.ReleaseCapture();
         }
+    }
+
+    // TODO(Thomas): This function needs more error checking, also
+    // there's still something that does not make complete sense when setting this.
+    // The value reported back from the function does not seem to change, but the frame durations
+    // matches with what VSync being set or not.
+    pub fn setVSync(self: *Window, value: bool) void {
+        if (value) {
+            opengl32.wglSwapIntervalEXT(1);
+        } else {
+            opengl32.wglSwapIntervalEXT(0);
+        }
+        self.is_vsync = true;
     }
 
     pub fn processMessages() !void {
