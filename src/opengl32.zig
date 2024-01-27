@@ -180,13 +180,13 @@ pub fn loadOpenGLFunctions() void {
         std.log.err("Unable to load opengl32.dll", .{});
     }
 
+    // Load OpenGL extensions functions
     wglSwapIntervalEXT = @as(@TypeOf(wglSwapIntervalEXT), @ptrCast(@alignCast(wglGetProcAddress("wglSwapIntervalEXT"))));
     wglGetSwapIntervalEXT = @as(@TypeOf(wglGetSwapIntervalEXT), @ptrCast(@alignCast(wglGetProcAddress("wglGetSwapIntervalEXT"))));
     wglGetExtensionsStringARB = @as(@TypeOf(wglGetExtensionsStringARB), @ptrCast(@alignCast(wglGetProcAddress("wglGetExtensionsStringARB"))));
     wglCreateContextAttribsARB = @as(@TypeOf(wglCreateContextAttribsARB), @ptrCast(@alignCast(wglGetProcAddress("wglCreateContextAttribsARB"))));
     wglChoosePixelFormatARB = @as(@TypeOf(wglChoosePixelFormatARB), @ptrCast(@alignCast(wglGetProcAddress("wglChoosePixelFormatARB"))));
 
-    // Load OpenGL extensions functions, which is defined by Windows as version > OpenGL 1.1
     glGenVertexArrays = @as(@TypeOf(glGenVertexArrays), @ptrCast(@alignCast(wglGetProcAddress("glGenVertexArrays"))));
     glDeleteVertexArrays = @as(@TypeOf(glDeleteVertexArrays), @ptrCast(@alignCast(wglGetProcAddress("glDeleteVertexArrays"))));
     glGenBuffers = @as(@TypeOf(glGenBuffers), @ptrCast(@alignCast(wglGetProcAddress("glGenBuffers"))));
