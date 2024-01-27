@@ -617,12 +617,27 @@ pub const Window = struct {
     // The value reported back from the function does not seem to change, but the frame durations
     // matches with what VSync being set or not.
     pub fn setVSync(self: *Window, value: bool) void {
+        // TODO(Thomas): OLD STUFF, but do checks like this
+        //const extensions = opengl32.wglGetExtensionsStringARB(win.hdc);
+        //std.debug.print("extensions: {s}\n", .{extensions.?});
+
+        //const swap_interval = opengl32.wglGetSwapIntervalEXT();
+        //const err = opengl32.glGetError();
+        //std.debug.print("err: {}\n", .{err});
+        //std.debug.print("swap interval before setting it: {}\n", .{swap_interval});
+
+        //const result = opengl32.wglSwapIntervalEXT(1);
+        //if (result == 0) {
+        //    std.debug.print("setting wglSwapIntevalEXT failed\n", .{});
+        //}
+        //std.debug.print("swap interval after setting it: {}\n", .{swap_interval});
+
         if (value) {
-            opengl32.wglSwapIntervalEXT(1);
+            _ = opengl32.wglSwapIntervalEXT(1);
         } else {
-            opengl32.wglSwapIntervalEXT(0);
+            _ = opengl32.wglSwapIntervalEXT(0);
         }
-        self.is_vsync = true;
+        self.is_vsync = value;
     }
 
     pub fn processMessages() !void {
