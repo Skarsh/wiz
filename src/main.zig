@@ -24,70 +24,7 @@ pub fn main() !void {
     const window_height = 480;
     var win = try Window.init(allocator, window_width, window_height, WindowFormat.fullscreen, "win1");
 
-    try win.makeOpenGLContext();
-
-    opengl32.loadOpenGLFunctions();
-
-    {
-
-        // Set pixel format for OpenGl context
-        const attrib = [_]i32{
-            opengl32.WGL_DRAW_TO_WINDOW_ARB, opengl32.GL_TRUE,
-            opengl32.WGL_SUPPORT_OPENGL_ARB, opengl32.GL_TRUE,
-            opengl32.WGL_DOUBLE_BUFFER_ARB,  opengl32.GL_TRUE,
-            opengl32.WGL_PIXEL_TYPE_ARB,     opengl32.WGL_TYPE_RGBA_ARB,
-            // TODO(Thomas): Why isn't this 32???
-            opengl32.WGL_COLOR_BITS_ARB,     24,
-            opengl32.WGL_DEPTH_BITS_ARB,     24,
-            opengl32.WGL_STENCIL_BITS_ARB,   8,
-            // uncomment for sRGB framebuffer, from WGL_ARB_framebuffer_sRGB extension
-            // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_framebuffer_sRGB.txt
-            //WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
-
-            // uncomment for multisampeld framebuffer, from WGL_ARB_multisample extension
-            // https://www.khronos.org/registry/OpenGL/extensions/ARB/ARB_multisample.txt
-            //WGL_SAMPLE_BUFFERS_ARB, 1,
-            //WGL_SAMPLES_ARB,        4, // 4x MSAA
-
-            0,
-        };
-        std.debug.print("attrib: {any}\n", .{attrib});
-
-        var format: i32 = 0;
-        var num_formats: u32 = 0;
-
-        if (win.hdc) |hdc| {
-            const result = opengl32.wglChoosePixelFormatARB(hdc, &attrib, null, 1, &format, &num_formats);
-            std.debug.assert(result == 1 and num_formats != 0);
-
-            const pfd = gdi32.PIXELFORMATDESCRIPTOR.default();
-            _ = try gdi32.describePixelFormat(hdc, format, pfd.nSize, &pfd);
-
-            _ = try gdi32.setPixelFormat(hdc, format, &pfd);
-        }
-    }
-
-    // crate modern OpenGL context
-    {
-        var attrib = [_]i32{
-            opengl32.WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-            opengl32.WGL_CONTEXT_MINOR_VERSION_ARB, 5,
-            opengl32.WGL_CONTEXT_PROFILE_MASK_ARB,  opengl32.WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-            // TODO (Thomas): Would like to do something similar to this
-            //#ifndef NDEBUG
-            //            // ask for debug context for non "Release" builds
-            //            // this is so we can enable debug callback
-            //            WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB,
-            //#endif
-            0,
-        };
-
-        if (win.hdc) |hdc| {
-            const rc_opt = opengl32.wglCreateContextAttribsARB(hdc, null, &attrib);
-            const ok = opengl32.wglMakeCurrent(hdc, rc_opt.?);
-            std.debug.assert(ok == 1);
-        }
-    }
+    try win.makeModernOpenGLContext();
 
     const extensions = opengl32.wglGetExtensionsStringARB(win.hdc);
     std.debug.print("extensions: {s}\n", .{extensions.?});
