@@ -16,6 +16,9 @@ pub const opengl32 = @import("opengl32.zig");
 extern "kernel32" fn QueryPerformanceCounter(lpPerformanceCounter: *win32.LARGE_INTEGER) callconv(win32.WINAPI) win32.BOOL;
 extern "kernel32" fn QueryPerformanceFrequency(lpFrequency: *win32.LARGE_INTEGER) callconv(win32.WINAPI) win32.BOOL;
 
+// TODO(Thomas): Find a better home for this, but this file will do for now.
+pub extern "winmm" fn timeBeginPeriod(uPeriod: win32.UINT) callconv(win32.WINAPI) win32.INT;
+
 pub fn queryPerformanceCounter(performance_counter: *i64) !void {
     if (QueryPerformanceCounter(performance_counter) == 0) {
         switch (win32.kernel32.GetLastError()) {
