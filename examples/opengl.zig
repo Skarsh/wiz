@@ -9,7 +9,7 @@ const Window = wiz.Window;
 const WindowFormat = wiz.WindowFormat;
 
 const vertex_shader_source: [:0]const u8 =
-    \\#version 330 core
+    \\#version 450 core
     \\layout (location = 0) in vec3 aPos;
     \\void main()
     \\{
@@ -18,7 +18,7 @@ const vertex_shader_source: [:0]const u8 =
 ;
 
 const fragment_shader_source: [:0]const u8 =
-    \\#version 330 core
+    \\#version 450 core
     \\out vec4 FragColor;
     \\void main()
     \\{
@@ -34,9 +34,9 @@ const vertices = [_]f32{
 
 pub fn main() !void {
     var window = try Window.init(std.heap.page_allocator, 640, 480, WindowFormat.windowed, "opengl-example");
-    try window.makeOpenGLContext();
-    gl.loadOpenGLFunctions();
-    gl.glViewport(0, 0, window.width, window.height);
+    _ = wiz.timeBeginPeriod(1);
+
+    try window.makeModernOpenGLContext();
     window.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
     // build and compile our shader program
@@ -76,16 +76,32 @@ pub fn main() !void {
 
     gl.glBindVertexArray(0);
 
+    const target_fps: i64 = 250; // This can be set to any desired value
+    const target_frame_duration = 1_000_000_000 / target_fps; // In nanoseconds
+
+    var delta_time: f32 = 0.0;
+    var now: i64 = 0;
+    try wiz.queryPerformanceCounter(&now);
+    var last: i64 = 0;
+
     var event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
     while (window.running) {
+        last = now;
+        try wiz.queryPerformanceCounter(&now);
+
+        // Multiplying by 1000 to get the value in milliseconds
+        var perf_freq: i64 = undefined;
+        try wiz.queryPerformanceFrequency(&perf_freq);
+        delta_time = @as(f32, @floatFromInt((now - last))) * (1000 / @as(f32, @floatFromInt(perf_freq)));
+
         try Window.processMessages();
         while (window.event_queue.poll(&event)) {
             switch (event) {
                 .KeyDown => {
-                    if (event.KeyDown.scancode == 1) {
+                    if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_Escape)) {
                         window.windowShouldClose(true);
                     }
-                    if (event.KeyDown.scancode == 33) {
+                    if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_F)) {
                         try window.toggleFullscreen();
                     }
                 },
@@ -101,7 +117,15 @@ pub fn main() !void {
 
         try window.swapBuffers();
 
-        std.time.sleep(1_000_000);
+        if (!window.is_vsync) {
+            var frame_end_time: i64 = 0;
+            try wiz.queryPerformanceCounter(&frame_end_time);
+            const frame_processing_time = frame_end_time - last; // Time taken for current frame
+            const sleep_duration = if (target_frame_duration > frame_processing_time) target_frame_duration - frame_processing_time else 0;
+            if (sleep_duration > 0) {
+                std.time.sleep(@intCast(sleep_duration));
+            }
+        }
     }
 
     std.debug.print("Exiting app\n", .{});
