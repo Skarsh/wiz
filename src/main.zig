@@ -17,9 +17,6 @@ const WindowOptions = @import("windows.zig").WindowOptions;
 const WindowFormat = @import("windows.zig").WindowFormat;
 const enable_tracy = build_options.enable_tracy;
 
-const ns_per_sec = 1_000_000_000;
-const ms_per_sec = 1000;
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -40,7 +37,7 @@ pub fn main() !void {
     win.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
     const target_fps: i64 = 250; // This can be set to any desired value
-    const target_frame_duration = ns_per_sec / target_fps; // In nanoseconds
+    const target_frame_duration = wiz.ns_per_sec / target_fps; // In nanoseconds
 
     var delta_time: f32 = 0.0;
     var now: i64 = 0;
@@ -59,12 +56,12 @@ pub fn main() !void {
         // Multiplying by 1000 to get the value in milliseconds
         var perf_freq: i64 = undefined;
         try wiz.queryPerformanceFrequency(&perf_freq);
-        delta_time = @as(f32, @floatFromInt((now - last))) * (ms_per_sec / @as(f32, @floatFromInt(perf_freq)));
+        delta_time = @as(f32, @floatFromInt((now - last))) * (wiz.ms_per_sec / @as(f32, @floatFromInt(perf_freq)));
         frame_count += 1;
         try Window.processMessages();
 
         if (@mod(frame_count, 60) == 0) {
-            std.debug.print("delta_time: {d:.4}ms, {d}fps\n", .{ delta_time, ms_per_sec / delta_time });
+            std.debug.print("delta_time: {d:.4}ms, {d}fps\n", .{ delta_time, wiz.ms_per_sec / delta_time });
         }
 
         while (win.event_queue.poll(&event)) {

@@ -12,6 +12,9 @@ pub const WindowFormat = windows.WindowFormat;
 
 pub const opengl32 = @import("opengl32.zig");
 
+pub const ns_per_sec = 1_000_000_000;
+pub const ms_per_sec = 1000;
+
 // TODO(Thomas): Move this into its own file, e.g. kernel32.zig
 extern "kernel32" fn QueryPerformanceCounter(lpPerformanceCounter: *win32.LARGE_INTEGER) callconv(win32.WINAPI) win32.BOOL;
 extern "kernel32" fn QueryPerformanceFrequency(lpFrequency: *win32.LARGE_INTEGER) callconv(win32.WINAPI) win32.BOOL;

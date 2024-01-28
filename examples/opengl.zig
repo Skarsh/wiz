@@ -79,7 +79,7 @@ pub fn main() !void {
     gl.glBindVertexArray(0);
 
     const target_fps: i64 = 250; // This can be set to any desired value
-    const target_frame_duration = 1_000_000_000 / target_fps; // In nanoseconds
+    const target_frame_duration = wiz.ns_per_sec / target_fps; // In nanoseconds
 
     var delta_time: f32 = 0.0;
     var now: i64 = 0;
@@ -94,7 +94,7 @@ pub fn main() !void {
         // Multiplying by 1000 to get the value in milliseconds
         var perf_freq: i64 = undefined;
         try wiz.queryPerformanceFrequency(&perf_freq);
-        delta_time = @as(f32, @floatFromInt((now - last))) * (1000 / @as(f32, @floatFromInt(perf_freq)));
+        delta_time = @as(f32, @floatFromInt((now - last))) * (wiz.ms_per_sec / @as(f32, @floatFromInt(perf_freq)));
 
         try Window.processMessages();
         while (window.event_queue.poll(&event)) {
