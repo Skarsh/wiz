@@ -1908,6 +1908,14 @@ pub fn getClientRect(hwnd: ?HWND, lpRect: ?*RECT) !void {
     }
 }
 
+/// [in] hwnd
+/// [in, out] lpPoint
+pub extern "user32" fn ClientToScreen(hWnd: ?HWND, lpPoint: *POINT) callconv(WINAPI) BOOL;
+
+/// [in] hwnd
+/// [in, out] lpPoint
+pub extern "user32" fn ScreenToClient(hWnd: ?HWND, lpPoint: *POINT) callconv(WINAPI) BOOL;
+
 // === Monitor ===
 
 pub const MONITORINFO = extern struct {
