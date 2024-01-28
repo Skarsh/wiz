@@ -282,7 +282,6 @@ pub const Window = struct {
                 opengl32.WGL_SUPPORT_OPENGL_ARB, opengl32.GL_TRUE,
                 opengl32.WGL_DOUBLE_BUFFER_ARB,  opengl32.GL_TRUE,
                 opengl32.WGL_PIXEL_TYPE_ARB,     opengl32.WGL_TYPE_RGBA_ARB,
-                // TODO(Thomas): Why isn't this 32???
                 opengl32.WGL_COLOR_BITS_ARB,     32,
                 opengl32.WGL_DEPTH_BITS_ARB,     24,
                 opengl32.WGL_STENCIL_BITS_ARB,   8,
@@ -297,7 +296,6 @@ pub const Window = struct {
 
                 0,
             };
-            std.debug.print("attrib: {any}\n", .{attrib});
 
             var format: i32 = 0;
             var num_formats: u32 = 0;
@@ -616,26 +614,32 @@ pub const Window = struct {
     // there's still something that does not make complete sense when setting this.
     // The value reported back from the function does not seem to change, but the frame durations
     // matches with what VSync being set or not.
-    pub fn setVSync(self: *Window, value: bool) void {
-        // TODO(Thomas): OLD STUFF, but do checks like this
+    pub fn setVSync(self: *Window, value: bool) !void {
+        // TODO(Thomas): Check if we have the wgl_ext_swap_control extension
+        // TODO(Thomas): Probably not use ARB but ETX here??
         //const extensions = opengl32.wglGetExtensionsStringARB(win.hdc);
-        //std.debug.print("extensions: {s}\n", .{extensions.?});
 
-        //const swap_interval = opengl32.wglGetSwapIntervalEXT();
-        //const err = opengl32.glGetError();
-        //std.debug.print("err: {}\n", .{err});
-        //std.debug.print("swap interval before setting it: {}\n", .{swap_interval});
-
-        //const result = opengl32.wglSwapIntervalEXT(1);
-        //if (result == 0) {
-        //    std.debug.print("setting wglSwapIntevalEXT failed\n", .{});
-        //}
-        //std.debug.print("swap interval after setting it: {}\n", .{swap_interval});
+        const swap_interval = opengl32.wglGetSwapIntervalEXT();
+        if (swap_interval == 1 and value) {
+            std.log.warn("VSync already set to 1\n", .{});
+            return;
+        } else if (swap_interval == 0 and !value) {
+            std.log.warn("VSync already set to 0\n", .{});
+            return;
+        }
 
         if (value) {
-            _ = opengl32.wglSwapIntervalEXT(1);
+            const result = opengl32.wglSwapIntervalEXT(1);
+            if (result == opengl32.GL_FALSE) {
+                // TODO(Thomas): Do deeper error checking here to get more detailed error message.
+                return error.UnableToSetVsync;
+            }
         } else {
-            _ = opengl32.wglSwapIntervalEXT(0);
+            const result = opengl32.wglSwapIntervalEXT(0);
+            if (result == opengl32.GL_FALSE) {
+                // TODO(Thomas): Do deeper error checking here to get more detailed error message.
+                return error.UnableToSetVsync;
+            }
         }
         self.is_vsync = value;
     }

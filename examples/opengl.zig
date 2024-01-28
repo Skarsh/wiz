@@ -39,6 +39,8 @@ pub fn main() !void {
     try window.makeModernOpenGLContext();
     window.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
+    try window.setVSync(false);
+
     // build and compile our shader program
     const vertex_shader = gl.glCreateShader(gl.GL_VERTEX_SHADER);
     const vertex_src_ptr: ?[*]const u8 = vertex_shader_source.ptr;
