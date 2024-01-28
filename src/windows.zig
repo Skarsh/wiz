@@ -58,6 +58,7 @@ pub const Window = struct {
     wp_prev: user32.WINDOWPLACEMENT,
     capture_cursor: bool,
     is_vsync: bool,
+    is_fullscreen: bool,
     self: *Window = undefined,
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
@@ -120,6 +121,7 @@ pub const Window = struct {
         };
         window.capture_cursor = false;
         window.is_vsync = false;
+        window.is_fullscreen = false;
 
         window.callbacks = WindowCallbacks{};
         window.callbacks.window_resize = defaultWindowSizeCallback;
@@ -198,6 +200,7 @@ pub const Window = struct {
                         window.width = max_x - min_x;
                         window.height = max_y - min_y;
                     }
+                    window.is_fullscreen = true;
                 }
             },
             .borderless => {},
@@ -461,16 +464,35 @@ pub const Window = struct {
                     } else {
                         var x_rel: i16 = 0;
                         var y_rel: i16 = 0;
-                        if (window.capture_cursor) {
-                            const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
-                            const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
-                            x_rel = x - @as(i16, @intCast(window_center_x));
-                            y_rel = y - @as(i16, @intCast(window_center_y));
-                            // TODO(Thomas): Better error handling here? This will panic.
-                            _ = user32.setCursorPos(window_center_x, window_center_y) catch unreachable;
+
+                        // This check is probably not necessary at all, since when at fullscreen the window_rect == client_rect
+                        if (window.is_fullscreen) {
+                            if (window.capture_cursor) {
+                                const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
+                                const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
+                                x_rel = x - @as(i16, @intCast(window_center_x));
+                                y_rel = y - @as(i16, @intCast(window_center_y));
+                                // TODO(Thomas): Better error handling here? This will panic.
+                                _ = user32.setCursorPos(window_center_x, window_center_y) catch unreachable;
+                            } else {
+                                x_rel = window.mouse_x - x;
+                                y_rel = window.mouse_y - y;
+                            }
                         } else {
-                            x_rel = window.mouse_x - x;
-                            y_rel = window.mouse_y - y;
+                            if (window.capture_cursor) {
+                                const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
+                                const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
+                                var screen_to_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
+                                // TODO (Thomas): Use wrapper here instead (when its made)
+                                _ = user32.ScreenToClient(hwnd, &screen_to_client_point);
+                                x_rel = x - @as(i16, @intCast(screen_to_client_point.x));
+                                y_rel = y - @as(i16, @intCast(screen_to_client_point.y));
+                                // TODO(Thomas): Better error handling here? This will panic.
+                                _ = user32.setCursorPos(window_center_x, window_center_y) catch unreachable;
+                            } else {
+                                x_rel = window.mouse_x - x;
+                                y_rel = window.mouse_y - y;
+                            }
                         }
 
                         const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
@@ -589,6 +611,7 @@ pub const Window = struct {
                 self.width = max_x - min_x;
                 self.height = max_y - min_y;
             }
+            self.is_fullscreen = true;
         } else {
             _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle | @as(i32, user32.WS_OVERLAPPEDWINDOW));
             try user32.setWindowPlacement(self.hwnd, &self.wp_prev);
@@ -602,6 +625,7 @@ pub const Window = struct {
                 user32.SWP_NOMOVE | user32.SWP_NOSIZE | user32.SWP_NOZORDER |
                     user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
             );
+            self.is_fullscreen = false;
         }
     }
 
