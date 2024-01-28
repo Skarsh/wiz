@@ -22,7 +22,7 @@ pub fn main() !void {
     const allocator = gpa.allocator();
     const window_width = 640;
     const window_height = 480;
-    var win = try Window.init(allocator, window_width, window_height, WindowFormat.fullscreen, "win1");
+    var win = try Window.init(allocator, window_width, window_height, WindowFormat.windowed, "win1");
 
     // NOTE(Thomas): Set the Windows scheduler granularity to 1ms.
     // This is to make sleep() more granular
@@ -31,9 +31,7 @@ pub fn main() !void {
 
     try win.makeModernOpenGLContext();
     try win.setVSync(false);
-    try win.setVSync(false);
 
-    win.setWindowSizeCallback(windowSizeCallback);
     win.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
     const target_fps: i64 = 250; // This can be set to any desired value
@@ -60,7 +58,7 @@ pub fn main() !void {
         frame_count += 1;
         try Window.processMessages();
 
-        if (@mod(frame_count, 60) == 0) {
+        if (@mod(frame_count, target_fps) == 0) {
             std.debug.print("delta_time: {d:.4}ms, {d}fps\n", .{ delta_time, wiz.ms_per_sec / delta_time });
         }
 
@@ -70,16 +68,12 @@ pub fn main() !void {
                     // Hardcoded for now, 1 = ESCAPE
                     if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_Escape)) {
                         win.windowShouldClose(true);
-                    } else {
-                        std.debug.print("Event: {}\n", .{event});
                     }
                     if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_F)) {
                         try win.toggleFullscreen();
                     }
                 },
-                else => {
-                    std.debug.print("Event: {}\n", .{event});
-                },
+                else => {},
             }
         }
 
@@ -101,13 +95,6 @@ pub fn main() !void {
     }
 
     std.debug.print("Exiting app\n", .{});
-}
-
-pub fn windowSizeCallback(window: *Window, width: i32, height: i32) void {
-    window.width = width;
-    window.height = height;
-    std.debug.print("WindowSizeCallback!\n", .{});
-    std.debug.print("window.width: {}, new width: {}, new height: {}\n ", .{ window.width, width, height });
 }
 
 pub fn framebufferSizeCallback(window: *Window, width: i32, height: i32) void {

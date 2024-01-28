@@ -1,5 +1,4 @@
 # Bugs
-- glViewport scaling does not work properly when going into fullscreen
 
 # Features
 - Add functionality for mouse/cursor hiding

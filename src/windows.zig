@@ -118,6 +118,7 @@ pub const Window = struct {
         window.is_vsync = false;
 
         window.callbacks = WindowCallbacks{};
+        window.callbacks.window_resize = defaultWindowSizeCallback;
 
         // TODO (Thomas): Make event queue size configureable?
         const event_queue_size: usize = 1000;
@@ -417,7 +418,6 @@ pub const Window = struct {
                     if (dim[0] != window.width or dim[1] != window.height) {
                         const width = dim[0];
                         const height = dim[1];
-
                         if (window.callbacks.window_resize) |cb| {
                             cb(window, width, height);
                         }
