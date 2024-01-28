@@ -56,12 +56,12 @@ pub fn main() !void {
         try wiz.queryPerformanceFrequency(&perf_freq);
         delta_time = @as(f32, @floatFromInt((now - last))) * (wiz.ms_per_sec / @as(f32, @floatFromInt(perf_freq)));
         frame_count += 1;
-        try Window.processMessages();
 
         if (@mod(frame_count, target_fps) == 0) {
             std.debug.print("delta_time: {d:.4}ms, {d}fps\n", .{ delta_time, wiz.ms_per_sec / delta_time });
         }
 
+        try Window.processMessages();
         while (win.event_queue.poll(&event)) {
             switch (event) {
                 .KeyDown => {
