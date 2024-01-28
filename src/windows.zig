@@ -48,6 +48,8 @@ pub const Window = struct {
     hglrc: ?windows.HGLRC,
     hdc: ?windows.HDC,
     lp_class_name: [*:0]const u16,
+    x_pos: i32,
+    y_pos: i32,
     width: i32,
     height: i32,
     running: bool,
@@ -104,6 +106,8 @@ pub const Window = struct {
         window.height = height;
 
         window.running = true;
+        window.x_pos = 0;
+        window.y_pos = 0;
         window.mouse_x = 0;
         window.mouse_y = 0;
         window.wp_prev = user32.WINDOWPLACEMENT{
@@ -433,6 +437,8 @@ pub const Window = struct {
                     const pos = getLParamDims(l_param);
                     const x = pos[0];
                     const y = pos[1];
+                    window.x_pos = x;
+                    window.y_pos = y;
                     if (window.callbacks.window_pos) |cb| {
                         cb(window, x, y);
                     }
@@ -456,8 +462,8 @@ pub const Window = struct {
                         var x_rel: i16 = 0;
                         var y_rel: i16 = 0;
                         if (window.capture_cursor) {
-                            const window_center_x: i32 = @divFloor(window.width, 2);
-                            const window_center_y: i32 = @divFloor(window.height, 2);
+                            const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
+                            const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
                             x_rel = x - @as(i16, @intCast(window_center_x));
                             y_rel = y - @as(i16, @intCast(window_center_y));
                             // TODO(Thomas): Better error handling here? This will panic.
