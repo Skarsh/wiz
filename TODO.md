@@ -1,5 +1,4 @@
 # Bugs
-- cursor is not IDC_Arrow at the start of the window 
 - glViewport scaling does not work properly when going into fullscreen
 
 # Features

@@ -198,6 +198,10 @@ pub const Window = struct {
             .borderless => {},
         }
 
+        // NOTE(Thomas): Not really sure why this is needed here, it's already set for the windowclass, but that does not seem to help
+        // TODO(Thomas): use wrappers here instead
+        _ = user32.SetCursor(cursor);
+
         return window;
     }
 
