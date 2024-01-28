@@ -5,6 +5,7 @@
 
 
 # Features
+- Simple structure for keeping track of frame times and make that part a bit more ergonomic
 - Add support for Tracy OpenGL profiling
 - Add multiple windows to see how that works (This kinda works, still needs to be managed properly though)
 - Add Software renderer backend support
