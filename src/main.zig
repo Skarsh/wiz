@@ -72,6 +72,9 @@ pub fn main() !void {
                     if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_F)) {
                         try win.toggleFullscreen();
                     }
+                    if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_R)) {
+                        try win.setCaptureCursor(!win.capture_cursor);
+                    }
                 },
                 else => {},
             }

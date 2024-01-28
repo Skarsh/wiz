@@ -532,6 +532,12 @@ pub const Window = struct {
                     }
                 }
             },
+            // TODO(Thomas): Deal with this for cursor capture and so no, currently we don't do anything here at all.
+            // This will probably be a problem in a drag an drop scenario.
+            // https://www.codeproject.com/Tips/127813/Using-SetCapture-and-ReleaseCapture-correctly-usua
+            user32.WM_CAPTURECHANGED => {
+                result = user32.defWindowProcW(hwnd, message, w_param, l_param);
+            },
 
             else => {
                 result = user32.defWindowProcW(hwnd, message, w_param, l_param);

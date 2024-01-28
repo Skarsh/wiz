@@ -106,6 +106,9 @@ pub fn main() !void {
                     if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_F)) {
                         try window.toggleFullscreen();
                     }
+                    if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_R)) {
+                        try window.setCaptureCursor(!window.capture_cursor);
+                    }
                 },
                 else => {},
             }
