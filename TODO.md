@@ -1,7 +1,10 @@
 # Bugs
+- Cursor capture is not working correctly in all cases, most likely its buggy in a drag and drop setting.
+- When resizing the window the resizing arrow icon does not appear, this is the case for many window operations.
+- There are only a few arrow icons that seems to work, some of them crash.
+
 
 # Features
-- Add functionality for mouse/cursor hiding
 - Add support for Tracy OpenGL profiling
 - Add multiple windows to see how that works (This kinda works, still needs to be managed properly though)
 - Add Software renderer backend support
