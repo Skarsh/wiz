@@ -464,35 +464,19 @@ pub const Window = struct {
                     } else {
                         var x_rel: i16 = 0;
                         var y_rel: i16 = 0;
-
-                        // This check is probably not necessary at all, since when at fullscreen the window_rect == client_rect
-                        if (window.is_fullscreen) {
-                            if (window.capture_cursor) {
-                                const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
-                                const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
-                                x_rel = x - @as(i16, @intCast(window_center_x));
-                                y_rel = y - @as(i16, @intCast(window_center_y));
-                                // TODO(Thomas): Better error handling here? This will panic.
-                                _ = user32.setCursorPos(window_center_x, window_center_y) catch unreachable;
-                            } else {
-                                x_rel = window.mouse_x - x;
-                                y_rel = window.mouse_y - y;
-                            }
+                        if (window.capture_cursor) {
+                            const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
+                            const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
+                            var screen_to_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
+                            // TODO (Thomas): Use wrapper here instead (when its made)
+                            _ = user32.ScreenToClient(hwnd, &screen_to_client_point);
+                            x_rel = x - @as(i16, @intCast(screen_to_client_point.x));
+                            y_rel = y - @as(i16, @intCast(screen_to_client_point.y));
+                            // TODO(Thomas): Better error handling here? This will panic.
+                            _ = user32.setCursorPos(window_center_x, window_center_y) catch unreachable;
                         } else {
-                            if (window.capture_cursor) {
-                                const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
-                                const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
-                                var screen_to_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
-                                // TODO (Thomas): Use wrapper here instead (when its made)
-                                _ = user32.ScreenToClient(hwnd, &screen_to_client_point);
-                                x_rel = x - @as(i16, @intCast(screen_to_client_point.x));
-                                y_rel = y - @as(i16, @intCast(screen_to_client_point.y));
-                                // TODO(Thomas): Better error handling here? This will panic.
-                                _ = user32.setCursorPos(window_center_x, window_center_y) catch unreachable;
-                            } else {
-                                x_rel = window.mouse_x - x;
-                                y_rel = window.mouse_y - y;
-                            }
+                            x_rel = window.mouse_x - x;
+                            y_rel = window.mouse_y - y;
                         }
 
                         const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
@@ -579,6 +563,7 @@ pub const Window = struct {
     pub fn toggleFullscreen(self: *Window) !void {
         const dwStyle = try user32.getWindowLongW(self.hwnd.?, user32.GWL_STYLE);
 
+        // Toggling to fullscreen
         if ((dwStyle & @as(i32, user32.WS_OVERLAPPEDWINDOW)) != 0) {
             const monitor_handle = try user32.monitorFromWindow(self.hwnd, 0);
             var monitor_info = user32.MONITORINFO{
@@ -610,9 +595,13 @@ pub const Window = struct {
 
                 self.width = max_x - min_x;
                 self.height = max_y - min_y;
+                if (self.capture_cursor) {
+                    try self.setCursorPos(@divFloor(self.width, 2), @divFloor(self.height, 2));
+                }
             }
             self.is_fullscreen = true;
         } else {
+            // Toggling off fullscreen, going to windowed.
             _ = try user32.setWindowLongPtrW(self.hwnd.?, user32.GWL_STYLE, dwStyle | @as(i32, user32.WS_OVERLAPPEDWINDOW));
             try user32.setWindowPlacement(self.hwnd, &self.wp_prev);
             try user32.setWindowPos(
@@ -625,6 +614,16 @@ pub const Window = struct {
                 user32.SWP_NOMOVE | user32.SWP_NOSIZE | user32.SWP_NOZORDER |
                     user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
             );
+
+            if (self.capture_cursor) {
+                const window_center_x: i32 = self.x_pos + @divFloor(self.width, 2);
+                const window_center_y: i32 = self.y_pos + @divFloor(self.height, 2);
+                var screen_to_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
+                // TODO (Thomas): Use wrapper here instead (when its made)
+                _ = user32.ScreenToClient(self.hwnd, &screen_to_client_point);
+                try self.setCursorPos(screen_to_client_point.x, screen_to_client_point.y);
+            }
+
             self.is_fullscreen = false;
         }
     }
