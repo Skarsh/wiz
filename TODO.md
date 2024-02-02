@@ -1,4 +1,5 @@
 # Bugs
+- Marsh camera movement is not entirely consistent, it moves faster sometimes.
 - Cursor capture is not working correctly in all cases, most likely its buggy in a drag and drop setting.
 - When resizing the window the resizing arrow icon does not appear, this is the case for many window operations.
 - There are only a few arrow icons that seems to work, some of them crash.
