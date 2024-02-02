@@ -459,6 +459,11 @@ pub const Window = struct {
                     const pos = getLParamDims(l_param);
                     const x = pos[0];
                     const y = pos[1];
+                    var cursor_pos_client_point = user32.POINT{ .x = x, .y = y };
+
+                    // TODO (Thomas): Use wrapper here instead (when its made)
+                    _ = user32.ScreenToClient(hwnd, &cursor_pos_client_point);
+
                     if (window.callbacks.mouse_move) |cb| {
                         cb(window, x, y);
                     } else {
@@ -467,13 +472,15 @@ pub const Window = struct {
                         if (window.capture_cursor) {
                             const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
                             const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
-                            var screen_to_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
+
+                            var window_center_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
+
                             // TODO (Thomas): Use wrapper here instead (when its made)
-                            _ = user32.ScreenToClient(hwnd, &screen_to_client_point);
-                            x_rel = x - @as(i16, @intCast(screen_to_client_point.x));
-                            y_rel = y - @as(i16, @intCast(screen_to_client_point.y));
-                            // TODO(Thomas): Better error handling here? This will panic.
-                            _ = user32.setCursorPos(window_center_x, window_center_y) catch unreachable;
+                            _ = user32.ScreenToClient(hwnd, &window_center_client_point);
+                            x_rel = @as(i16, @intCast(cursor_pos_client_point.x)) - @as(i16, @intCast(window_center_client_point.x));
+                            y_rel = @as(i16, @intCast(cursor_pos_client_point.y)) - @as(i16, @intCast(window_center_client_point.y));
+
+                            _ = user32.setCursorPos(window_center_client_point.x, window_center_client_point.y) catch unreachable;
                         } else {
                             x_rel = window.mouse_x - x;
                             y_rel = window.mouse_y - y;
