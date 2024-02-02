@@ -1518,18 +1518,28 @@ pub fn loadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) !HCURSOR
 
 pub extern "user32" fn SetCursor(hCursor: ?HCURSOR) callconv(WINAPI) ?HCURSOR;
 // TODO(Thomas): This is buggy and does not work as expected
-pub fn setCursor(hCursor: ?HCURSOR) !HCURSOR {
-    const cursor = SetCursor(hCursor);
-    if (cursor) |cur| return cur;
-    switch (GetLastError()) {
-        .INVALID_PARAMETER => unreachable,
-        else => |err| return windows.unexpectedError(err),
-    }
-}
+//pub fn setCursor(hCursor: ?HCURSOR) !HCURSOR {
+//    const cursor = SetCursor(hCursor);
+//    if (cursor) |cur| return cur;
+//    switch (GetLastError()) {
+//        .INVALID_PARAMETER => unreachable,
+//        else => |err| return windows.unexpectedError(err),
+//    }
+//}
 
 pub extern "user32" fn SetCursorPos(x: i32, y: i32) callconv(WINAPI) BOOL;
 pub fn setCursorPos(x: i32, y: i32) !void {
     if (SetCursorPos(x, y) == 0) {
+        switch (GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
+pub extern "user32" fn ClipCursor(lpRect: *const RECT) callconv(WINAPI) BOOL;
+pub fn clipCursor(lpRect: *const RECT) !void {
+    if (ClipCursor(lpRect) == 0) {
         switch (GetLastError()) {
             .INVALID_PARAMETER => unreachable,
             else => |err| return windows.unexpectedError(err),
