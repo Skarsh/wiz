@@ -471,7 +471,7 @@ pub const Window = struct {
                     var cursor_client_point = user32.POINT{ .x = x, .y = y };
 
                     // TODO (Thomas): Use wrapper here instead (when its made)
-                    _ = user32.ScreenToClient(hwnd, &cursor_client_point);
+                    user32.screenToClient(hwnd, &cursor_client_point) catch unreachable;
 
                     if (window.callbacks.mouse_move) |cb| {
                         cb(window, x, y);
@@ -479,14 +479,14 @@ pub const Window = struct {
                         var x_rel: i16 = 0;
                         var y_rel: i16 = 0;
                         if (window.capture_cursor) {
+
                             // Center in "window" space
                             const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
                             const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
 
                             var client_center_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
 
-                            // TODO (Thomas): Use wrapper here instead (when its made)
-                            _ = user32.ScreenToClient(hwnd, &client_center_point);
+                            user32.screenToClient(hwnd, &client_center_point) catch unreachable;
 
                             // x and y delta in "client" space
                             x_rel = @as(i16, @intCast(cursor_client_point.x)) - @as(i16, @intCast(client_center_point.x));
@@ -494,7 +494,7 @@ pub const Window = struct {
 
                             // This is the center of the window in "screen" space.
                             var screen_window_center_point = user32.POINT{ .x = client_center_point.x, .y = client_center_point.y };
-                            _ = user32.ClientToScreen(hwnd, &screen_window_center_point);
+                            user32.clientToScreen(hwnd, &screen_window_center_point) catch unreachable;
 
                             _ = user32.setCursorPos(screen_window_center_point.x, screen_window_center_point.y) catch unreachable;
                         } else {
@@ -648,7 +648,7 @@ pub const Window = struct {
                 const window_center_y: i32 = self.y_pos + @divFloor(self.height, 2);
                 var screen_to_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
                 // TODO (Thomas): Use wrapper here instead (when its made)
-                _ = user32.ScreenToClient(self.hwnd, &screen_to_client_point);
+                try user32.screenToClient(self.hwnd, &screen_to_client_point);
                 try self.setCursorPos(screen_to_client_point.x, screen_to_client_point.y);
             }
 
@@ -670,7 +670,15 @@ pub const Window = struct {
         if (value) {
             // TODO(Thomas): Use wrapper setCursor
             _ = user32.SetCursor(null);
+            // TODO(Thomas): Use wrapper
             _ = user32.SetCapture(self.hwnd);
+            var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
+            user32.getClientRect(self.hwnd, &client_rect) catch unreachable;
+            // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
+            // two first fields?
+            try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.left));
+            try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
+            user32.clipCursor(&client_rect) catch unreachable;
         } else {
             // TODO(Thomas): use stored cursor icon/type/styling instead of hardcoded as IDC_ARROW
             const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
@@ -678,6 +686,7 @@ pub const Window = struct {
             // TODO(Thomas): use wrappers here instead
             _ = user32.SetCursor(cursor);
             _ = user32.ReleaseCapture();
+            user32.clipCursor(null) catch unreachable;
         }
     }
 
