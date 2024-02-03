@@ -457,12 +457,15 @@ pub const Window = struct {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
                     const pos = getLParamDims(l_param);
+                    // NOTE: x and y here are in "window" space, not in "screen" space
                     const x = pos[0];
                     const y = pos[1];
-                    var cursor_pos_client_point = user32.POINT{ .x = x, .y = y };
+
+                    // Cursor position in "client" space
+                    var cursor_client_point = user32.POINT{ .x = x, .y = y };
 
                     // TODO (Thomas): Use wrapper here instead (when its made)
-                    _ = user32.ScreenToClient(hwnd, &cursor_pos_client_point);
+                    _ = user32.ScreenToClient(hwnd, &cursor_client_point);
 
                     if (window.callbacks.mouse_move) |cb| {
                         cb(window, x, y);
@@ -470,22 +473,32 @@ pub const Window = struct {
                         var x_rel: i16 = 0;
                         var y_rel: i16 = 0;
                         if (window.capture_cursor) {
+                            // Center in "window" space
                             const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
                             const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
 
-                            var window_center_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
+                            var client_center_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
 
                             // TODO (Thomas): Use wrapper here instead (when its made)
-                            _ = user32.ScreenToClient(hwnd, &window_center_client_point);
-                            x_rel = @as(i16, @intCast(cursor_pos_client_point.x)) - @as(i16, @intCast(window_center_client_point.x));
-                            y_rel = @as(i16, @intCast(cursor_pos_client_point.y)) - @as(i16, @intCast(window_center_client_point.y));
+                            _ = user32.ScreenToClient(hwnd, &client_center_point);
 
-                            _ = user32.setCursorPos(window_center_client_point.x, window_center_client_point.y) catch unreachable;
+                            // x and y delta in "client" space
+                            x_rel = @as(i16, @intCast(cursor_client_point.x)) - @as(i16, @intCast(client_center_point.x));
+                            y_rel = @as(i16, @intCast(cursor_client_point.y)) - @as(i16, @intCast(client_center_point.y));
+
+                            // This is the center of the window in "screen" space.
+                            var screen_window_center_point = user32.POINT{ .x = client_center_point.x, .y = client_center_point.y };
+                            _ = user32.ClientToScreen(hwnd, &screen_window_center_point);
+
+                            _ = user32.setCursorPos(screen_window_center_point.x, screen_window_center_point.y) catch unreachable;
                         } else {
+                            // x and y delta in "window" space
                             x_rel = window.mouse_x - x;
                             y_rel = window.mouse_y - y;
                         }
 
+                        // TODO(Thomas): Think about "window" vs "client space" here
+                        // x and y here is always given in "window" space as it is now.
                         const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
                         window.event_queue.enqueue(event);
                     }
