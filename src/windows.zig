@@ -375,11 +375,15 @@ pub const Window = struct {
     }
 
     fn getWindowFromHwnd(hwnd: windows.HWND) ?*Window {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         const window_opt: ?*Window = @ptrFromInt(@as(usize, @intCast(user32.GetWindowLongPtrW(hwnd, user32.GWLP_USERDATA))));
         return window_opt;
     }
 
     inline fn getLParamDims(l_param: isize) [2]i16 {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         const x = @as(i16, @truncate(l_param & 0xFFFF));
         const y = @as(i16, @truncate((l_param >> 16) & 0xFFFF));
         return [2]i16{ x, y };
@@ -391,6 +395,8 @@ pub const Window = struct {
         w_param: windows.WPARAM,
         l_param: windows.LPARAM,
     ) callconv(windows.WINAPI) windows.LRESULT {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         var result: windows.LRESULT = 0;
 
         switch (message) {
@@ -581,6 +587,8 @@ pub const Window = struct {
 
     // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
     pub fn toggleFullscreen(self: *Window) !void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         const dwStyle = try user32.getWindowLongW(self.hwnd.?, user32.GWL_STYLE);
 
         // Toggling to fullscreen
@@ -649,11 +657,15 @@ pub const Window = struct {
     }
 
     pub fn setCursorPos(self: *Window, x: i32, y: i32) !void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         _ = self;
         try user32.setCursorPos(x, y);
     }
 
     pub fn setCaptureCursor(self: *Window, value: bool) !void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         self.capture_cursor = value;
         if (value) {
             // TODO(Thomas): Use wrapper setCursor
@@ -674,6 +686,8 @@ pub const Window = struct {
     // The value reported back from the function does not seem to change, but the frame durations
     // matches with what VSync being set or not.
     pub fn setVSync(self: *Window, value: bool) !void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         // TODO(Thomas): Check if we have the wgl_ext_swap_control extension
         // TODO(Thomas): Probably not use ARB but ETX here??
         //const extensions = opengl32.wglGetExtensionsStringARB(win.hdc);
