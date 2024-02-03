@@ -624,6 +624,10 @@ pub const Window = struct {
                 self.width = max_x - min_x;
                 self.height = max_y - min_y;
                 if (self.capture_cursor) {
+                    var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
+                    try user32.getClientRect(self.hwnd, &client_rect);
+                    try user32.clipCursor(&client_rect);
+
                     try self.setCursorPos(@divFloor(self.width, 2), @divFloor(self.height, 2));
                 }
             }
@@ -646,10 +650,20 @@ pub const Window = struct {
             if (self.capture_cursor) {
                 const window_center_x: i32 = self.x_pos + @divFloor(self.width, 2);
                 const window_center_y: i32 = self.y_pos + @divFloor(self.height, 2);
-                var screen_to_client_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
-                // TODO (Thomas): Use wrapper here instead (when its made)
-                try user32.screenToClient(self.hwnd, &screen_to_client_point);
-                try self.setCursorPos(screen_to_client_point.x, screen_to_client_point.y);
+                var client_center_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
+
+                try user32.clientToScreen(self.hwnd, &client_center_point);
+
+                var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
+                user32.getClientRect(self.hwnd, &client_rect) catch unreachable;
+
+                // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
+                // two first fields?
+                try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.left));
+                try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
+                try user32.clipCursor(&client_rect);
+
+                try self.setCursorPos(client_center_point.x, client_center_point.y);
             }
 
             self.is_fullscreen = false;
