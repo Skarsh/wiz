@@ -1537,8 +1537,8 @@ pub fn setCursorPos(x: i32, y: i32) !void {
     }
 }
 
-pub extern "user32" fn ClipCursor(lpRect: *const RECT) callconv(WINAPI) BOOL;
-pub fn clipCursor(lpRect: *const RECT) !void {
+pub extern "user32" fn ClipCursor(lpRect: ?*const RECT) callconv(WINAPI) BOOL;
+pub fn clipCursor(lpRect: ?*const RECT) !void {
     if (ClipCursor(lpRect) == 0) {
         switch (GetLastError()) {
             .INVALID_PARAMETER => unreachable,
@@ -1921,10 +1921,28 @@ pub fn getClientRect(hwnd: ?HWND, lpRect: ?*RECT) !void {
 /// [in] hwnd
 /// [in, out] lpPoint
 pub extern "user32" fn ClientToScreen(hWnd: ?HWND, lpPoint: *POINT) callconv(WINAPI) BOOL;
+pub fn clientToScreen(hWnd: ?HWND, lpPoint: *POINT) !void {
+    if (ClientToScreen(hWnd, lpPoint) == 0) {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
 
 /// [in] hwnd
 /// [in, out] lpPoint
 pub extern "user32" fn ScreenToClient(hWnd: ?HWND, lpPoint: *POINT) callconv(WINAPI) BOOL;
+pub fn screenToClient(hWnd: ?HWND, lpPoint: *POINT) !void {
+    if (ScreenToClient(hWnd, lpPoint) == 0) {
+        switch (GetLastError()) {
+            .INVALID_WINDOW_HANDLE => unreachable,
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
 
 // === Monitor ===
 
