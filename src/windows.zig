@@ -482,22 +482,19 @@ pub const Window = struct {
                         // I have very low confidence in this. Need to think this through way more closely
                         // Need to think very thoroughly about this.
                         if (window.capture_cursor) {
+                            var client_rect = std.mem.zeroes(user32.RECT);
+                            user32.getClientRect(hwnd, &client_rect) catch unreachable;
 
-                            // Center in "window" space
-                            const window_center_x: i32 = window.x_pos + @divFloor(window.width, 2);
-                            const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
+                            const client_center_x = @divFloor((client_rect.right - client_rect.left), 2);
+                            const client_center_y = @divFloor((client_rect.bottom - client_rect.top), 2);
 
-                            var client_center_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
-                            user32.screenToClient(hwnd, &client_center_point) catch unreachable;
+                            x_rel = x - @as(i16, @intCast(client_center_x));
+                            y_rel = y - @as(i16, @intCast(client_center_y));
 
-                            x_rel = x - @as(i16, @intCast(client_center_point.x));
-                            y_rel = y - @as(i16, @intCast(client_center_point.y));
+                            var screen_client_center_point = user32.POINT{ .x = client_center_x, .y = client_center_y };
+                            user32.clientToScreen(hwnd, &screen_client_center_point) catch unreachable;
 
-                            // This is the center of the window in "screen" space.
-                            var screen_window_center_point = user32.POINT{ .x = client_center_point.x, .y = client_center_point.y };
-                            user32.clientToScreen(hwnd, &screen_window_center_point) catch unreachable;
-
-                            _ = user32.setCursorPos(screen_window_center_point.x, screen_window_center_point.y) catch unreachable;
+                            _ = user32.setCursorPos(screen_client_center_point.x, screen_client_center_point.y) catch unreachable;
                         } else {
                             // x and y delta in "window" space
                             x_rel = window.mouse_x - x;
