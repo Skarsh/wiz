@@ -463,15 +463,11 @@ pub const Window = struct {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
                     const pos = getLParamDims(l_param);
-                    // NOTE: x and y here are in "window" space, not in "screen" space
                     const x = pos[0];
                     const y = pos[1];
 
-                    // Cursor position in "client" space
-                    var cursor_client_point = user32.POINT{ .x = x, .y = y };
-
-                    // TODO (Thomas): Use wrapper here instead (when its made)
-                    user32.screenToClient(hwnd, &cursor_client_point) catch unreachable;
+                    var cursor_client_pos = std.mem.zeroes(user32.POINT);
+                    user32.screenToClient(hwnd, &cursor_client_pos) catch unreachable;
 
                     if (window.callbacks.mouse_move) |cb| {
                         cb(window, x, y);
@@ -494,15 +490,25 @@ pub const Window = struct {
                             var screen_client_center_point = user32.POINT{ .x = client_center_x, .y = client_center_y };
                             user32.clientToScreen(hwnd, &screen_client_center_point) catch unreachable;
 
+                            if (x_rel != 0 or y_rel != 0) {
+                                std.debug.print("---------------------------------------\n", .{});
+                                std.debug.print("x: {}, y: {}\n", .{ x, y });
+                                std.debug.print("cursor_client_pos_x: {}, cursor_client_pos_y: {}\n", .{ cursor_client_pos.x, cursor_client_pos.y });
+                                std.debug.print("client_center_x: {}, client_center_y: {}\n", .{ client_center_x, client_center_y });
+                                std.debug.print("x_rel: {}, y_rel: {}\n", .{ x_rel, y_rel });
+                                std.debug.print("screen_client_center_point_x: {}, screen_client_center_point_y: {}\n", .{
+                                    screen_client_center_point.x,
+                                    screen_client_center_point.y,
+                                });
+                            }
+
                             _ = user32.setCursorPos(screen_client_center_point.x, screen_client_center_point.y) catch unreachable;
                         } else {
-                            // x and y delta in "window" space
                             x_rel = window.mouse_x - x;
                             y_rel = window.mouse_y - y;
                         }
 
                         // TODO(Thomas): Think about "window" vs "client space" here
-                        // x and y here is always given in "window" space as it is now.
                         const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
                         window.event_queue.enqueue(event);
                     }
@@ -626,6 +632,8 @@ pub const Window = struct {
                     try user32.getClientRect(self.hwnd, &client_rect);
                     try user32.clipCursor(&client_rect);
 
+                    // NOTE(Thomas): This is correct since when in fullscreen width and the height
+                    // of the window will be the same as the screen parameters.
                     try self.setCursorPos(@divFloor(self.width, 2), @divFloor(self.height, 2));
                 }
             }
@@ -646,22 +654,18 @@ pub const Window = struct {
             );
 
             if (self.capture_cursor) {
-                const window_center_x: i32 = self.x_pos + @divFloor(self.width, 2);
-                const window_center_y: i32 = self.y_pos + @divFloor(self.height, 2);
-                var client_center_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
-
-                try user32.clientToScreen(self.hwnd, &client_center_point);
-
                 var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
                 user32.getClientRect(self.hwnd, &client_rect) catch unreachable;
-
                 // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
                 // two first fields?
                 try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.left));
                 try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
-                try user32.clipCursor(&client_rect);
+                user32.clipCursor(&client_rect) catch unreachable;
 
-                try self.setCursorPos(client_center_point.x, client_center_point.y);
+                const client_center_point_x = @divFloor((client_rect.right - client_rect.left), 2);
+                const client_center_point_y = @divFloor((client_rect.bottom - client_rect.top), 2);
+
+                try self.setCursorPos(client_center_point_x, client_center_point_y);
             }
 
             self.is_fullscreen = false;
@@ -691,6 +695,11 @@ pub const Window = struct {
             try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.left));
             try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
             user32.clipCursor(&client_rect) catch unreachable;
+
+            const client_center_point_x = @divFloor((client_rect.right - client_rect.left), 2);
+            const client_center_point_y = @divFloor((client_rect.bottom - client_rect.top), 2);
+
+            try user32.setCursorPos(client_center_point_x, client_center_point_y);
         } else {
             // TODO(Thomas): use stored cursor icon/type/styling instead of hardcoded as IDC_ARROW
             const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
