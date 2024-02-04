@@ -1517,15 +1517,10 @@ pub fn loadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) !HCURSOR
 }
 
 pub extern "user32" fn SetCursor(hCursor: ?HCURSOR) callconv(WINAPI) ?HCURSOR;
-// TODO(Thomas): This is buggy and does not work as expected
-//pub fn setCursor(hCursor: ?HCURSOR) !HCURSOR {
-//    const cursor = SetCursor(hCursor);
-//    if (cursor) |cur| return cur;
-//    switch (GetLastError()) {
-//        .INVALID_PARAMETER => unreachable,
-//        else => |err| return windows.unexpectedError(err),
-//    }
-//}
+pub fn setCursor(hCursor: ?HCURSOR) ?HCURSOR {
+    const cursor_opt = SetCursor(hCursor);
+    return cursor_opt;
+}
 
 pub extern "user32" fn SetCursorPos(x: i32, y: i32) callconv(WINAPI) BOOL;
 pub fn setCursorPos(x: i32, y: i32) !void {
@@ -1549,11 +1544,21 @@ pub fn clipCursor(lpRect: ?*const RECT) !void {
 
 /// A handle to the window in the current thread that is to capture the mouse.
 /// The return value is a handle to the window that had previously captured the mouse. If there is no such window, the return value is NULL.
-// TODO(Thomas): Add wrapper function
 pub extern "user32" fn SetCapture(hWnd: ?HWND) callconv(WINAPI) ?HWND;
+pub fn setCapture(hWnd: ?HWND) ?HWND {
+    const hwnd_opt = SetCapture(hWnd);
+    return hwnd_opt;
+}
 
-// TODO(Thomas): Add wrapper function
 pub extern "user32" fn ReleaseCapture() callconv(WINAPI) BOOL;
+pub fn releaseCapture() !void {
+    if (ReleaseCapture() == 0) {
+        switch (GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
 
 pub const SW_HIDE = 0;
 pub const SW_SHOWNORMAL = 1;

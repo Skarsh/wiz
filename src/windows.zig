@@ -207,8 +207,8 @@ pub const Window = struct {
         }
 
         // NOTE(Thomas): Not really sure why this is needed here, it's already set for the windowclass, but that does not seem to help
-        // TODO(Thomas): use wrappers here instead
-        _ = user32.SetCursor(cursor);
+        // TODO(Thomas): Deal with return value
+        _ = user32.setCursor(cursor);
 
         return window;
     }
@@ -566,8 +566,8 @@ pub const Window = struct {
                     if (window.capture_cursor) {
                         // NOTE(Thomas): This is needed to ensure that mouse stays hidden
                         // when re-entering and so on.
-                        // TODO(Thomas): Use wrapper setCursor instead
-                        _ = user32.SetCursor(null);
+                        // TODO(Thomas): Deal with return value
+                        _ = user32.setCursor(null);
                     }
                 }
             },
@@ -683,10 +683,10 @@ pub const Window = struct {
         defer tracy_zone.end();
         self.capture_cursor = value;
         if (value) {
-            // TODO(Thomas): Use wrapper setCursor
-            _ = user32.SetCursor(null);
-            // TODO(Thomas): Use wrapper
-            _ = user32.SetCapture(self.hwnd);
+            // TODO(Thomas): Deal with return value
+            _ = user32.setCursor(null);
+            // TODO(Thomas): Deal with return value
+            _ = user32.setCapture(self.hwnd);
             var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
             user32.getClientRect(self.hwnd, &client_rect) catch unreachable;
             // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
@@ -698,10 +698,10 @@ pub const Window = struct {
             // TODO(Thomas): use stored cursor icon/type/styling instead of hardcoded as IDC_ARROW
             const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
             const cursor = try user32.loadCursorW(null, arrow);
-            // TODO(Thomas): use wrappers here instead
-            _ = user32.SetCursor(cursor);
-            _ = user32.ReleaseCapture();
-            user32.clipCursor(null) catch unreachable;
+            // TODO(Thomas): Deal with return value
+            _ = user32.setCursor(cursor);
+            try user32.releaseCapture();
+            try user32.clipCursor(null);
         }
     }
 
