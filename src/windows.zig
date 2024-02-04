@@ -478,6 +478,9 @@ pub const Window = struct {
                     } else {
                         var x_rel: i16 = 0;
                         var y_rel: i16 = 0;
+                        // NOTE and TODO !!!!!!!!!!!!!:
+                        // I have very low confidence in this. Need to think this through way more closely
+                        // Need to think very thoroughly about this.
                         if (window.capture_cursor) {
 
                             // Center in "window" space
@@ -485,12 +488,10 @@ pub const Window = struct {
                             const window_center_y: i32 = window.y_pos + @divFloor(window.height, 2);
 
                             var client_center_point = user32.POINT{ .x = window_center_x, .y = window_center_y };
-
                             user32.screenToClient(hwnd, &client_center_point) catch unreachable;
 
-                            // x and y delta in "client" space
-                            x_rel = @as(i16, @intCast(cursor_client_point.x)) - @as(i16, @intCast(client_center_point.x));
-                            y_rel = @as(i16, @intCast(cursor_client_point.y)) - @as(i16, @intCast(client_center_point.y));
+                            x_rel = x - @as(i16, @intCast(client_center_point.x));
+                            y_rel = y - @as(i16, @intCast(client_center_point.y));
 
                             // This is the center of the window in "screen" space.
                             var screen_window_center_point = user32.POINT{ .x = client_center_point.x, .y = client_center_point.y };
