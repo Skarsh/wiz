@@ -466,7 +466,7 @@ pub const Window = struct {
                     const x = pos[0];
                     const y = pos[1];
 
-                    var cursor_client_pos = std.mem.zeroes(user32.POINT);
+                    var cursor_client_pos = user32.POINT{ .x = x, .y = y };
                     user32.screenToClient(hwnd, &cursor_client_pos) catch unreachable;
 
                     if (window.callbacks.mouse_move) |cb| {
