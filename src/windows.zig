@@ -53,8 +53,8 @@ pub const Window = struct {
     width: i32,
     height: i32,
     running: bool,
-    mouse_x: i16,
-    mouse_y: i16,
+    last_mouse_x: i16,
+    last_mouse_y: i16,
     wp_prev: user32.WINDOWPLACEMENT,
     capture_cursor: bool,
     is_vsync: bool,
@@ -109,8 +109,8 @@ pub const Window = struct {
         window.running = true;
         window.x_pos = 0;
         window.y_pos = 0;
-        window.mouse_x = 0;
-        window.mouse_y = 0;
+        window.last_mouse_x = 0;
+        window.last_mouse_y = 0;
         window.wp_prev = user32.WINDOWPLACEMENT{
             .flags = 0,
             .showCmd = 0,
@@ -478,37 +478,42 @@ pub const Window = struct {
                         // I have very low confidence in this. Need to think this through way more closely
                         // Need to think very thoroughly about this.
                         if (window.capture_cursor) {
-                            var client_rect = std.mem.zeroes(user32.RECT);
-                            user32.getClientRect(hwnd, &client_rect) catch unreachable;
+                            if (x != window.last_mouse_x or y != window.last_mouse_y) {
+                                var client_rect = std.mem.zeroes(user32.RECT);
+                                user32.getClientRect(hwnd, &client_rect) catch unreachable;
 
-                            const client_center_x = @divFloor((client_rect.right - client_rect.left), 2);
-                            const client_center_y = @divFloor((client_rect.bottom - client_rect.top), 2);
+                                const client_center_x = @divFloor((client_rect.right - client_rect.left), 2);
+                                const client_center_y = @divFloor((client_rect.bottom - client_rect.top), 2);
 
-                            x_rel = x - @as(i16, @intCast(client_center_x));
-                            y_rel = y - @as(i16, @intCast(client_center_y));
+                                x_rel = x - @as(i16, @intCast(client_center_x));
+                                y_rel = y - @as(i16, @intCast(client_center_y));
 
-                            var screen_client_center_point = user32.POINT{ .x = client_center_x, .y = client_center_y };
-                            user32.clientToScreen(hwnd, &screen_client_center_point) catch unreachable;
+                                var screen_client_center_point = user32.POINT{ .x = client_center_x, .y = client_center_y };
+                                user32.clientToScreen(hwnd, &screen_client_center_point) catch unreachable;
 
-                            if (x_rel != 0 or y_rel != 0) {
-                                std.debug.print("---------------------------------------\n", .{});
-                                std.debug.print("x: {}, y: {}\n", .{ x, y });
-                                std.debug.print("cursor_client_pos_x: {}, cursor_client_pos_y: {}\n", .{ cursor_client_pos.x, cursor_client_pos.y });
-                                std.debug.print("client_center_x: {}, client_center_y: {}\n", .{ client_center_x, client_center_y });
-                                std.debug.print("x_rel: {}, y_rel: {}\n", .{ x_rel, y_rel });
-                                std.debug.print("screen_client_center_point_x: {}, screen_client_center_point_y: {}\n", .{
-                                    screen_client_center_point.x,
-                                    screen_client_center_point.y,
-                                });
+                                if (x_rel != 0 or y_rel != 0) {
+                                    std.debug.print("---------------------------------------\n", .{});
+                                    std.debug.print("x: {}, y: {}\n", .{ x, y });
+                                    std.debug.print("cursor_client_pos_x: {}, cursor_client_pos_y: {}\n", .{ cursor_client_pos.x, cursor_client_pos.y });
+                                    std.debug.print("client_center_x: {}, client_center_y: {}\n", .{ client_center_x, client_center_y });
+                                    std.debug.print("x_rel: {}, y_rel: {}\n", .{ x_rel, y_rel });
+                                    std.debug.print("screen_client_center_point_x: {}, screen_client_center_point_y: {}\n", .{
+                                        screen_client_center_point.x,
+                                        screen_client_center_point.y,
+                                    });
+                                }
+
+                                // TODO(Thomas): Don't have to set this unless mouse pos has moved.
+                                // This will trigger a new WM_MOUSEMOVE event and so it goes on infinitely
+                                _ = user32.setCursorPos(screen_client_center_point.x, screen_client_center_point.y) catch unreachable;
                             }
-
-                            // TODO(Thomas): Don't have to set this unless mouse pos has moved.
-                            // This will trigger a new WM_MOUSEMOVE event and so it goes on infinitely
-                            _ = user32.setCursorPos(screen_client_center_point.x, screen_client_center_point.y) catch unreachable;
                         } else {
-                            x_rel = window.mouse_x - x;
-                            y_rel = window.mouse_y - y;
+                            x_rel = window.last_mouse_x - x;
+                            y_rel = window.last_mouse_y - y;
                         }
+
+                        window.last_mouse_x = x;
+                        window.last_mouse_y = y;
 
                         // TODO(Thomas): Think about "window" vs "client space" here
                         const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
@@ -817,7 +822,7 @@ pub const Window = struct {
     }
 
     fn defaultMoseMoveCallback(window: *Window, x_pos: i32, y_pos: i32) void {
-        window.mouse_x = x_pos;
-        window.mouse_y = y_pos;
+        window.last_mouse_x = x_pos;
+        window.last_mouse_y = y_pos;
     }
 };
