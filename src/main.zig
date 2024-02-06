@@ -80,7 +80,7 @@ pub fn main() !void {
             }
         }
 
-        opengl32.glClearColor(1.0, 0.0, 1.0, 0.0);
+        opengl32.glClearColor(0.2, 0.3, 0.3, 1.0);
         opengl32.glClear(opengl32.GL_COLOR_BUFFER_BIT);
         try win.swapBuffers();
 
