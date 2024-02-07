@@ -7,10 +7,14 @@ const windows = std.os.windows;
 pub const GetLastError = windows.kernel32.GetLastError;
 pub const SetLastError = windows.kernel32.SetLastError;
 pub const unexpectedError = windows.unexpectedError;
+pub const HANDLE = windows.HANDLE;
 pub const HWND = windows.HWND;
 pub const UINT = windows.UINT;
 pub const HDC = windows.HDC;
+pub const SHORT = windows.SHORT;
+pub const USHORT = windows.USHORT;
 pub const LONG = windows.LONG;
+pub const ULONG = windows.ULONG;
 pub const LONG_PTR = windows.LONG_PTR;
 pub const LPCSTR = windows.LPCSTR;
 pub const LPCWSTR = windows.LPCWSTR;
@@ -2027,3 +2031,83 @@ pub fn getMonitorInfoW(hMonitor: ?*anyopaque, lpmi: *MONITORINFO) !void {
         else => |err| return windows.unexpectedError(err),
     }
 }
+
+// Raw Input
+
+//https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawinputdevice
+pub const RAWINPUTDEVICE = extern struct {
+    usUsagepage: USHORT,
+    usUsage: USHORT,
+    dwFlags: DWORD,
+    hwndTarget: HWND,
+};
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawinputheader
+pub const RAWINPUTHEADER = extern struct {
+    dwType: DWORD,
+    dwSize: DWORD,
+    hDevice: HANDLE,
+    wParam: WPARAM,
+};
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawmouse
+pub const RAWMOUSE = extern struct {
+    usFlags: USHORT,
+    dummyUnionName: extern union {
+        ulButtons: ULONG,
+        dummyStructureName: extern struct {
+            usButtonFlags: USHORT,
+            usButtonData: USHORT,
+        },
+    },
+    lLastX: LONG,
+    lLastY: LONG,
+    ulExtraInformation: ULONG,
+};
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawkeyboard
+pub const RAWKEYBOARD = extern struct {
+    makeCode: USHORT,
+    flags: USHORT,
+    reserved: USHORT,
+    vkey: USHORT,
+    message: UINT,
+    extraInformation: ULONG,
+};
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawhid
+// REMARKS:
+// Each WM_INPUT can indicate several inputs, but all of the inputs come from the same HID.
+// The size of the bRawData array is dwSizeHid * dwCount.
+pub const RAWHID = extern struct {
+    dwSizeHid: DWORD,
+    dwCount: DWORD,
+    bRawData: [*c]const u8,
+};
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawinput
+pub const RAWINPUT = extern struct {
+    header: RAWINPUTHEADER,
+    data: union {
+        mouse: RAWMOUSE,
+        keyboard: RAWKEYBOARD,
+        hid: RAWHID,
+    },
+};
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerrawinputdevices
+pub extern "user32" fn RegisterRawInputDevices(
+    pRawInputDevices: [*c]RAWINPUTDEVICE,
+    uiNumDevices: UINT,
+    cbSize: UINT,
+) callconv(WINAPI) BOOL;
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdata
+// TODO(Thomas: Not sure about the HANDLE type for hRawInput here...
+pub extern "user32" fn GetRawInputData(
+    hRawInput: HANDLE,
+    uiCommand: UINT,
+    pData: LPVOID,
+    pcbSize: windows.PUINT,
+    cbSizeHeader: UINT,
+) callconv(WINAPI) UINT;
