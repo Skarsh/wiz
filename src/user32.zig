@@ -1522,6 +1522,16 @@ pub fn setCursor(hCursor: ?HCURSOR) ?HCURSOR {
     return cursor_opt;
 }
 
+pub extern fn GetCursorPos(lpPoint: ?*POINT) callconv(WINAPI) BOOL;
+pub fn getCursorPos(lpPoint: ?*POINT) !void {
+    if (GetCursorPos(lpPoint) == 0) {
+        switch (GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
 pub extern "user32" fn SetCursorPos(x: i32, y: i32) callconv(WINAPI) BOOL;
 pub fn setCursorPos(x: i32, y: i32) !void {
     if (SetCursorPos(x, y) == 0) {
