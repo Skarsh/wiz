@@ -10,6 +10,7 @@ const windows = @import("windows.zig");
 pub const Window = windows.Window;
 pub const WindowFormat = windows.WindowFormat;
 
+pub const user32 = @import("user32.zig");
 pub const opengl32 = @import("opengl32.zig");
 
 pub const ns_per_sec = 1_000_000_000;
@@ -39,8 +40,12 @@ pub fn queryPerformanceFrequency(performannce_frequency: *i64) !void {
 }
 
 test {
-    // TODO (Thomas): refactor code so we can use this here:
-    // std.testing.refAllDeclsRecursive(@This());
+    // TODO(Thomas): Would it be better to do this in a test in the
+    // respective source file instead?
     std.testing.refAllDeclsRecursive(input);
     std.testing.refAllDeclsRecursive(windows);
+    std.testing.refAllDeclsRecursive(opengl32);
+
+    @setEvalBranchQuota(10_000);
+    std.testing.refAllDeclsRecursive(user32);
 }
