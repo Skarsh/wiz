@@ -354,6 +354,7 @@ pub const Window = struct {
     }
 
     // TODO(Thomas): This needs more thought when more of the API is shaping up.
+    // Also, this should ideally not be able to fail or error at least.
     pub fn deinit(self: Window) !void {
         try user32.destroyWindow(self.hwnd.?);
         try user32.unregisterClassW(self.lp_class_name, self.h_instance);
