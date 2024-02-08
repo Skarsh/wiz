@@ -215,6 +215,23 @@ pub const Window = struct {
         // TODO(Thomas): Deal with return value
         _ = user32.setCursor(cursor);
 
+        // TODO(Thomas): win32 raw input stuff, move into own function when suitable
+        var rid = [2]user32.RAWINPUTDEVICE{ std.mem.zeroes(user32.RAWINPUTDEVICE), std.mem.zeroes(user32.RAWINPUTDEVICE) };
+
+        rid[0].usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
+        rid[0].usUsage = 0x02; // HID_USAGE_GENERIC_MOUSE
+        rid[0].dwFlags = user32.RIDEV_NOLEGACY; // adds mouse and also ignores legacy mouse messages
+        rid[0].hwndTarget = null;
+
+        rid[1].usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
+        rid[1].usUsage = 0x06; // HID_USAGE_GENERIC_KEYBOARD
+        rid[1].dwFlags = user32.RIDEV_NOLEGACY; // adds keyboard and also ignores legacy keyboard messages
+        rid[1].hwndTarget = null;
+
+        //if (user32.RegisterRawInputDevices(&rid, 2, @sizeOf(user32.RAWINPUTDEVICE)) == 0) {
+        //    //registration failed. Call GetLastError for the cause of the error
+        //}
+
         return window;
     }
 
@@ -356,7 +373,9 @@ pub const Window = struct {
     // TODO(Thomas): This needs more thought when more of the API is shaping up.
     // Also, this should ideally not be able to fail or error at least.
     pub fn deinit(self: Window) !void {
-        try user32.destroyWindow(self.hwnd.?);
+        if (self.hwnd) |hwnd| {
+            try user32.destroyWindow(hwnd);
+        }
         try user32.unregisterClassW(self.lp_class_name, self.h_instance);
 
         // TODO: handle return value
@@ -593,6 +612,19 @@ pub const Window = struct {
             // https://www.codeproject.com/Tips/127813/Using-SetCapture-and-ReleaseCapture-correctly-usua
             user32.WM_CAPTURECHANGED => {
                 result = user32.defWindowProcW(hwnd, message, w_param, l_param);
+            },
+            user32.WM_INPUT => {
+                var dw_size: user32.UINT = 0;
+                const lpb = std.heap.page_allocator.alloc(user32.BYTE, 2) catch unreachable;
+                _ = lpb;
+
+                _ = user32.GetRawInputData(
+                    @ptrFromInt(@as(usize, @intCast(l_param))),
+                    user32.RID_INPUT,
+                    null,
+                    &dw_size,
+                    @sizeOf(user32.RAWINPUTHEADER),
+                );
             },
 
             else => {
