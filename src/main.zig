@@ -23,6 +23,7 @@ pub fn main() !void {
     const window_width = 640;
     const window_height = 480;
     var win = try Window.init(allocator, window_width, window_height, WindowFormat.windowed, "win1");
+    defer win.deinit() catch unreachable;
 
     // NOTE(Thomas): Set the Windows scheduler granularity to 1ms.
     // This is to make sleep() more granular
