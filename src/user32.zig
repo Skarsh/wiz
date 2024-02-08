@@ -2088,7 +2088,7 @@ pub const RAWHID = extern struct {
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawinput
 pub const RAWINPUT = extern struct {
     header: RAWINPUTHEADER,
-    data: union {
+    data: extern union {
         mouse: RAWMOUSE,
         keyboard: RAWKEYBOARD,
         hid: RAWHID,
@@ -2103,11 +2103,13 @@ pub extern "user32" fn RegisterRawInputDevices(
 ) callconv(WINAPI) BOOL;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdata
-// TODO(Thomas: Not sure about the HANDLE type for hRawInput here...
+// TODO(Thomas): Not sure about the HANDLE type for hRawInput here...
+// TODO(Thomas): Not so sure about the type for pcbSize either, in the win32 docs its a PUINT type,
+// which I assume is a pointer to a UINT.
 pub extern "user32" fn GetRawInputData(
     hRawInput: HANDLE,
     uiCommand: UINT,
     pData: LPVOID,
-    pcbSize: windows.PUINT,
+    pcbSize: *UINT,
     cbSizeHeader: UINT,
 ) callconv(WINAPI) UINT;
