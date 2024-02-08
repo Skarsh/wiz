@@ -157,10 +157,13 @@ pub const Window = struct {
 
         const dwStyle = try user32.getWindowLongW(window.hwnd.?, user32.GWL_STYLE);
         switch (format) {
+            // TODO(Thomas): Think about making a function that does the common parts between here
+            // and toggleFullscreen()
             .windowed => {
                 _ = try user32.setWindowLongPtrW(window.hwnd.?, user32.GWL_STYLE, dwStyle | @as(i32, user32.WS_OVERLAPPEDWINDOW));
 
-                // TODO (Thomas): This panics here, don't know why. Doesn't seem to be necessary on startup?
+                // TODO (Thomas): This panics here, probably due to wp_prev being garbage.
+                // Doesn't seem to be necessary on initialization though, so remove it?
                 //try user32.setWindowPlacement(window.hwnd, &window.wp_prev);
 
                 try user32.setWindowPos(
@@ -174,6 +177,8 @@ pub const Window = struct {
                         user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
                 );
             },
+            // TODO(Thomas): Think about making a function that does the common parts between here
+            // and toggleFullscreen()
             .fullscreen => {
                 // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
                 if ((dwStyle & @as(i32, user32.WS_OVERLAPPEDWINDOW)) != 0) {
@@ -348,8 +353,9 @@ pub const Window = struct {
         }
     }
 
+    // TODO(Thomas): This needs more thought when more of the API is shaping up.
     pub fn deinit(self: Window) !void {
-        try user32.destroyWindow(self.hwnd);
+        try user32.destroyWindow(self.hwnd.?);
         try user32.unregisterClassW(self.lp_class_name, self.h_instance);
 
         // TODO: handle return value
