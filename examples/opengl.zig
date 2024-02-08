@@ -34,6 +34,10 @@ const vertices = [_]f32{
 
 pub fn main() !void {
     var window = try Window.init(std.heap.page_allocator, 640, 480, WindowFormat.windowed, "opengl-example");
+    defer window.deinit() catch unreachable;
+
+    // This is needed to ensure that the Windows scheduler
+    // has low enough resolution for our sleeps.
     _ = wiz.timeBeginPeriod(1);
 
     try window.makeModernOpenGLContext();
