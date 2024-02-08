@@ -34,6 +34,8 @@ pub const LPARAM = windows.LPARAM;
 pub const POINT = windows.POINT;
 pub const HCURSOR = windows.HCURSOR;
 pub const HBRUSH = windows.HBRUSH;
+pub const BYTE = windows.BYTE;
+pub const LPBYTE = [*c]BYTE;
 
 inline fn selectSymbol(comptime function_static: anytype, function_dynamic: *const @TypeOf(function_static), comptime os: std.Target.Os.WindowsVersion) *const @TypeOf(function_static) {
     const sym_ok = comptime builtin.os.isAtLeast(.windows, os);
@@ -2036,10 +2038,10 @@ pub fn getMonitorInfoW(hMonitor: ?*anyopaque, lpmi: *MONITORINFO) !void {
 
 //https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawinputdevice
 pub const RAWINPUTDEVICE = extern struct {
-    usUsagepage: USHORT,
+    usUsagePage: USHORT,
     usUsage: USHORT,
     dwFlags: DWORD,
-    hwndTarget: HWND,
+    hwndTarget: ?HWND,
 };
 
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawinputheader
@@ -2095,6 +2097,46 @@ pub const RAWINPUT = extern struct {
     },
 };
 
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-rawinputdevicelist
+pub const RAWINPUTDEVICELIST = extern struct {
+    hDevice: HANDLE,
+    dwType: DWORD,
+};
+
+// Constants
+pub const RIM_TYPEMOUSE = 0;
+pub const RIM_TYPEKEYBOARD = 1;
+pub const RIM_TYPEHID = 2;
+
+pub const RIDEV_REMOVE = 0x00000001;
+pub const RIDEV_EXCLUDE = 0x00000010;
+pub const RIDEV_PAGEONLY = 0x00000020;
+pub const RIDEV_NOLEGACY = 0x00000030;
+pub const RIDEV_INPUTSINK = 0x00000100;
+pub const RIDEV_CAPTUREMOUSE = 0x00000200;
+pub const RIDEV_NOHOTKEYS = 0x00000200;
+pub const RIDEV_APPKEYS = 0x00000400;
+pub const RIDEV_EXINPUTSINK = 0x00001000;
+pub const RIDEV_DEVNOTIFY = 0x00002000;
+
+pub const RID_INPUT = 0x10000003;
+pub const RID_HEADER = 0x10000005;
+
+// HID Usages
+pub const HID_USAGE_PAGE_GENERIC = 0x01;
+pub const HID_USAGE_PAGE_GAME = 0x05;
+pub const HID_USAGE_PAGE_LED = 0x08;
+pub const HID_USAGE_PAGE_BUTTON = 0x09;
+
+// HID ID
+pub const HID_USAGE_GENERIC_POINTER = 0x01;
+pub const HID_USAGE_GENERIC_MOUSE = 0x02;
+pub const HID_USAGE_GENERIC_JOYSTICK = 0x04;
+pub const HID_USAGE_GENERIC_GAMEPAD = 0x05;
+pub const HID_USAGE_GENERIC_KEYBOARD = 0x06;
+pub const HID_USAGE_GENERIC_KEYPAD = 0x07;
+pub const HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER = 0x08;
+
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerrawinputdevices
 pub extern "user32" fn RegisterRawInputDevices(
     pRawInputDevices: [*c]RAWINPUTDEVICE,
@@ -2109,7 +2151,22 @@ pub extern "user32" fn RegisterRawInputDevices(
 pub extern "user32" fn GetRawInputData(
     hRawInput: HANDLE,
     uiCommand: UINT,
-    pData: LPVOID,
+    pData: ?LPVOID,
     pcbSize: *UINT,
     cbSizeHeader: UINT,
 ) callconv(WINAPI) UINT;
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputbuffer
+pub extern "user32" fn GetRawInputBuffer(pData: [*c]RAWINPUT, pcbSize: *UINT, cbSizeHeader: UINT) callconv(WINAPI) UINT;
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdeviceinfoa
+// TODO(Thomas): Add wrapper
+pub extern "user32" fn GetRawInputDeviceInfoA(hDevice: HANDLE, uiCommand: UINT, pData: LPVOID, pcbize: *UINT) callconv(WINAPI) UINT;
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdeviceinfow
+// TODO(Thomas): Add wrapper
+pub extern "user32" fn GetRawInputDeviceInfoW(hDevice: HANDLE, uiCommand: UINT, pData: LPVOID, pcbSize: *UINT) callconv(WINAPI) UINT;
+
+//https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdevicelist
+// TODO(Thomas): Add wrapper
+pub extern "user32" fn GetRawInputDeviceList(pRawInputDeviceList: [*c]RAWINPUTDEVICELIST) callconv(WINAPI) UINT;
