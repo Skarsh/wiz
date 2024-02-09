@@ -20,9 +20,13 @@ const enable_tracy = build_options.enable_tracy;
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
+
+    const window_memory = try allocator.alloc(u8, 100_000);
+    var fba = std.heap.FixedBufferAllocator.init(window_memory);
+
     const window_width = 640;
     const window_height = 480;
-    var win = try Window.init(allocator, window_width, window_height, WindowFormat.windowed, "win1");
+    var win = try Window.init(fba.allocator(), window_width, window_height, WindowFormat.windowed, "win1");
     defer win.deinit() catch unreachable;
 
     // NOTE(Thomas): Set the Windows scheduler granularity to 1ms.

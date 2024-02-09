@@ -211,10 +211,6 @@ pub const Window = struct {
             .borderless => {},
         }
 
-        // NOTE(Thomas): Not really sure why this is needed here, it's already set for the windowclass, but that does not seem to help
-        // TODO(Thomas): Deal with return value
-        _ = user32.setCursor(cursor);
-
         // TODO(Thomas): win32 raw input stuff, move into own function when suitable
         var rid = [2]user32.RAWINPUTDEVICE{ std.mem.zeroes(user32.RAWINPUTDEVICE), std.mem.zeroes(user32.RAWINPUTDEVICE) };
 
@@ -228,9 +224,14 @@ pub const Window = struct {
         rid[1].dwFlags = user32.RIDEV_NOLEGACY; // adds keyboard and also ignores legacy keyboard messages
         rid[1].hwndTarget = null;
 
-        //if (user32.RegisterRawInputDevices(&rid, 2, @sizeOf(user32.RAWINPUTDEVICE)) == 0) {
-        //    //registration failed. Call GetLastError for the cause of the error
-        //}
+        // TODO(Thomas): Use wrapper here when it's done
+        if (user32.RegisterRawInputDevices(&rid, 2, @sizeOf(user32.RAWINPUTDEVICE)) == 0) {
+            //registration failed. Call GetLastError for the cause of the error
+        }
+
+        // NOTE(Thomas): Not really sure why this is needed here, it's already set for the windowclass, but that does not seem to help
+        // TODO(Thomas): Deal with return value
+        _ = user32.setCursor(cursor);
 
         return window;
     }
@@ -614,17 +615,41 @@ pub const Window = struct {
                 result = user32.defWindowProcW(hwnd, message, w_param, l_param);
             },
             user32.WM_INPUT => {
-                var dw_size: user32.UINT = 0;
-                const lpb = std.heap.page_allocator.alloc(user32.BYTE, 2) catch unreachable;
-                _ = lpb;
+                const window_opt = getWindowFromHwnd(hwnd);
+                if (window_opt) |window| {
+                    var dw_size: user32.UINT = 0;
 
-                _ = user32.GetRawInputData(
-                    @ptrFromInt(@as(usize, @intCast(l_param))),
-                    user32.RID_INPUT,
-                    null,
-                    &dw_size,
-                    @sizeOf(user32.RAWINPUTHEADER),
-                );
+                    _ = user32.GetRawInputData(
+                        @ptrFromInt(@as(usize, @intCast(l_param))),
+                        user32.RID_INPUT,
+                        null,
+                        &dw_size,
+                        @sizeOf(user32.RAWINPUTHEADER),
+                    );
+
+                    // TODO(Thomas): Allocating here for each frame is really unecessary even though we're using
+                    // a fixed buffer allocator that removes potential syscalls.
+                    const lpb = window.allocator.alloc(user32.BYTE, 2) catch return 0;
+                    defer window.allocator.free(lpb);
+
+                    if (user32.GetRawInputData(
+                        @ptrFromInt(@as(usize, @intCast(l_param))),
+                        user32.RID_INPUT,
+                        @ptrCast(lpb),
+                        &dw_size,
+                        @sizeOf(user32.RAWINPUTHEADER),
+                    ) != dw_size) {
+                        //std.debug.print("GetRawInputData does not return correct size !\n", .{});
+                    }
+
+                    const raw: *user32.RAWINPUT = @ptrCast(@alignCast(lpb));
+
+                    if (raw.header.dwType == user32.RIM_TYPEKEYBOARD) {
+                        std.debug.print("raw.data.keyboard: {}\n", .{raw.data.keyboard});
+                    } else if (raw.header.dwType == user32.RIM_TYPEMOUSE) {
+                        //std.debug.print("raw.data.mouse: {}\n", .{raw.data.mouse});
+                    }
+                }
             },
 
             else => {
