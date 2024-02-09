@@ -2137,6 +2137,40 @@ pub const HID_USAGE_GENERIC_KEYBOARD = 0x06;
 pub const HID_USAGE_GENERIC_KEYPAD = 0x07;
 pub const HID_USAGE_GENERIC_MULTI_AXIS_CONTROLLER = 0x08;
 
+// RawInput Mouse
+pub const MOUSE_MOVE_RELATIVE = 0x00;
+pub const MOUSE_MOVE_ABSOLUTE = 0x01;
+pub const MOUSE_VIRTUAL_DESKTOP = 0x02;
+pub const MOUSE_ATTRIBUTES_CHANGED = 0x04;
+pub const MOUSE_MOVE_NOCOALESCE = 0x08;
+
+pub const RI_MOUSE_BUTTON_1_DOWN = 0x0001;
+pub const RI_MOUSE_LEFT_BUTTON_DOWN = 0x0001;
+
+pub const RI_MOUSE_BUTTON_1_UP = 0x0002;
+pub const RI_MOUSE_LEFT_BUTTON_UP = 0x0002;
+
+pub const RI_MOUSE_BUTTON_2_DOWN = 0x0004;
+pub const RI_MOUSE_RIGHT_BUTTON_DOWN = 0x0004;
+
+pub const RI_MOUSE_BUTTON_2_UP = 0x0008;
+pub const RI_MOUSE_RIGHT_BUTTON_UP = 0x0008;
+
+pub const RI_MOUSE_BUTTON_3_DOWN = 0x0010;
+pub const RI_MOUSE_MIDDLE_BUTTON_DOWN = 0x0010;
+
+pub const RI_MOUSE_BUTTON_3_UP = 0x0020;
+pub const RI_MOUSE_MIDDLE_BUTTON_UP = 0x0020;
+
+pub const RI_MOUSE_BUTTON_4_DOWN = 0x0040;
+pub const RI_MOUSE_BUTTON_4_UP = 0x0080;
+
+pub const RI_MOUSE_BUTTON_5_DOWN = 0x0100;
+pub const RI_MOUSE_BUTTON_5_UP = 0x0200;
+
+pub const RI_MOUSE_WHEEL = 0x0400;
+pub const RI_MOUSE_HWHEEL = 0x0800;
+
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerrawinputdevices
 pub extern "user32" fn RegisterRawInputDevices(
     pRawInputDevices: [*c]RAWINPUTDEVICE,
