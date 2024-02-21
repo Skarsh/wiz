@@ -9,6 +9,7 @@ pub const SetLastError = windows.kernel32.SetLastError;
 pub const unexpectedError = windows.unexpectedError;
 pub const HANDLE = windows.HANDLE;
 pub const HWND = windows.HWND;
+pub const INT = windows.INT;
 pub const UINT = windows.UINT;
 pub const HDC = windows.HDC;
 pub const SHORT = windows.SHORT;
@@ -2204,3 +2205,137 @@ pub extern "user32" fn GetRawInputDeviceInfoW(hDevice: HANDLE, uiCommand: UINT, 
 //https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdevicelist
 // TODO(Thomas): Add wrapper
 pub extern "user32" fn GetRawInputDeviceList(pRawInputDeviceList: [*c]RAWINPUTDEVICELIST) callconv(WINAPI) UINT;
+
+// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
+// TODO(Thomas): Add wrapper
+pub extern "user32" fn GetSystemMetrics(nIndex: INT) callconv(WINAPI) INT;
+
+pub const SM_CXSCREEN = 0;
+pub const SM_CYSCREEN = 1;
+pub const SM_CXVSCROLL = 2;
+pub const SM_CYHSCROLL = 3;
+pub const SM_CYCAPTION = 4;
+pub const SM_CXBORDER = 5;
+pub const SM_CYBORDER = 6;
+pub const SM_CXDLGFRAME = 7;
+pub const SM_CYDLGFRAME = 8;
+pub const SM_CYVTHUMB = 9;
+pub const SM_CXHTHUMB = 10;
+pub const SM_CXICON = 11;
+pub const SM_CYICON = 12;
+pub const SM_CXCURSOR = 13;
+pub const SM_CYCURSOR = 14;
+pub const SM_CYMENU = 15;
+pub const SM_CXFULLSCREEN = 16;
+pub const SM_CYFULLSCREEN = 17;
+pub const SM_CYKANJIWINDOW = 18;
+pub const SM_MOUSEPRESENT = 19;
+pub const SM_CYVSCROLL = 20;
+pub const SM_CXHSCROLL = 21;
+pub const SM_DEBUG = 22;
+pub const SM_SWAPBUTTON = 23;
+pub const SM_RESERVED1 = 24;
+pub const SM_RESERVED2 = 25;
+pub const SM_RESERVED3 = 26;
+pub const SM_RESERVED4 = 27;
+pub const SM_CXMIN = 28;
+pub const SM_CYMIN = 29;
+pub const SM_CXSIZE = 30;
+pub const SM_CYSIZE = 31;
+pub const SM_CXFRAME = 32;
+pub const SM_CYFRAME = 33;
+pub const SM_CXMINTRACK = 34;
+pub const SM_CYMINTRACK = 35;
+pub const SM_CXDOUBLECLK = 36;
+pub const SM_CYDOUBLECLK = 37;
+pub const SM_CXICONSPACING = 38;
+pub const SM_CYICONSPACING = 39;
+pub const SM_MENUDROPALIGNMENT = 40;
+pub const SM_PENWINDOWS = 41;
+pub const SM_DBCSENABLED = 42;
+pub const SM_CMOUSEBUTTONS = 43;
+
+pub const SM_CXFIXEDFRAME = SM_CXDLGFRAME;
+pub const SM_CYFIXEDFRAME = SM_CYDLGFRAME;
+pub const SM_CXSIZEFRAME = SM_CXFRAME;
+pub const SM_CYSIZEFRAME = SM_CYFRAME;
+
+pub const SM_SECURE = 44;
+pub const SM_CXEDGE = 45;
+pub const SM_CYEDGE = 46;
+pub const SM_CXMINSPACING = 47;
+pub const SM_CYMINSPACING = 48;
+pub const SM_CXSMICON = 49;
+pub const SM_CYSMICON = 50;
+pub const SM_CYSMCAPTION = 51;
+pub const SM_CXSMSIZE = 52;
+pub const SM_CYSMSIZE = 53;
+pub const SM_CXMENUSIZE = 54;
+pub const SM_CYMENUSIZE = 55;
+pub const SM_ARRANGE = 56;
+pub const SM_CXMINIMIZED = 57;
+pub const SM_CYMINIMIZED = 58;
+pub const SM_CXMAXTRACK = 59;
+pub const SM_CYMAXTRACK = 60;
+pub const SM_CXMAXIMIZED = 61;
+pub const SM_CYMAXIMIZED = 62;
+pub const SM_NETWORK = 63;
+pub const SM_CLEANBOOT = 67;
+pub const SM_CXDRAG = 68;
+pub const SM_CYDRAG = 69;
+pub const SM_SHOWSOUNDS = 70;
+pub const SM_CXMENUCHECK = 71;
+pub const SM_CYMENUCHECK = 72;
+pub const SM_SLOWMACHINE = 73;
+pub const SM_MIDEASTENABLED = 74;
+pub const SM_MOUSEWHEELPRESENT = 75;
+pub const SM_XVIRTUALSCREEN = 76;
+pub const SM_YVIRTUALSCREEN = 77;
+pub const SM_CXVIRTUALSCREEN = 78;
+pub const SM_CYVIRTUALSCREEN = 79;
+pub const SM_CMONITORS = 80;
+pub const SM_SAMEDISPLAYFORMAT = 81;
+pub const SM_IMMENABLED = 82;
+pub const SM_CXFOCUSBORDER = 83;
+pub const SM_CYFOCUSBORDER = 84;
+pub const SM_TABLETPC = 86;
+pub const SM_MEDIACENTER = 87;
+pub const SM_STARTER = 88;
+pub const SM_SERVERR2 = 89;
+
+// TODO(Thomas): How to deal with this?
+//#if _WIN32_WINNT >= 0x0600
+//#define SM_MOUSEHORIZONTALWHEELPRESENT 91
+//#define SM_CXPADDEDBORDER 92
+//#endif
+//#if WINVER >= 0x0601
+//#define SM_DIGITIZER 94
+//#define SM_MAXIMUMTOUCHES 95
+//#endif
+
+// TODO(Thomas): How to deal with this?
+//#if WINVER <= 0x501
+//#define SM_CMETRICS 91
+//#elif WINVER == 0x600
+//#define SM_CMETRICS 93
+//#else
+//#define SM_CMETRICS 97
+//#endif
+
+pub const SM_REMOTESESSION = 0x1000;
+pub const SM_SHUTTINGDOWN = 0x2000;
+pub const SM_REMOTECONTROL = 0x2001;
+pub const SM_CARETBLINKINGENABLED = 0x2002;
+
+//#if WINVER >= 0x0602
+//#define SM_CONVERTIBLESLATEMODE 0x2003
+//#define SM_SYSTEMDOCKED 0x2004
+//#endif
+
+// TODO(Thomas): How to deal with this?
+//#if WINAPI_FAMILY_PARTITION (WINAPI_PARTITION_DESKTOP)
+//  WINUSERAPI int WINAPI GetSystemMetrics(int nIndex);
+//#endif
+//#if WINVER >= 0x0605
+//WINUSERAPI int WINAPI GetSystemMetricsForDpi(int nIndex, UINT dpi);
+//#endif

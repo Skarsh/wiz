@@ -21,6 +21,9 @@ const tracy = @import("tracy.zig");
 pub const default_window_width: i32 = 640;
 pub const default_window_height: i32 = 480;
 
+// TODO(Thomas): This does not belong here, maybe put in a kernel32.zig or something. Have some similar functinos in wiz.zig aswell
+extern "kernel32" fn MulDiv(nNumber: windows.INT, nNumerator: windows.INT, nDenominator: windows.INT) callconv(windows.WINAPI) windows.INT;
+
 pub const WindowFormat = enum {
     windowed,
     fullscreen,
@@ -56,6 +59,7 @@ pub const Window = struct {
     last_mouse_x: i16,
     last_mouse_y: i16,
     wp_prev: user32.WINDOWPLACEMENT,
+    raw_mouse_motion: bool,
     capture_cursor: bool,
     is_vsync: bool,
     is_fullscreen: bool,
@@ -120,6 +124,7 @@ pub const Window = struct {
             .rcDevice = user32.RECT{ .top = 0, .left = 0, .right = 0, .bottom = 0 },
         };
         window.capture_cursor = false;
+        window.raw_mouse_motion = false;
         window.is_vsync = false;
         window.is_fullscreen = false;
 
@@ -209,24 +214,6 @@ pub const Window = struct {
                 }
             },
             .borderless => {},
-        }
-
-        // TODO(Thomas): win32 raw input stuff, move into own function when suitable
-        var rid = [2]user32.RAWINPUTDEVICE{ std.mem.zeroes(user32.RAWINPUTDEVICE), std.mem.zeroes(user32.RAWINPUTDEVICE) };
-
-        rid[0].usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
-        rid[0].usUsage = 0x02; // HID_USAGE_GENERIC_MOUSE
-        rid[0].dwFlags = user32.RIDEV_NOLEGACY; // adds mouse and also ignores legacy mouse messages
-        rid[0].hwndTarget = null;
-
-        rid[1].usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
-        rid[1].usUsage = 0x06; // HID_USAGE_GENERIC_KEYBOARD
-        rid[1].dwFlags = user32.RIDEV_NOLEGACY; // adds keyboard and also ignores legacy keyboard messages
-        rid[1].hwndTarget = null;
-
-        // TODO(Thomas): Use wrapper here when it's done
-        if (user32.RegisterRawInputDevices(&rid, 2, @sizeOf(user32.RAWINPUTDEVICE)) == 0) {
-            //registration failed. Call GetLastError for the cause of the error
         }
 
         // NOTE(Thomas): Not really sure why this is needed here, it's already set for the windowclass, but that does not seem to help
@@ -617,37 +604,55 @@ pub const Window = struct {
             user32.WM_INPUT => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
-                    var dw_size: user32.UINT = 0;
-
-                    _ = user32.GetRawInputData(
-                        @ptrFromInt(@as(usize, @intCast(l_param))),
-                        user32.RID_INPUT,
-                        null,
-                        &dw_size,
-                        @sizeOf(user32.RAWINPUTHEADER),
-                    );
-
+                    var dw_size: user32.UINT = @sizeOf(user32.RAWINPUT);
                     // TODO(Thomas): Allocating here for each frame is really unecessary even though we're using
-                    // a fixed buffer allocator that removes potential syscalls.
-                    const lpb = window.allocator.alloc(user32.BYTE, 2) catch return 0;
+                    // a fixed buffer allocator that removes potential syscalls. It should be enough to just have
+                    // a preallocated buffer and overwrite each time.
+                    const lpb = window.allocator.alloc(user32.BYTE, dw_size) catch return 0;
                     defer window.allocator.free(lpb);
 
-                    if (user32.GetRawInputData(
+                    _ = user32.GetRawInputData(
                         @ptrFromInt(@as(usize, @intCast(l_param))),
                         user32.RID_INPUT,
                         @ptrCast(lpb),
                         &dw_size,
                         @sizeOf(user32.RAWINPUTHEADER),
-                    ) != dw_size) {
-                        //std.debug.print("GetRawInputData does not return correct size !\n", .{});
-                    }
+                    );
 
                     const raw: *user32.RAWINPUT = @ptrCast(@alignCast(lpb));
 
                     if (raw.header.dwType == user32.RIM_TYPEKEYBOARD) {
                         std.debug.print("raw.data.keyboard: {}\n", .{raw.data.keyboard});
                     } else if (raw.header.dwType == user32.RIM_TYPEMOUSE) {
-                        //std.debug.print("raw.data.mouse: {}\n", .{raw.data.mouse});
+                        std.debug.print("raw.data.mouse: {}\n", .{raw.data.mouse});
+                        var x: i16 = 0;
+                        var y: i16 = 0;
+                        var x_rel: i16 = 0;
+                        var y_rel: i16 = 0;
+                        if (raw.data.mouse.usFlags & user32.MOUSE_MOVE_ABSOLUTE != 0) {
+                            var rect = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 };
+                            if (raw.data.mouse.usFlags & user32.MOUSE_VIRTUAL_DESKTOP != 0) {
+                                rect.left = user32.GetSystemMetrics(user32.SM_XVIRTUALSCREEN);
+                                rect.top = user32.GetSystemMetrics(user32.SM_YVIRTUALSCREEN);
+                                rect.right = user32.GetSystemMetrics(user32.SM_CXVIRTUALSCREEN);
+                                rect.bottom = user32.GetSystemMetrics(user32.SM_CYVIRTUALSCREEN);
+                            } else {
+                                rect.left = 0;
+                                rect.top = 0;
+                                rect.right = user32.GetSystemMetrics(user32.SM_CXSCREEN);
+                                rect.bottom = user32.GetSystemMetrics(user32.SM_CYSCREEN);
+                            }
+
+                            x = @intCast(MulDiv(raw.data.mouse.lLastX, rect.right, 65535) + rect.left);
+                            y = @intCast(MulDiv(raw.data.mouse.lLastY, rect.bottom, 65535) + rect.top);
+                        } else if (raw.data.mouse.lLastX != 0 or raw.data.mouse.lLastY != 0) {
+                            x_rel = @intCast(raw.data.mouse.lLastX);
+                            y_rel = @intCast(raw.data.mouse.lLastY);
+                            std.debug.print("WM_INPUT: x_rel {}, y_rel {}\n", .{ x_rel, y_rel });
+                        }
+
+                        const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
+                        window.event_queue.enqueue(event);
                     }
                 }
             },
@@ -750,6 +755,50 @@ pub const Window = struct {
 
             self.is_fullscreen = false;
         }
+    }
+
+    // TODO(Thomas): Add error handling to deal with unsupported raw mouse motion etc
+    pub fn enableRawMouseMotion(self: *Window) void {
+
+        // TODO(Thomas): win32 raw input stuff, move into own function when suitable
+        var rid = [2]user32.RAWINPUTDEVICE{ std.mem.zeroes(user32.RAWINPUTDEVICE), std.mem.zeroes(user32.RAWINPUTDEVICE) };
+
+        rid[0].usUsagePage = user32.HID_USAGE_PAGE_GENERIC; // HID_USAGE_PAGE_GENERIC
+        rid[0].usUsage = user32.HID_USAGE_GENERIC_MOUSE; // HID_USAGE_GENERIC_MOUSE
+        rid[0].dwFlags = user32.RIDEV_NOLEGACY; // adds mouse and also ignores legacy mouse messages
+        // TODO(Thomas): This should be set to the current window hwnd, but works for only one window for now.
+        rid[0].hwndTarget = null;
+
+        // Shows how to setup for keyboard, but I don't think it's necessary for keyboard
+        //rid[1].usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
+        //rid[1].usUsage = 0x06; // HID_USAGE_GENERIC_KEYBOARD
+        //rid[1].dwFlags = user32.RIDEV_NOLEGACY; // adds keyboard and also ignores legacy keyboard messages
+        //rid[1].hwndTarget = null;
+
+        // TODO(Thomas): Use wrapper here when it's done
+        if (user32.RegisterRawInputDevices(&rid, 1, @sizeOf(user32.RAWINPUTDEVICE)) == 0) {
+            //registration failed. Call GetLastError for the cause of the error
+            std.debug.panic("Error when enabling raw mouse motion: {}", .{user32.GetLastError()});
+        }
+        self.raw_mouse_motion = true;
+    }
+
+    pub fn disableRawMouseMotion(self: *Window) void {
+        // TODO(Thomas): win32 raw input stuff, move into own function when suitable
+        var rid = [2]user32.RAWINPUTDEVICE{ std.mem.zeroes(user32.RAWINPUTDEVICE), std.mem.zeroes(user32.RAWINPUTDEVICE) };
+
+        rid[0].usUsagePage = user32.HID_USAGE_PAGE_GENERIC; // HID_USAGE_PAGE_GENERIC
+        rid[0].usUsage = user32.HID_USAGE_GENERIC_MOUSE; // HID_USAGE_GENERIC_MOUSE
+        rid[0].dwFlags = user32.RIDEV_REMOVE; // adds mouse and also ignores legacy mouse messages
+        // TODO(Thomas): This should be set to the current window hwnd, but works for only one window for now.
+        rid[0].hwndTarget = null;
+
+        // TODO(Thomas): Use wrapper here when it's done
+        if (user32.RegisterRawInputDevices(&rid, 1, @sizeOf(user32.RAWINPUTDEVICE)) == 0) {
+            //registration failed. Call GetLastError for the cause of the error
+            std.debug.panic("Error when enabling raw mouse motion: {}", .{user32.GetLastError()});
+        }
+        self.raw_mouse_motion = false;
     }
 
     pub fn setCursorPos(self: *Window, x: i32, y: i32) !void {

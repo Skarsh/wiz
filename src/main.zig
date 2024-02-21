@@ -79,6 +79,11 @@ pub fn main() !void {
                     }
                     if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_R)) {
                         try win.setCaptureCursor(!win.capture_cursor);
+                        if (!win.raw_mouse_motion) {
+                            win.enableRawMouseMotion();
+                        } else {
+                            win.disableRawMouseMotion();
+                        }
                     }
                 },
                 else => {},

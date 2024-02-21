@@ -19,6 +19,7 @@ pub const ms_per_sec = 1000;
 // TODO(Thomas): Move this into its own file, e.g. kernel32.zig
 extern "kernel32" fn QueryPerformanceCounter(lpPerformanceCounter: *win32.LARGE_INTEGER) callconv(win32.WINAPI) win32.BOOL;
 extern "kernel32" fn QueryPerformanceFrequency(lpFrequency: *win32.LARGE_INTEGER) callconv(win32.WINAPI) win32.BOOL;
+extern "kernel32" fn MulDiv(nNumber: win32.INT, nNumerator: win32.INT, nDenominator: win32.INT) callconv(win32.WINAPI) win32.INT;
 
 // TODO(Thomas): Find a better home for this, but this file will do for now.
 pub extern "winmm" fn timeBeginPeriod(uPeriod: win32.UINT) callconv(win32.WINAPI) win32.INT;
