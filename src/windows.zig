@@ -72,10 +72,16 @@ pub const Window = struct {
         if (windows.kernel32.GetModuleHandleW(null)) |hinst| {
             h_instance = @ptrCast(hinst);
         } else {
-            std.log.err("Module handle is null. Cannot create window.\n", .{});
-            unreachable;
+            std.debug.panic("Module handle is null. Cannot create window.\n", .{});
         }
 
+        // NB! NOTE(Thomas): loadCursorA(null, user32.IDC_XXX) works fine,
+        // the issue is with the utf-16 W stuff, since that needs to have the right alignment
+        // and so on. The correct way of doing this is to make a proper replacment for the
+        // MAKEINTRESOURCE macro, this way it can also work by specifying the h_instance in the function
+        // call aswell. The reason null has to be passed now is because then we can circumvent the whole
+        // MAKEINTRESOURCE stuff.
+        //
         // NOTE(Thomas): This mimics what the MAKEINTRESOURCE win32 macro does.
         // TODO(Thomas): This only works for the 2-byte aligned IDC/IDI constants.
         const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
