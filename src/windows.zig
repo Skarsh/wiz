@@ -622,9 +622,8 @@ pub const Window = struct {
                     const raw: *user32.RAWINPUT = @ptrCast(@alignCast(lpb));
 
                     if (raw.header.dwType == user32.RIM_TYPEKEYBOARD) {
-                        std.debug.print("raw.data.keyboard: {}\n", .{raw.data.keyboard});
+                        std.debug.panic("Not supposed to use RawInput for keyboard yet", .{});
                     } else if (raw.header.dwType == user32.RIM_TYPEMOUSE) {
-                        std.debug.print("raw.data.mouse: {}\n", .{raw.data.mouse});
                         var x: i16 = 0;
                         var y: i16 = 0;
                         var x_rel: i16 = 0;
@@ -648,7 +647,6 @@ pub const Window = struct {
                         } else if (raw.data.mouse.lLastX != 0 or raw.data.mouse.lLastY != 0) {
                             x_rel = @intCast(raw.data.mouse.lLastX);
                             y_rel = @intCast(raw.data.mouse.lLastY);
-                            std.debug.print("WM_INPUT: x_rel {}, y_rel {}\n", .{ x_rel, y_rel });
                         }
 
                         const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
