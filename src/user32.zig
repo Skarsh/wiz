@@ -1498,7 +1498,7 @@ pub const IDC_APPSTARTING = 32650;
 pub const IDC_HELP = 32651;
 
 pub extern "user32" fn LoadCursorA(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u8) callconv(WINAPI) ?HCURSOR;
-pub fn loadCursor(hInstance: HINSTANCE, lpCursorName: [*:0]const u8) !HCURSOR {
+pub fn loadCursorA(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u8) !HCURSOR {
     const hcursor = LoadCursorA(hInstance, lpCursorName);
     if (hcursor) |cursor| return cursor;
     // TODO (Thomas): Are there more cases we should cover here?
