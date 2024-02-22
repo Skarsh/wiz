@@ -486,17 +486,20 @@ pub const Window = struct {
                     if (window.callbacks.mouse_move) |cb| {
                         cb(window, x, y);
                     } else {
-                        var x_rel: i16 = 0;
-                        var y_rel: i16 = 0;
-                        x_rel = window.last_mouse_x - x;
-                        y_rel = window.last_mouse_y - y;
+                        // TODO (Thomas): Think about how capture_cursor and raw_mouse_motion should
+                        // work in this case, meaning raw_mouse_motion is not enable but the cursor is hidden.
+                        if (!window.capture_cursor and !window.raw_mouse_motion) {
+                            var x_rel: i16 = 0;
+                            var y_rel: i16 = 0;
+                            x_rel = window.last_mouse_x - x;
+                            y_rel = window.last_mouse_y - y;
 
-                        window.last_mouse_x = x;
-                        window.last_mouse_y = y;
+                            window.last_mouse_x = x;
+                            window.last_mouse_y = y;
 
-                        // TODO(Thomas): Think about "window" vs "client space" here
-                        const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
-                        window.event_queue.enqueue(event);
+                            const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
+                            window.event_queue.enqueue(event);
+                        }
                     }
                 }
             },
@@ -569,53 +572,92 @@ pub const Window = struct {
             user32.WM_INPUT => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
-                    var dw_size: user32.UINT = @sizeOf(user32.RAWINPUT);
-                    // TODO(Thomas): Allocating here for each frame is really unecessary even though we're using
-                    // a fixed buffer allocator that removes potential syscalls. It should be enough to just have
-                    // a preallocated buffer and overwrite each time.
-                    const lpb = window.allocator.alloc(user32.BYTE, dw_size) catch return 0;
-                    defer window.allocator.free(lpb);
+                    // Should only use RawInput when raw_mouse_motion is set
+                    if (window.capture_cursor and window.raw_mouse_motion) {
+                        var dw_size: user32.UINT = @sizeOf(user32.RAWINPUT);
+                        // TODO(Thomas): Allocating here for each frame is really unecessary even though we're using
+                        // a fixed buffer allocator that removes potential syscalls. It should be enough to just have
+                        // a preallocated buffer and overwrite each time.
+                        const lpb = window.allocator.alloc(user32.BYTE, dw_size) catch return 0;
+                        errdefer window.allocator.free(lpb);
 
-                    _ = user32.GetRawInputData(
-                        @ptrFromInt(@as(usize, @intCast(l_param))),
-                        user32.RID_INPUT,
-                        @ptrCast(lpb),
-                        &dw_size,
-                        @sizeOf(user32.RAWINPUTHEADER),
-                    );
+                        _ = user32.GetRawInputData(
+                            @ptrFromInt(@as(usize, @intCast(l_param))),
+                            user32.RID_INPUT,
+                            @ptrCast(lpb),
+                            &dw_size,
+                            @sizeOf(user32.RAWINPUTHEADER),
+                        );
 
-                    const raw: *user32.RAWINPUT = @ptrCast(@alignCast(lpb));
+                        const raw: *user32.RAWINPUT = @ptrCast(@alignCast(lpb));
 
-                    if (raw.header.dwType == user32.RIM_TYPEKEYBOARD) {
-                        std.debug.panic("Not supposed to use RawInput for keyboard yet", .{});
-                    } else if (raw.header.dwType == user32.RIM_TYPEMOUSE) {
-                        var x: i16 = 0;
-                        var y: i16 = 0;
-                        var x_rel: i16 = 0;
-                        var y_rel: i16 = 0;
-                        if (raw.data.mouse.usFlags & user32.MOUSE_MOVE_ABSOLUTE != 0) {
-                            var rect = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 };
-                            if (raw.data.mouse.usFlags & user32.MOUSE_VIRTUAL_DESKTOP != 0) {
-                                rect.left = user32.GetSystemMetrics(user32.SM_XVIRTUALSCREEN);
-                                rect.top = user32.GetSystemMetrics(user32.SM_YVIRTUALSCREEN);
-                                rect.right = user32.GetSystemMetrics(user32.SM_CXVIRTUALSCREEN);
-                                rect.bottom = user32.GetSystemMetrics(user32.SM_CYVIRTUALSCREEN);
-                            } else {
-                                rect.left = 0;
-                                rect.top = 0;
-                                rect.right = user32.GetSystemMetrics(user32.SM_CXSCREEN);
-                                rect.bottom = user32.GetSystemMetrics(user32.SM_CYSCREEN);
+                        if (raw.header.dwType == user32.RIM_TYPEKEYBOARD) {
+                            std.debug.panic("Not supposed to use RawInput for keyboard yet", .{});
+                        } else if (raw.header.dwType == user32.RIM_TYPEMOUSE) {
+                            var x: i16 = 0;
+                            var y: i16 = 0;
+                            var x_rel: i16 = 0;
+                            var y_rel: i16 = 0;
+                            if (raw.data.mouse.usFlags & user32.MOUSE_MOVE_ABSOLUTE != 0) {
+                                var rect = user32.RECT{ .left = 0, .top = 0, .right = 0, .bottom = 0 };
+                                if (raw.data.mouse.usFlags & user32.MOUSE_VIRTUAL_DESKTOP != 0) {
+                                    rect.left = user32.GetSystemMetrics(user32.SM_XVIRTUALSCREEN);
+                                    rect.top = user32.GetSystemMetrics(user32.SM_YVIRTUALSCREEN);
+                                    rect.right = user32.GetSystemMetrics(user32.SM_CXVIRTUALSCREEN);
+                                    rect.bottom = user32.GetSystemMetrics(user32.SM_CYVIRTUALSCREEN);
+                                } else {
+                                    rect.left = 0;
+                                    rect.top = 0;
+                                    rect.right = user32.GetSystemMetrics(user32.SM_CXSCREEN);
+                                    rect.bottom = user32.GetSystemMetrics(user32.SM_CYSCREEN);
+                                }
+
+                                x = @intCast(MulDiv(raw.data.mouse.lLastX, rect.right, 65535) + rect.left);
+                                y = @intCast(MulDiv(raw.data.mouse.lLastY, rect.bottom, 65535) + rect.top);
+                            } else if (raw.data.mouse.lLastX != 0 or raw.data.mouse.lLastY != 0) {
+                                x_rel = @intCast(raw.data.mouse.lLastX);
+                                y_rel = @intCast(raw.data.mouse.lLastY);
                             }
 
-                            x = @intCast(MulDiv(raw.data.mouse.lLastX, rect.right, 65535) + rect.left);
-                            y = @intCast(MulDiv(raw.data.mouse.lLastY, rect.bottom, 65535) + rect.top);
-                        } else if (raw.data.mouse.lLastX != 0 or raw.data.mouse.lLastY != 0) {
-                            x_rel = @intCast(raw.data.mouse.lLastX);
-                            y_rel = @intCast(raw.data.mouse.lLastY);
-                        }
+                            const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
+                            window.event_queue.enqueue(event);
 
-                        const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
-                        window.event_queue.enqueue(event);
+                            // Reset the cursor position to the middle of the client rect, if not when the user moves the
+                            // mouse a lot it will end up in one of the edges/corners of the screen, which would be a bit irritating.
+                            // Potentially, we could store the position before capturing and the restore that when going out,
+                            // then we don't have to set this for every single event.
+                            if (window.is_fullscreen) {
+                                var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
+                                user32.getClientRect(window.hwnd, &client_rect) catch unreachable;
+                                user32.clipCursor(&client_rect) catch unreachable;
+
+                                // NOTE(Thomas): This is correct since when in fullscreen width and the height
+                                // of the window will be the same as the screen parameters.
+                                window.setCursorPos(@divFloor(window.width, 2), @divFloor(window.height, 2)) catch unreachable;
+                            } else {
+                                // TODO(Thomas): We do the exact same routine in setCaptureCursor(). Think about making a
+                                // function that does this for us.
+                                var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
+                                user32.getClientRect(window.hwnd, &client_rect) catch unreachable;
+
+                                // NOTE (Thomas): It's important to calculate the center point of the client rect
+                                // before transforming to screen space. Hence why we calculate this here and then transform.
+                                const client_center_point_x = @divFloor((client_rect.right - client_rect.left), 2);
+                                const client_center_point_y = @divFloor((client_rect.bottom - client_rect.top), 2);
+                                var screen_client_center_point = user32.POINT{ .x = client_center_point_x, .y = client_center_point_y };
+                                user32.clientToScreen(window.hwnd, &screen_client_center_point) catch unreachable;
+
+                                // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
+                                // two first fields?
+                                // NOTE (Thomas): Since we've now calculated the center point of the client rect
+                                // we can safely transform it to screen space and then call clipCursor() to bound it.
+                                user32.clientToScreen(window.hwnd, @ptrCast(&client_rect.left)) catch unreachable;
+                                user32.clientToScreen(window.hwnd, @ptrCast(&client_rect.right)) catch unreachable;
+                                user32.clipCursor(&client_rect) catch unreachable;
+
+                                window.setCursorPos(screen_client_center_point.x, screen_client_center_point.y) catch unreachable;
+                            }
+                        }
                     }
                 }
             },
