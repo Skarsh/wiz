@@ -2063,6 +2063,7 @@ pub const RAWMOUSE = extern struct {
             usButtonData: USHORT,
         },
     },
+    ulRawButtons: ULONG,
     lLastX: LONG,
     lLastY: LONG,
     ulExtraInformation: ULONG,
