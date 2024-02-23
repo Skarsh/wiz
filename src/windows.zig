@@ -66,6 +66,7 @@ pub const Window = struct {
     self: *Window = undefined,
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
+    raw_mouse_motion_buf: []u8,
 
     pub fn init(allocator: Allocator, width: i32, height: i32, format: WindowFormat, comptime name: []const u8) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
@@ -140,6 +141,8 @@ pub const Window = struct {
         // TODO (Thomas): Make event queue size configureable?
         const event_queue_size: usize = 1000;
         window.event_queue = try EventQueue.init(allocator, event_queue_size);
+
+        window.raw_mouse_motion_buf = try allocator.alloc(user32.BYTE, @sizeOf(user32.RAWINPUT));
 
         const hwnd = try user32.createWindowExW(
             0,
@@ -578,27 +581,22 @@ pub const Window = struct {
             user32.WM_INPUT => {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
-                    // Should only use RawInput when raw_mouse_motion is set
+                    // Should only use RawInput when raw_mouse_motion is set.
                     if (window.capture_cursor and window.raw_mouse_motion) {
-                        var dw_size: user32.UINT = @sizeOf(user32.RAWINPUT);
-                        // TODO(Thomas): Allocating here for each frame is really unecessary even though we're using
-                        // a fixed buffer allocator that removes potential syscalls. It should be enough to just have
-                        // a preallocated buffer and overwrite each time.
-                        const lpb = window.allocator.alloc(user32.BYTE, dw_size) catch return 0;
-                        errdefer window.allocator.free(lpb);
-
+                        // Using the window raw_mouse_motion_buf len here.
+                        var dw_size: user32.UINT = @intCast(window.raw_mouse_motion_buf.len);
                         _ = user32.GetRawInputData(
                             @ptrFromInt(@as(usize, @intCast(l_param))),
                             user32.RID_INPUT,
-                            @ptrCast(lpb),
+                            @ptrCast(window.raw_mouse_motion_buf),
                             &dw_size,
                             @sizeOf(user32.RAWINPUTHEADER),
                         );
 
-                        const raw: *user32.RAWINPUT = @ptrCast(@alignCast(lpb));
+                        const raw: *user32.RAWINPUT = @ptrCast(@alignCast(window.raw_mouse_motion_buf));
 
                         if (raw.header.dwType == user32.RIM_TYPEKEYBOARD) {
-                            std.debug.panic("Not supposed to use RawInput for keyboard yet", .{});
+                            std.debug.panic("Not supposed to use RawInput for keyboard, at least yet.", .{});
                         } else if (raw.header.dwType == user32.RIM_TYPEMOUSE) {
                             var x: i16 = 0;
                             var y: i16 = 0;

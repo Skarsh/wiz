@@ -22,6 +22,8 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     const window_memory = try allocator.alloc(u8, 100_000);
+    errdefer allocator.free(window_memory);
+
     var fba = std.heap.FixedBufferAllocator.init(window_memory);
 
     const window_width = 640;
