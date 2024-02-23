@@ -2340,3 +2340,34 @@ pub const SM_CARETBLINKINGENABLED = 0x2002;
 //#if WINVER >= 0x0605
 //WINUSERAPI int WINAPI GetSystemMetricsForDpi(int nIndex, UINT dpi);
 //#endif
+
+// HT values for NCHITTEST and so on
+pub const HTERROR = -2;
+pub const HTTRANSPARENT = -1;
+pub const HTNOWHERE = 0;
+pub const HTCLIENT = 1;
+pub const HTCAPTION = 2;
+pub const HTSYSMENU = 3;
+pub const HTGROWBOX = 4;
+pub const HTSIZE = HTGROWBOX;
+pub const HTMENU = 5;
+pub const HTHSCROLL = 6;
+pub const HTVSCROLL = 7;
+pub const HTMINBUTTON = 8;
+pub const HTMAXBUTTON = 9;
+pub const HTLEFT = 10;
+pub const HTRIGHT = 11;
+pub const HTTOP = 12;
+pub const HTTOPLEFT = 13;
+pub const HTTOPRIGHT = 14;
+pub const HTBOTTOM = 15;
+pub const HTBOTTOMLEFT = 16;
+pub const HTBOTTOMRIGHT = 17;
+pub const HTBORDER = 18;
+pub const HTREDUCE = HTMINBUTTON;
+pub const HTZOOM = HTMAXBUTTON;
+pub const HTSIZEFIRST = HTLEFT;
+pub const HTSIZELAST = HTBOTTOMRIGHT;
+pub const HTOBJECT = 19;
+pub const HTCLOSE = 20;
+pub const HTHELP = 21;
