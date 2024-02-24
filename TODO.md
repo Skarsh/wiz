@@ -11,6 +11,9 @@
 - Add Software renderer backend support
 - Add OpenGL backend support (Basic version done).
 
+# Cleanups/Refactor
+- Build.zig is a mess right now, clean it up and make it more concise.
+
 # Examples
 - [ ] Add software renderer example
 - [x] Add basic triangle OpenGL example
