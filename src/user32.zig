@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const builtin = @import("builtin");
 const windows = std.os.windows;
+const win32 = @import("win32");
 
 // Types
 pub const GetLastError = windows.kernel32.GetLastError;
@@ -17,6 +18,7 @@ pub const USHORT = windows.USHORT;
 pub const LONG = windows.LONG;
 pub const ULONG = windows.ULONG;
 pub const LONG_PTR = windows.LONG_PTR;
+pub const LPSTR = windows.LPSTR;
 pub const LPCSTR = windows.LPCSTR;
 pub const LPCWSTR = windows.LPCWSTR;
 pub const WINAPI = windows.WINAPI;
@@ -1467,7 +1469,21 @@ pub fn destroyWindow(hWnd: HWND) !void {
 }
 
 // Predefined resources - from https://github.com/wine-mirror/wine/blob/d1d13e50ec505e2cf4e40b9293853975bf3945e2/include/winuser.h#L2273C1-L2301C48
-// NOTE(Thomas): When used in C code, this is usually passed through a
+// NOTE(Thomas): When used in C code, this is usually passed through a macro.
+
+pub fn makeIntResourceA(i: comptime_int) LPCSTR {
+    return @as(windows.LPCSTR, @ptrFromInt(@as(usize, @intCast(i))));
+}
+
+pub fn makeIntResourceW(i: comptime_int) LPCWSTR {
+    const address: usize = @intCast(i);
+    const ptr: LPCWSTR = @ptrFromInt(address);
+    return ptr;
+}
+
+pub const TEST_U8 = makeIntResourceA(IDC_IBEAM);
+pub const TEST_U16 = makeIntResourceW(IDC_ARROW);
+
 pub const IDI_APPLICATION = 32512;
 pub const IDI_HAND = 32513;
 pub const IDI_QUESTION = 32514;
@@ -1509,9 +1525,9 @@ pub fn loadCursorA(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u8) !HCURSOR 
 }
 
 // TODO(Thomas): Write wrapper like for the others
-pub extern "user32" fn LoadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) callconv(WINAPI) ?HCURSOR;
+pub extern "user32" fn LoadCursorW(hInstance: ?HINSTANCE, lpCursorName: LPCWSTR) callconv(WINAPI) ?HCURSOR;
 pub var pfnLoadCursorW: *const @TypeOf(LoadCursorW) = undefined;
-pub fn loadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) !HCURSOR {
+pub fn loadCursorW(hInstance: ?HINSTANCE, lpCursorName: LPCWSTR) !HCURSOR {
     const function = selectSymbol(LoadCursorW, pfnLoadCursorW, .win2k);
 
     const cursor = function(hInstance, lpCursorName);
