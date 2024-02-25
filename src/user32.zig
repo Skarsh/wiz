@@ -1468,22 +1468,11 @@ pub fn destroyWindow(hWnd: HWND) !void {
     }
 }
 
-// Predefined resources - from https://github.com/wine-mirror/wine/blob/d1d13e50ec505e2cf4e40b9293853975bf3945e2/include/winuser.h#L2273C1-L2301C48
-// NOTE(Thomas): When used in C code, this is usually passed through a macro.
-
 pub fn makeIntResourceA(i: comptime_int) LPCSTR {
     return @as(windows.LPCSTR, @ptrFromInt(@as(usize, @intCast(i))));
 }
 
-pub fn makeIntResourceW(i: comptime_int) LPCWSTR {
-    const address: usize = @intCast(i);
-    const ptr: LPCWSTR = @ptrFromInt(address);
-    return ptr;
-}
-
-pub const TEST_U8 = makeIntResourceA(IDC_IBEAM);
-pub const TEST_U16 = makeIntResourceW(IDC_ARROW);
-
+// Predefined resources - from https://github.com/wine-mirror/wine/blob/d1d13e50ec505e2cf4e40b9293853975bf3945e2/include/winuser.h#L2273C1-L2301C48
 pub const IDI_APPLICATION = 32512;
 pub const IDI_HAND = 32513;
 pub const IDI_QUESTION = 32514;
