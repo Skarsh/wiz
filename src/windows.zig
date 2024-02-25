@@ -63,7 +63,6 @@ pub const Window = struct {
     capture_cursor: bool,
     is_vsync: bool,
     is_fullscreen: bool,
-    self: *Window = undefined,
     callbacks: WindowCallbacks,
     event_queue: EventQueue,
     raw_mouse_motion_buf: []u8,
