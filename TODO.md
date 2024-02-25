@@ -1,7 +1,5 @@
 # Bugs
-- When resizing the window the resizing arrow icon does not appear, this is the case for many window operations.
 - Cursor capture is not working correctly in all cases, most likely its buggy in a drag and drop setting.
-
 
 # Features
 - Simple structure for keeping track of frame times and make that part a bit more ergonomic
