@@ -11,8 +11,6 @@ pub fn build(
 
     const lib = b.addStaticLibrary(.{
         .name = "wiz",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
         .root_source_file = .{ .path = "src/root.zig" },
         .target = target,
         .optimize = optimize,
@@ -33,10 +31,7 @@ pub fn build(
     exe_options.addOption(bool, "enable_tracy_gpu", b.option(bool, "enable_tracy_gpu", "Enable GPU zones") orelse enable_tracy);
 
     makeExe(b, target, optimize, exe_options, enable_tracy);
-
     makeOpenglExampleExe(b, target, optimize, exe_options, enable_tracy);
-
-    // Tests
     runTests(b, optimize, target);
 }
 
@@ -106,9 +101,9 @@ fn makeExe(
     runExe(b, exe, "run", "Run the App");
 }
 
-fn buildOpengl(
+fn buildOpenglExample(
     b: *Build,
-    opengl_exe: *Compile,
+    exe: *Compile,
     target: ResolvedTarget,
     build_options_module: *std.Build.Module,
     enable_tracy: bool,
@@ -119,15 +114,15 @@ fn buildOpengl(
 
     wiz_module.addImport("build_options", build_options_module);
 
-    opengl_exe.root_module.addImport("wiz", wiz_module);
+    exe.root_module.addImport("wiz", wiz_module);
 
     if (enable_tracy) {
-        buildTracy(opengl_exe, target);
+        buildTracy(exe, target);
     }
 
-    b.installArtifact(opengl_exe);
+    b.installArtifact(exe);
 
-    const opengl_run_cmd = b.addRunArtifact(opengl_exe);
+    const opengl_run_cmd = b.addRunArtifact(exe);
     opengl_run_cmd.step.dependOn(b.getInstallStep());
 }
 
@@ -138,16 +133,14 @@ fn makeOpenglExampleExe(
     options: *std.Build.Step.Options,
     enable_tracy: bool,
 ) void {
-
-    // OpenGL Example
-    const opengl_example_exe = b.addExecutable(.{
+    const exe = b.addExecutable(.{
         .name = "opengl-example",
         .root_source_file = .{ .path = "examples/opengl.zig" },
         .target = target,
         .optimize = optimize,
     });
-    buildOpengl(b, opengl_example_exe, target, options.createModule(), enable_tracy);
-    runExe(b, opengl_example_exe, "run-opengl-example", "Run the OpenGL example");
+    buildOpenglExample(b, exe, target, options.createModule(), enable_tracy);
+    runExe(b, exe, "run-opengl-example", "Run the OpenGL example");
 }
 
 fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedTarget) void {
