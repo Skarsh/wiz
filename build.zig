@@ -3,6 +3,62 @@ const Build = std.Build;
 const ResolvedTarget = Build.ResolvedTarget;
 const Compile = Build.Step.Compile;
 
+fn buildExe(b: *Build, exe: *Compile, target: ResolvedTarget, enable_tracy: bool) void {
+    if (enable_tracy) {
+        const client_cpp = "src/tracy/public/TracyClient.cpp";
+
+        // On mingw, we need to opt into windows 7+ to get some features required by tracy.
+        const tracy_c_flags: []const []const u8 = if (target.result.isMinGW())
+            &[_][]const u8{ "-DTRACY_ENABLE=1", "-fno-sanitize=undefined", "-D_WIN32_WINNT=0x601" }
+        else
+            &[_][]const u8{ "-DTRACY_ENABLE=1", "-fno-sanitize=undefined" };
+
+        exe.addIncludePath(.{ .path = "src/tracy" });
+        exe.addCSourceFile(.{
+            .file = .{ .path = client_cpp },
+            .flags = tracy_c_flags,
+        });
+        exe.linkLibCpp();
+        exe.linkLibC();
+
+        if (target.result.os.tag == .windows) {
+            exe.linkSystemLibrary("dbghelp");
+            exe.linkSystemLibrary("ws2_32");
+        }
+    }
+
+    exe.linkSystemLibrary("opengl32");
+
+    b.installArtifact(exe);
+}
+
+fn runExe(b: *std.Build, exe: *Compile) void {
+    const run_cmd = b.addRunArtifact(exe);
+
+    run_cmd.step.dependOn(b.getInstallStep());
+
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+
+    const run_step = b.step("run", "Run the app");
+    run_step.dependOn(&run_cmd.step);
+}
+
+fn makeExe(b: *std.Build, target: ResolvedTarget, optimize: std.builtin.OptimizeMode, options: *std.Build.Step.Options, enable_tracy: bool) void {
+    const exe = b.addExecutable(.{
+        .name = "wiz",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    exe.root_module.addImport("build_options", options.createModule());
+
+    buildExe(b, exe, target, enable_tracy);
+    runExe(b, exe);
+}
+
 fn buildOpengl(b: *Build, opengl_exe: *Compile, target: ResolvedTarget, build_options_module: *std.Build.Module, enable_tracy: bool) void {
     const wiz_module = b.addModule("wiz", .{
         .root_source_file = .{ .path = "src/wiz.zig" },
@@ -41,6 +97,37 @@ fn buildOpengl(b: *Build, opengl_exe: *Compile, target: ResolvedTarget, build_op
     opengl_run_cmd.step.dependOn(b.getInstallStep());
 }
 
+fn makeOpenglExampleExe(
+    b: *std.Build,
+    target: ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    options: *std.Build.Step.Options,
+    enable_tracy: bool,
+) void {
+
+    // OpenGL Example
+    const opengl_example_exe = b.addExecutable(.{
+        .name = "opengl-example",
+        .root_source_file = .{ .path = "examples/opengl.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    buildOpengl(b, opengl_example_exe, target, options.createModule(), enable_tracy);
+    runOpenglExample(b, opengl_example_exe);
+}
+
+fn runOpenglExample(b: *std.Build, opengl_example_exe: *Compile) void {
+    const opengl_example_run_cmd = b.addRunArtifact(opengl_example_exe);
+    opengl_example_run_cmd.step.dependOn(b.getInstallStep());
+
+    if (b.args) |args| {
+        opengl_example_run_cmd.addArgs(args);
+    }
+
+    const opengl_example_run_step = b.step("run-opengl-example", "Run the OpenGL example");
+    opengl_example_run_step.dependOn(&opengl_example_run_cmd.step);
+}
+
 pub fn build(
     b: *std.Build,
 ) void {
@@ -58,13 +145,6 @@ pub fn build(
 
     b.installArtifact(lib);
 
-    const exe = b.addExecutable(.{
-        .name = "wiz",
-        .root_source_file = .{ .path = "src/main.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-
     const exe_options = b.addOptions();
 
     const enable_tracy = b.option(bool, "enable_tracy", "Whether tracy should be enabled.") orelse false;
@@ -76,68 +156,16 @@ pub fn build(
     ) orelse enable_tracy);
     exe_options.addOption(bool, "enable_tracy_callstack", b.option(bool, "enable_tracy_callstack", "Enable callstack graphs.") orelse enable_tracy);
     exe_options.addOption(bool, "enable_tracy_gpu", b.option(bool, "enable_tracy_gpu", "Enable GPU zones") orelse enable_tracy);
-    exe.root_module.addImport("build_options", exe_options.createModule());
 
-    if (enable_tracy) {
-        const client_cpp = "src/tracy/public/TracyClient.cpp";
+    makeExe(b, target, optimize, exe_options, enable_tracy);
 
-        // On mingw, we need to opt into windows 7+ to get some features required by tracy.
-        const tracy_c_flags: []const []const u8 = if (target.result.isMinGW())
-            &[_][]const u8{ "-DTRACY_ENABLE=1", "-fno-sanitize=undefined", "-D_WIN32_WINNT=0x601" }
-        else
-            &[_][]const u8{ "-DTRACY_ENABLE=1", "-fno-sanitize=undefined" };
+    makeOpenglExampleExe(b, target, optimize, exe_options, enable_tracy);
 
-        exe.addIncludePath(.{ .path = "src/tracy" });
-        exe.addCSourceFile(.{
-            .file = .{ .path = client_cpp },
-            .flags = tracy_c_flags,
-        });
-        exe.linkLibCpp();
-        exe.linkLibC();
-
-        if (target.result.os.tag == .windows) {
-            exe.linkSystemLibrary("dbghelp");
-            exe.linkSystemLibrary("ws2_32");
-        }
-    }
-
-    exe.linkSystemLibrary("opengl32");
-
-    b.installArtifact(exe);
-
-    const run_cmd = b.addRunArtifact(exe);
-
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
-
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
-
-    const opengl_example_exe = b.addExecutable(.{
-        .name = "opengl-example",
-        .root_source_file = .{ .path = "examples/opengl.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-    buildOpengl(b, opengl_example_exe, target, exe_options.createModule(), enable_tracy);
-
-    const opengl_example_run_cmd = b.addRunArtifact(opengl_example_exe);
-    opengl_example_run_cmd.step.dependOn(b.getInstallStep());
-
-    if (b.args) |args| {
-        opengl_example_run_cmd.addArgs(args);
-    }
-
-    const opengl_example_run_step = b.step("run-opengl-example", "Run the OpenGL example");
-    opengl_example_run_step.dependOn(&opengl_example_run_cmd.step);
-
+    // Tests
     runTests(b, optimize, target);
 }
 
-pub fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedTarget) void {
+fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedTarget) void {
     const root_tests = b.addTest(.{
         .name = "root_tests",
         .root_source_file = .{ .path = "src/root.zig" },
