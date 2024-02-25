@@ -558,6 +558,7 @@ pub const Window = struct {
                         _ = user32.setCursor(null);
                     }
                 }
+                result = user32.defWindowProcW(hwnd, message, w_param, l_param);
             },
             // TODO(Thomas): Deal with this for cursor capture and so no, currently we don't do anything here at all.
             // This will probably be a problem in a drag an drop scenario.
