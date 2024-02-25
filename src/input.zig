@@ -182,7 +182,7 @@ pub const EventQueue = struct {
         const tracy_zone = tracy.trace(@src());
         defer tracy_zone.end();
         // if the next position for tail is at the head, then we need to increment
-        // bot head and tail, with modulo for handling wrapping.
+        // both head and tail, with modulo for handling wrapping.
         if (@mod(self.tail + 1, @as(isize, @intCast(self.queue.len))) == self.head) {
             self.tail = @mod(self.tail + 1, @as(isize, @intCast(self.queue.len)));
             self.queue[@intCast(self.tail)] = event;
