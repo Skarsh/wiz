@@ -134,39 +134,50 @@ pub fn build(
     const opengl_example_run_step = b.step("run-opengl-example", "Run the OpenGL example");
     opengl_example_run_step.dependOn(&opengl_example_run_cmd.step);
 
-    const lib_unit_tests = b.addTest(.{
+    runTests(b, optimize, target);
+}
+
+pub fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedTarget) void {
+    const root_tests = b.addTest(.{
+        .name = "root_tests",
         .root_source_file = .{ .path = "src/root.zig" },
         .target = target,
         .optimize = optimize,
     });
 
-    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
-    const lib_input_unit_tests = b.addTest(.{
+    const input_tests = b.addTest(.{
+        .name = "input_tests",
         .root_source_file = .{ .path = "src/input.zig" },
         .target = target,
         .optimize = optimize,
     });
 
-    const run_lib_input_unit_tests = b.addRunArtifact(lib_input_unit_tests);
-    const exe_unit_tests = b.addTest(.{
+    const exe_tests = b.addTest(.{
+        .name = "exe_tests",
         .root_source_file = .{ .path = "src/main.zig" },
         .target = target,
         .optimize = optimize,
     });
 
-    const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
-
-    const wiz_module_unit_tests = b.addTest(.{
+    const wiz_module_tests = b.addTest(.{
+        .name = "wiz_module_tests",
         .root_source_file = .{ .path = "src/wiz.zig" },
         .target = target,
         .optimize = optimize,
     });
 
-    const run_wiz_module_unit_tests = b.addRunArtifact(wiz_module_unit_tests);
+    const run_root_tests = b.addRunArtifact(root_tests);
+    const run_lib_input_tests = b.addRunArtifact(input_tests);
+    const run_exe_tests = b.addRunArtifact(exe_tests);
+    const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
 
     const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
-    test_step.dependOn(&run_lib_input_unit_tests.step);
-    test_step.dependOn(&run_exe_unit_tests.step);
-    test_step.dependOn(&run_wiz_module_unit_tests.step);
+    test_step.dependOn(&run_root_tests.step);
+    test_step.dependOn(&run_lib_input_tests.step);
+    test_step.dependOn(&run_exe_tests.step);
+    test_step.dependOn(&run_wiz_module_tests.step);
+}
+
+inline fn thisDir() []const u8 {
+    return comptime std.fs.path.dirname(@src().file) orelse ".";
 }
