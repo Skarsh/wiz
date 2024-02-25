@@ -11,6 +11,7 @@
 - Add OpenGL backend support (Basic version done).
 
 # Cleanups/Refactor
+- Window struct fields is a mess, should be able to prune this
 
 # Examples
 - [ ] Add software renderer example
