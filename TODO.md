@@ -1,5 +1,4 @@
 # Bugs
-- There are only a few arrow icons that seems to work, some of them crash.
 - When resizing the window the resizing arrow icon does not appear, this is the case for many window operations.
 - Cursor capture is not working correctly in all cases, most likely its buggy in a drag and drop setting.
 
@@ -12,7 +11,6 @@
 - Add OpenGL backend support (Basic version done).
 
 # Cleanups/Refactor
-- Build.zig is a mess right now, clean it up and make it more concise.
 
 # Examples
 - [ ] Add software renderer example
