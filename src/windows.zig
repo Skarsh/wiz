@@ -76,7 +76,7 @@ pub const Window = struct {
             std.debug.panic("Module handle is null. Cannot create window.\n", .{});
         }
 
-        const arrow = user32.makeIntResourceA(user32.IDC_IBEAM);
+        const arrow = user32.makeIntResourceA(user32.IDC_ARROW);
         const cursor = try user32.loadCursorA(null, arrow);
 
         var wc = user32.WNDCLASSEXW{
