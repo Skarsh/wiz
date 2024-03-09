@@ -5,9 +5,10 @@ const windows = std.os.windows;
 
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
-const user32 = @import("user32.zig");
 const gdi32 = @import("gdi32.zig");
+const kernel32 = @import("kernel32.zig");
 const opengl32 = @import("opengl32.zig");
+const user32 = @import("user32.zig");
 const input = @import("input.zig");
 const Event = input.Event;
 const EventQueue = input.EventQueue;
@@ -20,9 +21,6 @@ const tracy = @import("tracy.zig");
 
 pub const default_window_width: i32 = 640;
 pub const default_window_height: i32 = 480;
-
-// TODO(Thomas): This does not belong here, maybe put in a kernel32.zig or something. Have some similar functinos in wiz.zig aswell
-extern "kernel32" fn MulDiv(nNumber: windows.INT, nNumerator: windows.INT, nDenominator: windows.INT) callconv(windows.WINAPI) windows.INT;
 
 pub const WindowFormat = enum {
     windowed,
@@ -604,8 +602,8 @@ pub const Window = struct {
                                     rect.bottom = user32.GetSystemMetrics(user32.SM_CYSCREEN);
                                 }
 
-                                x = @intCast(MulDiv(raw.data.mouse.lLastX, rect.right, 65535) + rect.left);
-                                y = @intCast(MulDiv(raw.data.mouse.lLastY, rect.bottom, 65535) + rect.top);
+                                x = @intCast(kernel32.MulDiv(raw.data.mouse.lLastX, rect.right, 65535) + rect.left);
+                                y = @intCast(kernel32.MulDiv(raw.data.mouse.lLastY, rect.bottom, 65535) + rect.top);
                             } else if (raw.data.mouse.lLastX != 0 or raw.data.mouse.lLastY != 0) {
                                 x_rel = @intCast(raw.data.mouse.lLastX);
                                 y_rel = @intCast(raw.data.mouse.lLastY);
