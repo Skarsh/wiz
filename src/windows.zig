@@ -631,6 +631,8 @@ pub const Window = struct {
     }
 
     fn calculateClientRectCenter(client_rect: *user32.RECT) user32.POINT {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         const centerX = @divFloor((client_rect.right - client_rect.left), 2);
         const centerY = @divFloor((client_rect.bottom - client_rect.top), 2);
 
@@ -638,6 +640,8 @@ pub const Window = struct {
     }
 
     fn convertClientPointToScreen(self: *Window, x: i32, y: i32) !user32.POINT {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         var point = user32.POINT{ .x = x, .y = y };
         try user32.clientToScreen(self.hwnd, &point);
 
@@ -645,18 +649,24 @@ pub const Window = struct {
     }
 
     fn clipCursorToClientRect(self: *Window, client_rect: *user32.RECT) !void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.left));
         try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
         try user32.clipCursor(client_rect);
     }
 
     fn centerCursorInClientRect(self: *Window, client_rect: *user32.RECT) !void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         const client_center = calculateClientRectCenter(client_rect);
         const client_center_in_screen = try self.convertClientPointToScreen(client_center.x, client_center.y);
         try self.setCursorPos(client_center_in_screen.x, client_center_in_screen.y);
     }
 
     fn constrainAndCenterCursor(self: *Window) !void {
+        const tracy_zone = tracy.trace(@src());
+        defer tracy_zone.end();
         var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
         try user32.getClientRect(self.hwnd, &client_rect);
         try self.clipCursorToClientRect(&client_rect);
