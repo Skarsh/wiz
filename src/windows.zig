@@ -625,27 +625,7 @@ pub const Window = struct {
                                 // of the window will be the same as the screen parameters.
                                 window.setCursorPos(@divFloor(window.width, 2), @divFloor(window.height, 2)) catch unreachable;
                             } else {
-                                // TODO(Thomas): We do the exact same routine in setCaptureCursor(). Think about making a
-                                // function that does this for us.
-                                var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
-                                user32.getClientRect(window.hwnd, &client_rect) catch unreachable;
-
-                                // NOTE (Thomas): It's important to calculate the center point of the client rect
-                                // before transforming to screen space. Hence why we calculate this here and then transform.
-                                const client_center_point_x = @divFloor((client_rect.right - client_rect.left), 2);
-                                const client_center_point_y = @divFloor((client_rect.bottom - client_rect.top), 2);
-                                var screen_client_center_point = user32.POINT{ .x = client_center_point_x, .y = client_center_point_y };
-                                user32.clientToScreen(window.hwnd, &screen_client_center_point) catch unreachable;
-
-                                // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
-                                // two first fields?
-                                // NOTE (Thomas): Since we've now calculated the center point of the client rect
-                                // we can safely transform it to screen space and then call clipCursor() to bound it.
-                                user32.clientToScreen(window.hwnd, @ptrCast(&client_rect.left)) catch unreachable;
-                                user32.clientToScreen(window.hwnd, @ptrCast(&client_rect.right)) catch unreachable;
-                                user32.clipCursor(&client_rect) catch unreachable;
-
-                                window.setCursorPos(screen_client_center_point.x, screen_client_center_point.y) catch unreachable;
+                                window.adjustForWindowedModeAndCenterCursor() catch unreachable;
                             }
                         }
                     }
@@ -658,6 +638,28 @@ pub const Window = struct {
         }
 
         return result;
+    }
+
+    fn adjustForWindowedModeAndCenterCursor(self: *Window) !void {
+        var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
+        try user32.getClientRect(self.hwnd, &client_rect);
+
+        // NOTE (Thomas): It's important to calculate the center point of the client rect
+        // before transforming to screen space. Hence why we calculate this here and then transform.
+        const client_center_point_x = @divFloor((client_rect.right - client_rect.left), 2);
+        const client_center_point_y = @divFloor((client_rect.bottom - client_rect.top), 2);
+        var screen_client_center_point = user32.POINT{ .x = client_center_point_x, .y = client_center_point_y };
+        try user32.clientToScreen(self.hwnd, &screen_client_center_point);
+
+        // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
+        // two first fields?
+        // NOTE (Thomas): Since we've now calculated the center point of the client rect
+        // we can safely transform it to screen space and then call clipCursor() to bound it.
+        try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.left));
+        try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
+        try user32.clipCursor(&client_rect);
+
+        self.setCursorPos(screen_client_center_point.x, screen_client_center_point.y) catch unreachable;
     }
 
     // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
@@ -725,27 +727,7 @@ pub const Window = struct {
             );
 
             if (self.capture_cursor) {
-                // TODO(Thomas): We do the exact same routine in setCaptureCursor(). Think about making a
-                // function that does this for us.
-                var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
-                try user32.getClientRect(self.hwnd, &client_rect);
-
-                // NOTE (Thomas): It's important to calculate the center point of the client rect
-                // before transforming to screen space. Hence why we calculate this here and then transform.
-                const client_center_point_x = @divFloor((client_rect.right - client_rect.left), 2);
-                const client_center_point_y = @divFloor((client_rect.bottom - client_rect.top), 2);
-                var screen_client_center_point = user32.POINT{ .x = client_center_point_x, .y = client_center_point_y };
-                try user32.clientToScreen(self.hwnd, &screen_client_center_point);
-
-                // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
-                // two first fields?
-                // NOTE (Thomas): Since we've now calculated the center point of the client rect
-                // we can safely transform it to screen space and then call clipCursor() to bound it.
-                try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.left));
-                try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
-                try user32.clipCursor(&client_rect);
-
-                try self.setCursorPos(screen_client_center_point.x, screen_client_center_point.y);
+                try self.adjustForWindowedModeAndCenterCursor();
             }
 
             self.is_fullscreen = false;
@@ -813,27 +795,7 @@ pub const Window = struct {
             // TODO(Thomas): Deal with return value
             _ = user32.setCapture(self.hwnd);
 
-            var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
-            try user32.getClientRect(self.hwnd, &client_rect);
-
-            // TODO(Thomas): We do the exact same routine in toggleFullscreen(). Think about making a
-            // function that does this for us.
-            // NOTE (Thomas): It's important to calculate the center point of the client rect
-            // before transforming to screen space. Hence why we calculate this here and then transform.
-            const client_center_point_x = @divFloor((client_rect.right - client_rect.left), 2);
-            const client_center_point_y = @divFloor((client_rect.bottom - client_rect.top), 2);
-            var screen_client_center_point = user32.POINT{ .x = client_center_point_x, .y = client_center_point_y };
-            try user32.clientToScreen(self.hwnd, &screen_client_center_point);
-
-            // TODO(Thomas): Do this in a bit more obvious way than @ptrCast to get the
-            // two first fields?
-            // NOTE (Thomas): Since we've now calculated the center point of the client rect
-            // we can safely transform it to screen space and then call clipCursor() to bound it.
-            try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.left));
-            try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
-            try user32.clipCursor(&client_rect);
-
-            try self.setCursorPos(screen_client_center_point.x, screen_client_center_point.y);
+            try self.adjustForWindowedModeAndCenterCursor();
         } else {
             // TODO(Thomas): use stored cursor icon/type/styling instead of hardcoded as IDC_ARROW
             const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
