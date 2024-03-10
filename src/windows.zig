@@ -612,20 +612,10 @@ pub const Window = struct {
                             const event: Event = Event{ .MouseMotion = MouseMotionEvent{ .x = x, .y = y, .x_rel = x_rel, .y_rel = y_rel } };
                             window.event_queue.enqueue(event);
 
-                            // Reset the cursor position to the middle of the client rect, if not when the user moves the
-                            // mouse a lot it will end up in one of the edges/corners of the screen, which would be a bit irritating.
-                            // Potentially, we could store the position before capturing and the restore that when going out,
-                            // then we don't have to set this for every single event.
                             if (window.is_fullscreen) {
-                                var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
-                                user32.getClientRect(window.hwnd, &client_rect) catch unreachable;
-                                user32.clipCursor(&client_rect) catch unreachable;
-
-                                // NOTE(Thomas): This is correct since when in fullscreen width and the height
-                                // of the window will be the same as the screen parameters.
-                                window.setCursorPos(@divFloor(window.width, 2), @divFloor(window.height, 2)) catch unreachable;
+                                window.constrainAndCenterCursor() catch unreachable;
                             } else {
-                                window.adjustForWindowedModeAndCenterCursor() catch unreachable;
+                                window.constrainAndCenterCursor() catch unreachable;
                             }
                         }
                     }
@@ -640,7 +630,7 @@ pub const Window = struct {
         return result;
     }
 
-    fn adjustForWindowedModeAndCenterCursor(self: *Window) !void {
+    fn constrainAndCenterCursor(self: *Window) !void {
         var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
         try user32.getClientRect(self.hwnd, &client_rect);
 
@@ -659,7 +649,7 @@ pub const Window = struct {
         try user32.clientToScreen(self.hwnd, @ptrCast(&client_rect.right));
         try user32.clipCursor(&client_rect);
 
-        self.setCursorPos(screen_client_center_point.x, screen_client_center_point.y) catch unreachable;
+        try self.setCursorPos(screen_client_center_point.x, screen_client_center_point.y);
     }
 
     // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
@@ -701,13 +691,7 @@ pub const Window = struct {
                 self.width = max_x - min_x;
                 self.height = max_y - min_y;
                 if (self.capture_cursor) {
-                    var client_rect = user32.RECT{ .top = 0, .right = 0, .bottom = 0, .left = 0 };
-                    try user32.getClientRect(self.hwnd, &client_rect);
-                    try user32.clipCursor(&client_rect);
-
-                    // NOTE(Thomas): This is correct since when in fullscreen width and the height
-                    // of the window will be the same as the screen parameters.
-                    try self.setCursorPos(@divFloor(self.width, 2), @divFloor(self.height, 2));
+                    try self.constrainAndCenterCursor();
                 }
             }
             self.is_fullscreen = true;
@@ -727,7 +711,7 @@ pub const Window = struct {
             );
 
             if (self.capture_cursor) {
-                try self.adjustForWindowedModeAndCenterCursor();
+                try self.constrainAndCenterCursor();
             }
 
             self.is_fullscreen = false;
@@ -795,7 +779,7 @@ pub const Window = struct {
             // TODO(Thomas): Deal with return value
             _ = user32.setCapture(self.hwnd);
 
-            try self.adjustForWindowedModeAndCenterCursor();
+            try self.constrainAndCenterCursor();
         } else {
             // TODO(Thomas): use stored cursor icon/type/styling instead of hardcoded as IDC_ARROW
             const arrow: [*:0]const u16 = @ptrFromInt(user32.IDC_ARROW);
