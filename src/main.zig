@@ -36,11 +36,6 @@ pub fn main() !void {
 
     var frame_times = try FrameTimes.new(fba_allocator, 1000);
 
-    // NOTE(Thomas): Set the Windows scheduler granularity to 1ms.
-    // This is to make sleep() more granular
-    // TODO (Thomas): Check return value here, also, this does not belon in the main function, should make a wrapper.
-    _ = wiz.timeBeginPeriod(1);
-
     try win.makeModernOpenGLContext();
     try win.setVSync(false);
 
@@ -71,7 +66,7 @@ pub fn main() !void {
 
         frame_count += 1;
 
-        if (@mod(frame_count, 3 * target_fps) == 0) {
+        if (@mod(frame_count, target_fps) == 0) {
             const mean_frame_time = frame_times.calculateMeanFrameTime();
             std.debug.print("mean_frame_time: {d:.4}ms, {d:.2}fps\n", .{ mean_frame_time, wiz.ms_per_sec / mean_frame_time });
         }

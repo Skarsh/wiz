@@ -19,6 +19,9 @@ const KeyEvent = input.KeyEvent;
 
 const tracy = @import("tracy.zig");
 
+// TODO(Thomas): Find a better home for this, but this file will do for now.
+pub extern "winmm" fn timeBeginPeriod(uPeriod: windows.UINT) callconv(windows.WINAPI) windows.INT;
+
 pub const default_window_width: i32 = 640;
 pub const default_window_height: i32 = 480;
 
@@ -213,6 +216,11 @@ pub const Window = struct {
         // NOTE(Thomas): Not really sure why this is needed here, it's already set for the windowclass, but that does not seem to help
         // TODO(Thomas): Deal with return value
         _ = user32.setCursor(cursor);
+
+        // NOTE(Thomas): Set the Windows scheduler granularity to 1ms.
+        // This is to make sleep() more granular
+        const sleep_is_granular_result = timeBeginPeriod(1);
+        std.debug.assert(sleep_is_granular_result == 0);
 
         return window;
     }
