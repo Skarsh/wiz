@@ -57,9 +57,6 @@ pub const FrameTimes = struct {
     }
 };
 
-// TODO(Thomas): Find a better home for this, but this file will do for now.
-pub extern "winmm" fn timeBeginPeriod(uPeriod: win32.UINT) callconv(win32.WINAPI) win32.INT;
-
 pub fn queryPerformanceCounter(performance_counter: *i64) !void {
     if (kernel32.QueryPerformanceCounter(performance_counter) == 0) {
         switch (win32.kernel32.GetLastError()) {
