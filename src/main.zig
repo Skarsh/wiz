@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 const Timer = std.time.Timer;
 const windows = std.os.windows;
 const kernel32 = windows.kernel32;
@@ -7,6 +8,7 @@ const gdi32 = @import("gdi32.zig");
 const opengl32 = @import("opengl32.zig");
 const input = @import("input.zig");
 const wiz = @import("wiz.zig");
+const FrameTimes = wiz.FrameTimes;
 const tracy = @import("tracy.zig");
 const build_options = @import("build_options");
 const Event = input.Event;
@@ -19,17 +21,20 @@ const enable_tracy = build_options.enable_tracy;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+    const gpa_allocator = gpa.allocator();
 
-    const window_memory = try allocator.alloc(u8, 100_000);
-    errdefer allocator.free(window_memory);
+    const window_memory = try gpa_allocator.alloc(u8, 100_000);
+    errdefer gpa_allocator.free(window_memory);
 
     var fba = std.heap.FixedBufferAllocator.init(window_memory);
+    const fba_allocator = fba.allocator();
 
     const window_width = 640;
     const window_height = 480;
-    var win = try Window.init(fba.allocator(), window_width, window_height, WindowFormat.windowed, "win1");
+    var win = try Window.init(fba_allocator, window_width, window_height, WindowFormat.windowed, "win1");
     defer win.deinit() catch unreachable;
+
+    var frame_times = try FrameTimes.new(fba_allocator, 1000);
 
     // NOTE(Thomas): Set the Windows scheduler granularity to 1ms.
     // This is to make sleep() more granular
@@ -62,10 +67,13 @@ pub fn main() !void {
         var perf_freq: i64 = undefined;
         try wiz.queryPerformanceFrequency(&perf_freq);
         delta_time = @as(f32, @floatFromInt((now - last))) * (wiz.ms_per_sec / @as(f32, @floatFromInt(perf_freq)));
+        frame_times.push(delta_time);
+
         frame_count += 1;
 
-        if (@mod(frame_count, target_fps) == 0) {
-            std.debug.print("delta_time: {d:.4}ms, {d}fps\n", .{ delta_time, wiz.ms_per_sec / delta_time });
+        if (@mod(frame_count, 3 * target_fps) == 0) {
+            const mean_frame_time = frame_times.calculateMeanFrameTime();
+            std.debug.print("mean_frame_time: {d:.4}ms, {d:.2}fps\n", .{ mean_frame_time, wiz.ms_per_sec / mean_frame_time });
         }
 
         try Window.processMessages();
