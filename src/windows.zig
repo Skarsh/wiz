@@ -759,17 +759,10 @@ pub const Window = struct {
         // TODO(Thomas): This should be set to the current window hwnd, but works for only one window for now.
         rid[0].hwndTarget = null;
 
-        // Shows how to setup for keyboard, but I don't think it's necessary for keyboard
-        //rid[1].usUsagePage = 0x01; // HID_USAGE_PAGE_GENERIC
-        //rid[1].usUsage = 0x06; // HID_USAGE_GENERIC_KEYBOARD
-        //rid[1].dwFlags = user32.RIDEV_NOLEGACY; // adds keyboard and also ignores legacy keyboard messages
-        //rid[1].hwndTarget = null;
+        user32.registerRawInputDevices(&rid, 1, @sizeOf(user32.RAWINPUTDEVICE)) catch |err| {
+            std.debug.panic("Error when enabling raw mouse motion: {}", .{err});
+        };
 
-        // TODO(Thomas): Use wrapper here when it's done
-        if (user32.RegisterRawInputDevices(&rid, 1, @sizeOf(user32.RAWINPUTDEVICE)) == 0) {
-            //registration failed. Call GetLastError for the cause of the error
-            std.debug.panic("Error when enabling raw mouse motion: {}", .{user32.GetLastError()});
-        }
         self.raw_mouse_motion = true;
     }
 
@@ -783,11 +776,10 @@ pub const Window = struct {
         // TODO(Thomas): This should be set to the current window hwnd, but works for only one window for now.
         rid[0].hwndTarget = null;
 
-        // TODO(Thomas): Use wrapper here when it's done
-        if (user32.RegisterRawInputDevices(&rid, 1, @sizeOf(user32.RAWINPUTDEVICE)) == 0) {
-            //registration failed. Call GetLastError for the cause of the error
-            std.debug.panic("Error when enabling raw mouse motion: {}", .{user32.GetLastError()});
-        }
+        user32.registerRawInputDevices(&rid, 1, @sizeOf(user32.RAWINPUTDEVICE)) catch |err| {
+            std.debug.panic("Error when disabling raw mouse motion: {}", .{err});
+        };
+
         self.raw_mouse_motion = false;
     }
 

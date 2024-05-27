@@ -2185,6 +2185,15 @@ pub extern "user32" fn RegisterRawInputDevices(
     cbSize: UINT,
 ) callconv(WINAPI) BOOL;
 
+pub fn registerRawInputDevices(pRawInputDevices: [*c]RAWINPUTDEVICE, uiNumDevices: UINT, cbSize: UINT) !void {
+    if (RegisterRawInputDevices(pRawInputDevices, uiNumDevices, cbSize) == 0) {
+        switch (windows.kernel32.GetLastError()) {
+            .INVALID_PARAMETER => unreachable,
+            else => |err| return windows.unexpectedError(err),
+        }
+    }
+}
+
 // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdata
 // TODO(Thomas): Not sure about the HANDLE type for hRawInput here...
 // TODO(Thomas): Not so sure about the type for pcbSize either, in the win32 docs its a PUINT type,
