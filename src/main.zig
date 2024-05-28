@@ -21,6 +21,7 @@ const enable_tracy = build_options.enable_tracy;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    errdefer _ = gpa.deinit();
     const gpa_allocator = gpa.allocator();
 
     const window_memory = try gpa_allocator.alloc(u8, 100_000);
