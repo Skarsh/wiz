@@ -1,4 +1,5 @@
 # Bugs
+- The first frame is white, figure out why and resolve.
 - Cursor capture is not working correctly in all cases, most likely its buggy in a drag and drop setting.
 
 # Features
