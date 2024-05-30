@@ -747,17 +747,24 @@ pub const Window = struct {
         }
     }
 
-    // TODO(Thomas): Add error handling to deal with unsupported raw mouse motion etc
-    pub fn enableRawMouseMotion(self: *Window) void {
-
-        // TODO(Thomas): win32 raw input stuff, move into own function when suitable
-        var rid = [2]user32.RAWINPUTDEVICE{ std.mem.zeroes(user32.RAWINPUTDEVICE), std.mem.zeroes(user32.RAWINPUTDEVICE) };
-
+    fn enableRawMouse(rid: *[2]user32.RAWINPUTDEVICE, enable: bool) void {
         rid[0].usUsagePage = user32.HID_USAGE_PAGE_GENERIC; // HID_USAGE_PAGE_GENERIC
         rid[0].usUsage = user32.HID_USAGE_GENERIC_MOUSE; // HID_USAGE_GENERIC_MOUSE
-        rid[0].dwFlags = user32.RIDEV_NOLEGACY; // adds mouse and also ignores legacy mouse messages
+
+        if (enable) {
+            rid[0].dwFlags = user32.RIDEV_NOLEGACY; // adds mouse and also ignores legacy mouse messages
+        } else {
+            rid[0].dwFlags = user32.RIDEV_REMOVE; // adds mouse and also ignores legacy mouse messages
+        }
+
         // TODO(Thomas): This should be set to the current window hwnd, but works for only one window for now.
         rid[0].hwndTarget = null;
+    }
+
+    // TODO(Thomas): Add error handling to deal with unsupported raw mouse motion etc
+    pub fn enableRawMouseMotion(self: *Window) void {
+        var rid = [2]user32.RAWINPUTDEVICE{ std.mem.zeroes(user32.RAWINPUTDEVICE), std.mem.zeroes(user32.RAWINPUTDEVICE) };
+        enableRawMouse(&rid, true);
 
         user32.registerRawInputDevices(&rid, 1, @sizeOf(user32.RAWINPUTDEVICE)) catch |err| {
             std.debug.panic("Error when enabling raw mouse motion: {}", .{err});
@@ -767,14 +774,8 @@ pub const Window = struct {
     }
 
     pub fn disableRawMouseMotion(self: *Window) void {
-        // TODO(Thomas): win32 raw input stuff, move into own function when suitable
         var rid = [2]user32.RAWINPUTDEVICE{ std.mem.zeroes(user32.RAWINPUTDEVICE), std.mem.zeroes(user32.RAWINPUTDEVICE) };
-
-        rid[0].usUsagePage = user32.HID_USAGE_PAGE_GENERIC; // HID_USAGE_PAGE_GENERIC
-        rid[0].usUsage = user32.HID_USAGE_GENERIC_MOUSE; // HID_USAGE_GENERIC_MOUSE
-        rid[0].dwFlags = user32.RIDEV_REMOVE; // adds mouse and also ignores legacy mouse messages
-        // TODO(Thomas): This should be set to the current window hwnd, but works for only one window for now.
-        rid[0].hwndTarget = null;
+        enableRawMouse(&rid, false);
 
         user32.registerRawInputDevices(&rid, 1, @sizeOf(user32.RAWINPUTDEVICE)) catch |err| {
             std.debug.panic("Error when disabling raw mouse motion: {}", .{err});
