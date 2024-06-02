@@ -63,7 +63,9 @@ fn buildExe(b: *Build, exe: *Compile, target: ResolvedTarget, enable_tracy: bool
         buildTracy(exe, target);
     }
 
-    exe.linkSystemLibrary("opengl32");
+    if (target.result.os.tag == .windows) {
+        exe.linkSystemLibrary("opengl32");
+    }
 
     b.installArtifact(exe);
 }
