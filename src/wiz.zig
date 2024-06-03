@@ -61,29 +61,13 @@ pub const FrameTimes = struct {
     }
 };
 
-//pub fn queryPerformanceCounter(performance_counter: *i64) !void {
-//    if (kernel32.QueryPerformanceCounter(performance_counter) == 0) {
-//        switch (win32.kernel32.GetLastError()) {
-//            else => |err| return win32.unexpectedError(err),
-//        }
-//    }
-//}
-//
-//pub fn queryPerformanceFrequency(performannce_frequency: *i64) !void {
-//    if (kernel32.QueryPerformanceFrequency(performannce_frequency) == 0) {
-//        switch (win32.kernel32.GetLastError()) {
-//            else => |err| return win32.unexpectedError(err),
-//        }
-//    }
-//}
-
 pub const PlatformType = enum {
     X11,
     Windows,
 };
 
 pub const PlatformWindow = union {
-    windows_window: windows.Window,
+    windows_window: *windows.Window,
     x11_window: x11.Window,
 };
 
@@ -96,7 +80,7 @@ pub fn createWindow(
     allocator: Allocator,
     width: i32,
     height: i32,
-    name: []const u8,
+    comptime name: []const u8,
     comptime platform_type: PlatformType,
 ) !PlatformWindow {
     switch (platform_type) {
