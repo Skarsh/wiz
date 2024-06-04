@@ -80,21 +80,39 @@ pub const PlatformWindow = union(enum) {
     }
 
     pub fn deinit(self: PlatformWindow) void {
-        switch (self) {
-            inline else => |case| case.deinit(),
+        //switch (self) {
+        //    inline else => |case| case.deinit(),
+        //}
+
+        switch (builtin.os.tag) {
+            .windows => self.windows_window.deinit(),
+            .linux => self.x11_window.deinit(),
+            else => @compileError("Unsupported OS"),
         }
     }
 
     pub fn makeModernOpenGLContext(self: PlatformWindow) !void {
-        switch (self) {
-            inline else => |case| try case.makeModernOpenGLContext(),
-        }
+        //switch (self) {
+        //    inline else => |case| try case.makeModernOpenGLContext(),
+        //}
+
+        try switch (builtin.os.tag) {
+            .windows => self.windows_window.makeModernOpenGLContext(),
+            .linux => self.x11_window.makeModernOpenGLContext(),
+            else => @compileError("Unsupported OS"),
+        };
     }
 
     pub fn setVSync(self: PlatformWindow, value: bool) !void {
-        switch (self) {
-            inline else => |case| try case.setVSync(value),
-        }
+        //switch (self) {
+        //    inline else => |case| try case.setVSync(value),
+        //}
+
+        try switch (builtin.os.tag) {
+            .windows => self.windows_window.setVSync(value),
+            .linux => self.x11_window.setVSync(value),
+            else => @compileError("Unsupported OS"),
+        };
     }
 
     // TODO(Thomas): We should do this differently but it's the least intrusive way now
@@ -119,7 +137,7 @@ pub const PlatformWindow = union(enum) {
     pub fn pollEvent(self: PlatformWindow, event: *Event) bool {
         return switch (builtin.os.tag) {
             .windows => self.windows_window.event_queue.poll(event),
-            .linux => self.windows_window.event_queue.poll(event),
+            .linux => self.x11_window.event_queue.poll(event),
             else => @compileError("Unsupported OS"),
         };
     }

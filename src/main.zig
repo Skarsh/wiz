@@ -132,7 +132,7 @@ pub fn main() !void {
     const gpa_allocator = gpa.allocator();
 
     const platform_window = try wiz.PlatformWindow.init(gpa_allocator, 640, 480, "Window");
-    errdefer platform_window.deinit();
+    defer platform_window.deinit();
 
     try platform_window.makeModernOpenGLContext();
 
@@ -140,8 +140,10 @@ pub fn main() !void {
 
     var event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
     while (platform_window.isRunning()) {
+        std.debug.print("Running!\n", .{});
         // TODO(Thomas): Decide whether to use method for uniformity or just a proc
         //try platform_window.processMessages();
+
         try wiz.PlatformWindow.processMessages();
         while (platform_window.pollEvent(&event)) {}
     }
