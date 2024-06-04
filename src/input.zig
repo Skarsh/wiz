@@ -235,7 +235,25 @@ test "Init test" {
     try expectEqual(event_queue.tail, -1);
 }
 
-test "EnqueueTest initial condition" {
+test "Poll Empty Queue" {
+    const allocator = std.testing.allocator;
+    const num_elements: usize = 10;
+    var event_queue = try EventQueue.init(allocator, num_elements);
+    defer event_queue.deinit();
+
+    var event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
+    try expectEqual(event_queue.queue.len, 10);
+    try expectEqual(event_queue.head, -1);
+    try expectEqual(event_queue.tail, -1);
+
+    try expectEqual(event_queue.poll(&event), false);
+
+    try expectEqual(event_queue.queue.len, 10);
+    try expectEqual(event_queue.head, -1);
+    try expectEqual(event_queue.tail, -1);
+}
+
+test "Enqueue empty queue" {
     const allocator = std.testing.allocator;
     const num_elements: usize = 10;
     var event_queue = try EventQueue.init(allocator, num_elements);
@@ -248,7 +266,7 @@ test "EnqueueTest initial condition" {
     try expectEqual(event_queue.queue[0], event);
 }
 
-test "Poll initial condition" {
+test "Poll one element" {
     const allocator = std.testing.allocator;
     const num_elements: usize = 10;
     var event_queue = try EventQueue.init(allocator, num_elements);
