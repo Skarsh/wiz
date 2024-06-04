@@ -66,36 +66,64 @@ pub const PlatformType = enum {
     Windows,
 };
 
-pub const PlatformWindow = union {
+pub const PlatformWindow = union(enum) {
     windows_window: *windows.Window,
-    x11_window: x11.Window,
-};
+    x11_window: *x11.Window,
 
-//pub const PlatformsEnabled = struct {
-//    x11: bool = if (builtin.os.tag == .linux) true else false,
-//    windows: bool = if (builtin.os.tag == .windows) true else false,
-//};
-
-pub fn createWindow(
-    allocator: Allocator,
-    width: i32,
-    height: i32,
-    comptime name: []const u8,
-    comptime platform_type: PlatformType,
-) !PlatformWindow {
-    switch (platform_type) {
-        .Windows => {
-            std.debug.print("Platform: Windows\n", .{});
-            const window = try windows.Window.init(allocator, width, height, .windowed, name);
-            return PlatformWindow{ .windows_window = window };
-        },
-        .X11 => {
-            std.debug.print("Platform: X11\n", .{});
-            const window = x11.Window{};
-            return PlatformWindow{ .x11_window = window };
-        },
+    pub fn init(allocator: Allocator, width: i32, height: i32, comptime name: []const u8) !PlatformWindow {
+        const window = switch (builtin.os.tag) {
+            .windows => PlatformWindow{ .windows_window = try windows.Window.init(allocator, width, height, .windowed, name) },
+            .linux => PlatformWindow{ .x11_window = try x11.Window.init(allocator, width, height, name) },
+            else => @compileError("Unsupported OS"),
+        };
+        return window;
     }
-}
+
+    pub fn deinit(self: PlatformWindow) void {
+        switch (self) {
+            inline else => |case| case.deinit(),
+        }
+    }
+
+    pub fn makeModernOpenGLContext(self: PlatformWindow) !void {
+        switch (self) {
+            inline else => |case| try case.makeModernOpenGLContext(),
+        }
+    }
+
+    pub fn setVSync(self: PlatformWindow, value: bool) !void {
+        switch (self) {
+            inline else => |case| try case.setVSync(value),
+        }
+    }
+
+    // TODO(Thomas): We should do this differently but it's the least intrusive way now
+    pub fn isRunning(self: PlatformWindow) bool {
+        const running = switch (builtin.os.tag) {
+            .windows => self.windows_window.running,
+            .linux => self.x11_window.running,
+            else => @compileError("Unsupported OS"),
+        };
+
+        return running;
+    }
+
+    pub fn processMessages() !void {
+        switch (builtin.os.tag) {
+            .windows => try windows.Window.processMessages(),
+            .linux => try x11.Window.processMessages(),
+            else => @compileError("Unsupported OS"),
+        }
+    }
+
+    pub fn pollEvent(self: PlatformWindow, event: *Event) bool {
+        return switch (builtin.os.tag) {
+            .windows => self.windows_window.event_queue.poll(event),
+            .linux => self.windows_window.event_queue.poll(event),
+            else => @compileError("Unsupported OS"),
+        };
+    }
+};
 
 //test {
 //    // TODO(Thomas): Would it be better to do this in a test in the

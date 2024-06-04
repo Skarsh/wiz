@@ -362,11 +362,11 @@ pub const Window = struct {
 
     // TODO(Thomas): This needs more thought when more of the API is shaping up.
     // Also, this should ideally not be able to fail or error at least.
-    pub fn deinit(self: Window) !void {
+    pub fn deinit(self: Window) void {
         if (self.hwnd) |hwnd| {
-            try user32.destroyWindow(hwnd);
+            user32.destroyWindow(hwnd) catch unreachable;
         }
-        try user32.unregisterClassW(self.lp_class_name, self.h_instance);
+        user32.unregisterClassW(self.lp_class_name, self.h_instance) catch unreachable;
 
         // TODO: handle return value
         if (self.hglrc) |hglrc| {
