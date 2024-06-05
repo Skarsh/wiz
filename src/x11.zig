@@ -9,6 +9,8 @@ pub const Window = struct {
     height: i32,
     name: []const u8,
     running: bool,
+    capture_cursor: bool,
+    raw_mouse_motion: bool,
     event_queue: EventQueue,
 
     pub fn init(allocator: Allocator, width: i32, height: i32, comptime name: []const u8) !*Window {
@@ -36,4 +38,25 @@ pub const Window = struct {
     }
 
     pub fn processMessages() !void {}
+
+    pub fn windowShouldClose(self: *Window, value: bool) void {
+        self.running = !value;
+    }
+
+    pub fn toggleFullscreen(self: *Window) !void {
+        _ = self;
+    }
+
+    pub fn setCaptureCursor(self: *Window, value: bool) !void {
+        _ = self;
+        _ = value;
+    }
+
+    pub fn enableRawMouseMotion(self: *Window) void {
+        _ = self;
+    }
+
+    pub fn disableRawMouseMotion(self: *Window) void {
+        _ = self;
+    }
 };

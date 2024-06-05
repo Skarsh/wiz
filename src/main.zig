@@ -123,8 +123,10 @@
 
 const std = @import("std");
 const wiz = @import("wiz.zig");
+
 const Event = @import("input.zig").Event;
 const KeyEvent = @import("input.zig").KeyEvent;
+const Scancode = @import("input.zig").Scancode;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -141,10 +143,33 @@ pub fn main() !void {
     var event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
     while (platform_window.isRunning()) {
         std.debug.print("Running!\n", .{});
+
         // TODO(Thomas): Decide whether to use method for uniformity or just a proc
         //try platform_window.processMessages();
 
         try wiz.PlatformWindow.processMessages();
-        while (platform_window.pollEvent(&event)) {}
+        while (platform_window.pollEvent(&event)) {
+            switch (event) {
+                .KeyDown => {
+                    // Hardcoded for now, 1 = ESCAPE
+                    if (event.KeyDown.scancode == @intFromEnum(Scancode.Keyboard_Escape)) {
+                        platform_window.windowShouldClose(true);
+                    }
+                    if (event.KeyDown.scancode == @intFromEnum(Scancode.Keyboard_F)) {
+                        try platform_window.toggleFullscreen();
+                    }
+
+                    if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_R)) {
+                        try platform_window.setCaptureCursor(!platform_window.getCaptureCursor());
+                        if (!platform_window.getRawMouseMotion()) {
+                            platform_window.enableRawMouseMotion();
+                        } else {
+                            platform_window.disableRawMouseMotion();
+                        }
+                    }
+                },
+                else => {},
+            }
+        }
     }
 }
