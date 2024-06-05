@@ -205,15 +205,19 @@ pub const EventQueue = struct {
         // Queue is empty
         if (self.head == -1) {
             return false;
-        } else if (self.head == self.tail) {
+        } else if (self.head == self.tail and self.head >= 0 and self.tail >= 0) {
             event.* = self.queue[@intCast(self.head)];
             self.head = -1;
             self.tail = -1;
             return true;
         } else {
-            event.* = self.queue[@intCast(self.head)];
-            self.head = @mod((self.head + 1), @as(isize, @intCast(self.queue.len)));
-            return true;
+            if (self.head >= 0) {
+                event.* = self.queue[@intCast(self.head)];
+                self.head = @mod((self.head + 1), @as(isize, @intCast(self.queue.len)));
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
