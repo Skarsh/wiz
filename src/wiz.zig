@@ -145,7 +145,7 @@ pub const PlatformWindow = union(enum) {
     pub fn windowShouldClose(self: PlatformWindow, value: bool) void {
         switch (builtin.os.tag) {
             .windows => self.windows_window.windowShouldClose(value),
-            .linux => self.x11_window.window.windowShouldClose(value),
+            .linux => self.x11_window.windowShouldClose(value),
             else => @compileError("Unsupported OS"),
         }
     }
@@ -153,7 +153,7 @@ pub const PlatformWindow = union(enum) {
     pub fn toggleFullscreen(self: PlatformWindow) !void {
         try switch (builtin.os.tag) {
             .windows => self.windows_window.toggleFullscreen(),
-            .linux => self.x11_window.window.toggleFullscreen(),
+            .linux => self.x11_window.toggleFullscreen(),
             else => @compileError("Unsupported OS"),
         };
     }
@@ -161,7 +161,7 @@ pub const PlatformWindow = union(enum) {
     pub fn setCaptureCursor(self: PlatformWindow, value: bool) !void {
         try switch (builtin.os.tag) {
             .windows => self.windows_window.setCaptureCursor(value),
-            .linux => self.x11_window.window.setCaptureCursor(value),
+            .linux => self.x11_window.setCaptureCursor(value),
             else => @compileError("Unsupported OS"),
         };
     }
@@ -191,7 +191,7 @@ pub const PlatformWindow = union(enum) {
     pub fn enableRawMouseMotion(self: PlatformWindow) void {
         switch (builtin.os.tag) {
             .windows => self.windows_window.enableRawMouseMotion(),
-            .linux => self.x11_window.window.enableRawMouseMotion(),
+            .linux => self.x11_window.enableRawMouseMotion(),
             else => @compileError("Unsupported OS"),
         }
     }
@@ -199,7 +199,7 @@ pub const PlatformWindow = union(enum) {
     pub fn disableRawMouseMotion(self: PlatformWindow) void {
         switch (builtin.os.tag) {
             .windows => self.windows_window.disableRawMouseMotion(),
-            .linux => self.x11_window.window.disableRawMouseMotion(),
+            .linux => self.x11_window.disableRawMouseMotion(),
             else => @compileError("Unsupported OS"),
         }
     }
