@@ -68,13 +68,19 @@ pub const PlatformType = enum {
     Windows,
 };
 
+pub const WindowFormat = enum {
+    windowed,
+    fullscreen,
+    borderless,
+};
+
 pub const PlatformWindow = union(enum) {
     windows_window: *windows.Window,
     x11_window: *x11.Window,
 
-    pub fn init(allocator: Allocator, width: i32, height: i32, comptime name: []const u8) !PlatformWindow {
+    pub fn init(allocator: Allocator, width: i32, height: i32, window_format: WindowFormat, comptime name: []const u8) !PlatformWindow {
         const window = switch (builtin.os.tag) {
-            .windows => PlatformWindow{ .windows_window = try windows.Window.init(allocator, width, height, .windowed, name) },
+            .windows => PlatformWindow{ .windows_window = try windows.Window.init(allocator, width, height, window_format, name) },
             .linux => PlatformWindow{ .x11_window = try x11.Window.init(allocator, width, height, name) },
             else => @compileError("Unsupported OS"),
         };

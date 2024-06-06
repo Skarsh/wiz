@@ -5,6 +5,7 @@ const windows = std.os.windows;
 
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
+const wiz = @import("wiz.zig");
 const gdi32 = @import("gdi32.zig");
 const kernel32 = @import("kernel32.zig");
 const opengl32 = @import("opengl32.zig");
@@ -24,12 +25,6 @@ pub extern "winmm" fn timeBeginPeriod(uPeriod: windows.UINT) callconv(windows.WI
 
 pub const default_window_width: i32 = 640;
 pub const default_window_height: i32 = 480;
-
-pub const WindowFormat = enum {
-    windowed,
-    fullscreen,
-    borderless,
-};
 
 pub const windowPosCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
 pub const windowSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
@@ -68,7 +63,7 @@ pub const Window = struct {
     event_queue: EventQueue,
     raw_mouse_motion_buf: []u8,
 
-    pub fn init(allocator: Allocator, width: i32, height: i32, format: WindowFormat, comptime name: []const u8) !*Window {
+    pub fn init(allocator: Allocator, width: i32, height: i32, format: wiz.WindowFormat, comptime name: []const u8) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
         if (windows.kernel32.GetModuleHandleW(null)) |hinst| {
             h_instance = @ptrCast(hinst);

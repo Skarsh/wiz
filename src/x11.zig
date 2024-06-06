@@ -4,6 +4,8 @@ const Allocator = std.mem.Allocator;
 const input = @import("input.zig");
 const EventQueue = input.EventQueue;
 
+const wiz = @import("wiz.zig");
+
 pub const Window = struct {
     width: i32,
     height: i32,
@@ -13,13 +15,15 @@ pub const Window = struct {
     raw_mouse_motion: bool,
     event_queue: EventQueue,
 
-    pub fn init(allocator: Allocator, width: i32, height: i32, comptime name: []const u8) !*Window {
+    pub fn init(allocator: Allocator, width: i32, height: i32, window_format: wiz.WindowFormat, comptime name: []const u8) !*Window {
         var window = try allocator.create(Window);
 
         window.width = width;
         window.height = height;
         window.name = name;
         window.running = true;
+
+        _ = window_format;
 
         return window;
     }

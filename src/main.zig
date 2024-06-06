@@ -135,7 +135,7 @@ pub fn main() !void {
     errdefer _ = gpa.deinit();
     const gpa_allocator = gpa.allocator();
 
-    const platform_window = try wiz.PlatformWindow.init(gpa_allocator, 640, 480, "Window");
+    const platform_window = try wiz.PlatformWindow.init(gpa_allocator, 640, 480, wiz.WindowFormat.windowed, "Window");
     defer platform_window.deinit();
 
     try platform_window.makeModernOpenGLContext();
