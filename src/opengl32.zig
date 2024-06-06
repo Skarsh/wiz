@@ -232,6 +232,87 @@ pub var wglChoosePixelFormatARB: *const fn (
     nNumFormats: *UINT,
 ) callconv(WINAPI) BOOL = undefined;
 
+pub fn loadDummyGLfunctions(comptime T: type) void {
+    // TODO (Thomas): Do this more programtically by iterating over all variables in the OpenGL struct,
+    // fetech their signature and name and then set the like above here.
+
+    // Load legacy OpenGL functions first
+    const opengl_lib = LoadLibraryA("opengl32.dll");
+    if (opengl_lib != null) {
+        T.glViewport = @as(@TypeOf(glViewport), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glViewport"))));
+        T.glEnable = @as(@TypeOf(glEnable), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glEnable"))));
+        T.glClearColor = @as(@TypeOf(glClearColor), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glClearColor"))));
+        T.glClear = @as(@TypeOf(glClear), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glClear"))));
+        T.glTexImage2D = @as(@TypeOf(glTexImage2D), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glTexImage2D"))));
+        T.glTexParameteri = @as(@TypeOf(glTexParameteri), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glTexParameteri"))));
+        T.glDrawArrays = @as(@TypeOf(glDrawArrays), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glDrawArrays"))));
+        T.glGenTextures = @as(@TypeOf(glGenTextures), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glGenTextures"))));
+        T.glBindTexture = @as(@TypeOf(glBindTexture), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glBindTexture"))));
+        T.glGetError = @as(@TypeOf(glGetError), @ptrCast(@alignCast(GetProcAddress(opengl_lib.?, "glGetError"))));
+    } else {
+        std.log.err("Unable to load opengl32.dll", .{});
+    }
+
+    // Load OpenGL extensions functions
+    //wglSwapIntervalEXT = @as(@TypeOf(wglSwapIntervalEXT), @ptrCast(@alignCast(wglGetProcAddress("wglSwapIntervalEXT"))));
+    //wglGetSwapIntervalEXT = @as(@TypeOf(wglGetSwapIntervalEXT), @ptrCast(@alignCast(wglGetProcAddress("wglGetSwapIntervalEXT"))));
+    //wglGetExtensionsStringARB = @as(@TypeOf(wglGetExtensionsStringARB), @ptrCast(@alignCast(wglGetProcAddress("wglGetExtensionsStringARB"))));
+    //wglCreateContextAttribsARB = @as(@TypeOf(wglCreateContextAttribsARB), @ptrCast(@alignCast(wglGetProcAddress("wglCreateContextAttribsARB"))));
+    //wglChoosePixelFormatARB = @as(@TypeOf(wglChoosePixelFormatARB), @ptrCast(@alignCast(wglGetProcAddress("wglChoosePixelFormatARB"))));
+
+    T.glGenVertexArrays = @as(@TypeOf(glGenVertexArrays), @ptrCast(@alignCast(wglGetProcAddress("glGenVertexArrays"))));
+    T.glDeleteVertexArrays = @as(@TypeOf(glDeleteVertexArrays), @ptrCast(@alignCast(wglGetProcAddress("glDeleteVertexArrays"))));
+    T.glGenBuffers = @as(@TypeOf(glGenBuffers), @ptrCast(@alignCast(wglGetProcAddress("glGenBuffers"))));
+    T.glDeleteBuffers = @as(@TypeOf(glDeleteBuffers), @ptrCast(@alignCast(wglGetProcAddress("glDeleteBuffers"))));
+    T.glGenFramebuffers = @as(@TypeOf(glGenFramebuffers), @ptrCast(@alignCast(wglGetProcAddress("glGenFramebuffers"))));
+    T.glDeleteFramebuffers = @as(@TypeOf(glDeleteFramebuffers), @ptrCast(@alignCast(wglGetProcAddress("glDeleteFramebuffers"))));
+    T.glDeleteProgram = @as(@TypeOf(glDeleteProgram), @ptrCast(@alignCast(wglGetProcAddress("glDeleteProgram"))));
+    T.glGenRenderbuffers = @as(@TypeOf(glGenRenderbuffers), @ptrCast(@alignCast(wglGetProcAddress("glGenRenderbuffers"))));
+    T.glBindVertexArray = @as(@TypeOf(glBindVertexArray), @ptrCast(@alignCast(wglGetProcAddress("glBindVertexArray"))));
+    T.glBindBuffer = @as(@TypeOf(glBindBuffer), @ptrCast(@alignCast(wglGetProcAddress("glBindBuffer"))));
+    T.glBufferData = @as(@TypeOf(glBufferData), @ptrCast(@alignCast(wglGetProcAddress("glBufferData"))));
+    T.glBindFramebuffer = @as(@TypeOf(glBindFramebuffer), @ptrCast(@alignCast(wglGetProcAddress("glBindFramebuffer"))));
+    T.glFramebufferTexture2D = @as(
+        @TypeOf(glFramebufferTexture2D),
+        @ptrCast(@alignCast(wglGetProcAddress("glFramebufferTexture2D"))),
+    );
+    T.glBindRenderbuffer = @as(@TypeOf(glBindRenderbuffer), @ptrCast(@alignCast(wglGetProcAddress("glBindRenderbuffer"))));
+    T.glRenderbufferStorage = @as(@TypeOf(glRenderbufferStorage), @ptrCast(@alignCast(wglGetProcAddress("glRenderbufferStorage"))));
+    T.glFramebufferRenderbuffer = @as(
+        @TypeOf(glFramebufferRenderbuffer),
+        @ptrCast(@alignCast(wglGetProcAddress("glFramebufferRenderbuffer"))),
+    );
+    T.glCheckFramebufferStatus = @as(
+        @TypeOf(glCheckFramebufferStatus),
+        @ptrCast(@alignCast(wglGetProcAddress("glCheckFramebufferStatus"))),
+    );
+    T.glVertexAttribPointer = @as(@TypeOf(glVertexAttribPointer), @ptrCast(@alignCast(wglGetProcAddress("glVertexAttribPointer"))));
+    T.glEnableVertexAttribArray = @as(
+        @TypeOf(glEnableVertexAttribArray),
+        @ptrCast(@alignCast(wglGetProcAddress("glEnableVertexAttribArray"))),
+    );
+    T.glActiveTexture = @as(@TypeOf(glActiveTexture), @ptrCast(@alignCast(wglGetProcAddress("glActiveTexture"))));
+    T.glCreateShader = @as(@TypeOf(glCreateShader), @ptrCast(@alignCast(wglGetProcAddress("glCreateShader"))));
+    T.glShaderSource = @as(@TypeOf(glShaderSource), @ptrCast(@alignCast(wglGetProcAddress("glShaderSource"))));
+    T.glCompileShader = @as(@TypeOf(glCompileShader), @ptrCast(@alignCast(wglGetProcAddress("glCompileShader"))));
+    T.glAttachShader = @as(@TypeOf(glAttachShader), @ptrCast(@alignCast(wglGetProcAddress("glAttachShader"))));
+    T.glCreateProgram = @as(@TypeOf(glCreateProgram), @ptrCast(@alignCast(wglGetProcAddress("glCreateProgram"))));
+    T.glLinkProgram = @as(@TypeOf(glLinkProgram), @ptrCast(@alignCast(wglGetProcAddress("glLinkProgram"))));
+    T.glDeleteShader = @as(@TypeOf(glDeleteShader), @ptrCast(@alignCast(wglGetProcAddress("glDeleteShader"))));
+    T.glUseProgram = @as(@TypeOf(glUseProgram), @ptrCast(@alignCast(wglGetProcAddress("glUseProgram"))));
+    T.glGetUniformLocation = @as(@TypeOf(glGetUniformLocation), @ptrCast(@alignCast(wglGetProcAddress("glGetUniformLocation"))));
+    T.glUniform1i = @as(@TypeOf(glUniform1i), @ptrCast(@alignCast(wglGetProcAddress("glUniform1i"))));
+    T.glUniform1f = @as(@TypeOf(glUniform1f), @ptrCast(@alignCast(wglGetProcAddress("glUniform1f"))));
+    T.glUniform3f = @as(@TypeOf(glUniform3f), @ptrCast(@alignCast(wglGetProcAddress("glUniform3f"))));
+    T.glUniform3fv = @as(@TypeOf(glUniform3fv), @ptrCast(@alignCast(wglGetProcAddress("glUniform3fv"))));
+    T.glUniformMatrix4fv = @as(@TypeOf(glUniformMatrix4fv), @ptrCast(@alignCast(wglGetProcAddress("glUniformMatrix4fv"))));
+    T.glGetShaderiv = @as(@TypeOf(glGetShaderiv), @ptrCast(@alignCast(wglGetProcAddress("glGetShaderiv"))));
+    T.glGetShaderInfoLog = @as(@TypeOf(glGetShaderInfoLog), @ptrCast(@alignCast(wglGetProcAddress("glGetShaderInfoLog"))));
+    T.glGetProgramiv = @as(@TypeOf(glGetProgramiv), @ptrCast(@alignCast(wglGetProcAddress("glGetProgramiv"))));
+    T.glGetProgramInfoLog = @as(@TypeOf(glGetProgramInfoLog), @ptrCast(@alignCast(wglGetProcAddress("glGetProgramInfoLog"))));
+    T.glGenerateMipmap = @as(@TypeOf(glGenerateMipmap), @ptrCast(@alignCast(wglGetProcAddress("glGenerateMipmap"))));
+}
+
 // TODO (Thomas): If loading of any of these fails the app will crash.
 // That might be reasonable for now because its pretty useless without rendering.
 // One can imagine that one can try other graphics APIs as fallbacks later?

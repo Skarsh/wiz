@@ -12,6 +12,8 @@ pub const Scancode = input.Scancode;
 const windows = @import("windows.zig");
 const x11 = @import("x11.zig");
 
+pub const opengl = @import("opengl.zig");
+
 //pub const Window = windows.Window;
 //pub const WindowFormat = windows.WindowFormat;
 //
