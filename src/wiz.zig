@@ -203,6 +203,14 @@ pub const PlatformWindow = union(enum) {
             else => @compileError("Unsupported OS"),
         }
     }
+
+    pub fn swapBuffers(self: PlatformWindow) !void {
+        try switch (builtin.os.tag) {
+            .windows => self.windows_window.swapBuffers(),
+            .linux => self.x11_window.swapBuffers(),
+            else => @compileError("Unsupported OS"),
+        };
+    }
 };
 
 //test {

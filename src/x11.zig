@@ -59,4 +59,8 @@ pub const Window = struct {
     pub fn disableRawMouseMotion(self: *Window) void {
         _ = self;
     }
+
+    pub fn swapBuffers(self: *Window) !void {
+        _ = self;
+    }
 };

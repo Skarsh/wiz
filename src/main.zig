@@ -128,6 +128,8 @@ const Event = @import("input.zig").Event;
 const KeyEvent = @import("input.zig").KeyEvent;
 const Scancode = @import("input.zig").Scancode;
 
+const opengl = @import("opengl.zig");
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     errdefer _ = gpa.deinit();
@@ -139,6 +141,7 @@ pub fn main() !void {
     try platform_window.makeModernOpenGLContext();
 
     try platform_window.setVSync(true);
+    opengl.load();
 
     var event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
     while (platform_window.isRunning()) {
@@ -171,5 +174,9 @@ pub fn main() !void {
                 else => {},
             }
         }
+
+        opengl.glClearColor(0.2, 0.3, 0.3, 1.0);
+        opengl.glClear(opengl.GL_COLOR_BUFFER_BIT);
+        try platform_window.swapBuffers();
     }
 }
