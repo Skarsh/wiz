@@ -81,7 +81,7 @@ pub const PlatformWindow = union(enum) {
     pub fn init(allocator: Allocator, width: i32, height: i32, window_format: WindowFormat, comptime name: []const u8) !PlatformWindow {
         const window = switch (builtin.os.tag) {
             .windows => PlatformWindow{ .windows_window = try windows.Window.init(allocator, width, height, window_format, name) },
-            .linux => PlatformWindow{ .x11_window = try x11.Window.init(allocator, width, height, name) },
+            .linux => PlatformWindow{ .x11_window = try x11.Window.init(allocator, width, height, window_format, name) },
             else => @compileError("Unsupported OS"),
         };
         return window;
