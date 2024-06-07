@@ -10,17 +10,10 @@ pub const KeyEvent = input.KeyEvent;
 pub const Scancode = input.Scancode;
 pub const MouseButton = input.MouseButton;
 
-const windows = @import("windows.zig");
-const x11 = @import("x11.zig");
-
 pub const opengl = @import("opengl.zig");
 
-//pub const Window = windows.Window;
-//pub const WindowFormat = windows.WindowFormat;
-//
-//pub const kernel32 = @import("kernel32.zig");
-//pub const user32 = @import("user32.zig");
-//pub const opengl32 = @import("opengl32.zig");
+const windows = @import("windows.zig");
+const x11 = @import("x11.zig");
 
 pub const ns_per_sec = 1_000_000_000;
 pub const ms_per_sec = 1000;
@@ -137,9 +130,6 @@ pub const PlatformWindow = struct {
     window_data: *WindowData,
     window_type: WindowType,
 
-    //windows_window: *windows.Window,
-    //x11_window: *x11.Window,
-
     pub fn init(allocator: Allocator, width: i32, height: i32, window_format: WindowFormat, comptime name: []const u8) !PlatformWindow {
         var window_data = try allocator.create(WindowData);
         window_data.width = width;
@@ -158,9 +148,6 @@ pub const PlatformWindow = struct {
                 .window_data = window_data,
                 .window_type = .{ .x11_window = try x11.Window.init(allocator, window_data, width, height, window_format, name) },
             },
-
-            //.windows => PlatformWindow{ .windows_window = try windows.Window.init(allocator, width, height, window_format, name) },
-            //.linux => PlatformWindow{ .x11_window = try x11.Window.init(allocator, width, height, window_format, name) },
 
             else => @compileError("Unsupported OS"),
         };
