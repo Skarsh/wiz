@@ -26,20 +26,6 @@ pub extern "winmm" fn timeBeginPeriod(uPeriod: windows.UINT) callconv(windows.WI
 pub const default_window_width: i32 = 640;
 pub const default_window_height: i32 = 480;
 
-pub const windowPosCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
-pub const windowSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
-pub const windowFramebufferSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
-pub const mouseMoveCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
-pub const mouseButtonCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32, button: MouseButton) void = undefined;
-
-pub const WindowCallbacks = struct {
-    window_pos: ?*const fn (window: *Window, x_pos: i32, y_pos: i32) void = null,
-    window_resize: ?*const fn (window: *Window, width: i32, height: i32) void = null,
-    window_framebuffer_resize: ?*const fn (window: *Window, width: i32, height: i32) void = null,
-    mouse_move: ?*const fn (window: *Window, x_pos: i32, y_pos: i32) void = null,
-    mouse_button: ?*const fn (window: *Window, x_pos: i32, y_pos: i32, button: MouseButton) void = null,
-};
-
 pub const Window = struct {
     allocator: Allocator,
     platform_window_data: *wiz.WindowData,
@@ -60,7 +46,6 @@ pub const Window = struct {
     capture_cursor: bool,
     is_vsync: bool,
     is_fullscreen: bool,
-    callbacks: WindowCallbacks,
     event_queue: EventQueue,
     raw_mouse_motion_buf: []u8,
 
@@ -126,9 +111,6 @@ pub const Window = struct {
         window.raw_mouse_motion = false;
         window.is_vsync = false;
         window.is_fullscreen = false;
-
-        window.callbacks = WindowCallbacks{};
-        window.callbacks.window_resize = defaultWindowSizeCallback;
 
         // TODO (Thomas): Make event queue size configureable?
         const event_queue_size: usize = 1000;
@@ -885,44 +867,5 @@ pub const Window = struct {
                 },
             }
         }
-    }
-
-    pub fn setWindowPosCallback(self: *Window, cb_fun: @TypeOf(windowPosCallbackType)) void {
-        self.callbacks.window_pos = cb_fun;
-    }
-
-    pub fn setWindowSizeCallback(self: *Window, cb_fun: @TypeOf(windowSizeCallbackType)) void {
-        self.callbacks.window_resize = cb_fun;
-    }
-
-    pub fn setWindowFramebufferSizeCallback(self: *Window, cb_fun: @TypeOf(windowFramebufferSizeCallbackType)) void {
-        self.callbacks.window_framebuffer_resize = cb_fun;
-    }
-
-    pub fn setMouseMoveCallback(self: *Window, cb_fun: @TypeOf(mouseMoveCallbackType)) void {
-        self.callbacks.mouse_move = cb_fun;
-    }
-
-    // TODO (Thomas): What to do with the default callbacks? Are they really necessary?
-    fn defaultWindowPosCallback(window: *Window, x_pos: i32, y_pos: i32) void {
-        _ = window;
-        _ = x_pos;
-        _ = y_pos;
-    }
-
-    fn defaultWindowSizeCallback(window: *Window, width: i32, height: i32) void {
-        window.width = width;
-        window.height = height;
-    }
-
-    fn defaultWindowFramebufferSizeCallback(window: *Window, width: i32, height: i32) void {
-        _ = window;
-        _ = width;
-        _ = height;
-    }
-
-    fn defaultMoseMoveCallback(window: *Window, x_pos: i32, y_pos: i32) void {
-        window.last_mouse_x = x_pos;
-        window.last_mouse_y = y_pos;
     }
 };
