@@ -11,7 +11,7 @@ pub fn build(
 
     const lib = b.addStaticLibrary(.{
         .name = "wiz",
-        .root_source_file = .{ .path = "src/root.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
         .target = target,
         .optimize = optimize,
     });
@@ -35,7 +35,7 @@ pub fn build(
     runTests(b, optimize, target);
 }
 
-fn buildTracy(exe: *Compile, target: ResolvedTarget) void {
+fn buildTracy(b: *std.Build, exe: *Compile, target: ResolvedTarget) void {
     const client_cpp = "src/tracy/public/TracyClient.cpp";
 
     // On mingw, we need to opt into windows 7+ to get some features required by tracy.
@@ -44,9 +44,9 @@ fn buildTracy(exe: *Compile, target: ResolvedTarget) void {
     else
         &[_][]const u8{ "-DTRACY_ENABLE=1", "-fno-sanitize=undefined" };
 
-    exe.addIncludePath(.{ .path = "src/tracy" });
+    exe.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src/tracy" } });
     exe.addCSourceFile(.{
-        .file = .{ .path = client_cpp },
+        .file = .{ .src_path = .{ .owner = b, .sub_path = client_cpp } },
         .flags = tracy_c_flags,
     });
     exe.linkLibCpp();
@@ -60,7 +60,7 @@ fn buildTracy(exe: *Compile, target: ResolvedTarget) void {
 
 fn buildExe(b: *Build, exe: *Compile, target: ResolvedTarget, enable_tracy: bool) void {
     if (enable_tracy) {
-        buildTracy(exe, target);
+        buildTracy(b, exe, target);
     }
 
     if (target.result.os.tag == .windows) {
@@ -92,7 +92,7 @@ fn makeExe(
 ) void {
     const exe = b.addExecutable(.{
         .name = "wiz",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/main.zig" } },
         .target = target,
         .optimize = optimize,
     });
@@ -111,7 +111,7 @@ fn buildOpenglExample(
     enable_tracy: bool,
 ) void {
     const wiz_module = b.addModule("wiz", .{
-        .root_source_file = .{ .path = "src/wiz.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
     });
 
     wiz_module.addImport("build_options", build_options_module);
@@ -119,7 +119,7 @@ fn buildOpenglExample(
     exe.root_module.addImport("wiz", wiz_module);
 
     if (enable_tracy) {
-        buildTracy(exe, target);
+        buildTracy(b, exe, target);
     }
 
     b.installArtifact(exe);
@@ -137,7 +137,7 @@ fn makeOpenglExampleExe(
 ) void {
     const exe = b.addExecutable(.{
         .name = "opengl-example",
-        .root_source_file = .{ .path = "examples/opengl.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "examples/opengl.zig" } },
         .target = target,
         .optimize = optimize,
     });
@@ -148,28 +148,28 @@ fn makeOpenglExampleExe(
 fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedTarget) void {
     const root_tests = b.addTest(.{
         .name = "root_tests",
-        .root_source_file = .{ .path = "src/root.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "sr/root.zig" } },
         .target = target,
         .optimize = optimize,
     });
 
     const input_tests = b.addTest(.{
         .name = "input_tests",
-        .root_source_file = .{ .path = "src/input.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/input.zig" } },
         .target = target,
         .optimize = optimize,
     });
 
     const exe_tests = b.addTest(.{
         .name = "exe_tests",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/main.zig" } },
         .target = target,
         .optimize = optimize,
     });
 
     const wiz_module_tests = b.addTest(.{
         .name = "wiz_module_tests",
-        .root_source_file = .{ .path = "src/wiz.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
         .target = target,
         .optimize = optimize,
     });
