@@ -8,7 +8,7 @@ const wiz = @import("wiz.zig");
 
 pub const Window = struct {
     allocator: Allocator,
-    window_data: wiz.WindowData,
+    window_data: *wiz.WindowData,
     width: i32,
     height: i32,
     name: []const u8,
@@ -19,7 +19,7 @@ pub const Window = struct {
 
     pub fn init(
         allocator: Allocator,
-        window_data: wiz.WindowData,
+        window_data: *wiz.WindowData,
         width: i32,
         height: i32,
         window_format: wiz.WindowFormat,

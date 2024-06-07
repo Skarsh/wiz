@@ -156,7 +156,7 @@ pub const PlatformWindow = struct {
             .linux => PlatformWindow{
                 .allocator = allocator,
                 .window_data = window_data,
-                .window_type = .{ .x11_window = try windows.Window.init(allocator, width, height, window_format, name) },
+                .window_type = .{ .x11_window = try x11.Window.init(allocator, window_data, width, height, window_format, name) },
             },
 
             //.windows => PlatformWindow{ .windows_window = try windows.Window.init(allocator, width, height, window_format, name) },
