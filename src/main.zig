@@ -135,8 +135,10 @@ pub fn main() !void {
     errdefer _ = gpa.deinit();
     const gpa_allocator = gpa.allocator();
 
-    const platform_window = try wiz.PlatformWindow.init(gpa_allocator, 640, 480, wiz.WindowFormat.windowed, "Window");
+    var platform_window = try wiz.PlatformWindow.init(gpa_allocator, 640, 480, wiz.WindowFormat.windowed, "Window");
     defer platform_window.deinit();
+
+    platform_window.setWindowFramebufferSizeCallback(windowFramebufferSizeCallback);
 
     try platform_window.makeModernOpenGLContext();
 
@@ -179,4 +181,9 @@ pub fn main() !void {
         opengl.glClear(opengl.GL_COLOR_BUFFER_BIT);
         try platform_window.swapBuffers();
     }
+}
+
+pub fn windowFramebufferSizeCallback(window_data: *wiz.WindowData, width: i32, height: i32) void {
+    _ = window_data;
+    opengl.glViewport(0, 0, width, height);
 }

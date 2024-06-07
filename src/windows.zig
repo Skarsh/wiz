@@ -42,6 +42,7 @@ pub const WindowCallbacks = struct {
 
 pub const Window = struct {
     allocator: Allocator,
+    platform_window_data: *wiz.WindowData,
     h_instance: windows.HINSTANCE,
     hwnd: ?windows.HWND,
     hglrc: ?windows.HGLRC,
@@ -63,7 +64,14 @@ pub const Window = struct {
     event_queue: EventQueue,
     raw_mouse_motion_buf: []u8,
 
-    pub fn init(allocator: Allocator, width: i32, height: i32, format: wiz.WindowFormat, comptime name: []const u8) !*Window {
+    pub fn init(
+        allocator: Allocator,
+        platform_window_data: *wiz.WindowData,
+        width: i32,
+        height: i32,
+        format: wiz.WindowFormat,
+        comptime name: []const u8,
+    ) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
         if (windows.kernel32.GetModuleHandleW(null)) |hinst| {
             h_instance = @ptrCast(hinst);
@@ -93,6 +101,7 @@ pub const Window = struct {
 
         var window = try allocator.create(Window);
         window.allocator = allocator;
+        window.platform_window_data = platform_window_data;
         window.h_instance = h_instance;
         window.hglrc = null;
         window.hdc = null;
@@ -442,11 +451,20 @@ pub const Window = struct {
                     if (dim[0] != window.width or dim[1] != window.height) {
                         const width = dim[0];
                         const height = dim[1];
-                        if (window.callbacks.window_resize) |cb| {
-                            cb(window, width, height);
+                        //if (window.callbacks.window_resize) |cb| {
+                        //    cb(window, width, height);
+                        //}
+
+                        if (window.platform_window_data.callbacks.window_resize) |cb| {
+                            cb(window.platform_window_data, width, height);
                         }
-                        if (window.callbacks.window_framebuffer_resize) |cb| {
-                            cb(window, width, height);
+
+                        //if (window.callbacks.window_framebuffer_resize) |cb| {
+                        //    cb(window, width, height);
+                        //}
+
+                        if (window.platform_window_data.callbacks.window_framebuffer_resize) |cb| {
+                            cb(window.platform_window_data, width, height);
                         }
                     }
                 }
@@ -459,8 +477,12 @@ pub const Window = struct {
                     const y = pos[1];
                     window.x_pos = x;
                     window.y_pos = y;
-                    if (window.callbacks.window_pos) |cb| {
-                        cb(window, x, y);
+                    //if (window.callbacks.window_pos) |cb| {
+                    //    cb(window, x, y);
+                    //}
+
+                    if (window.platform_window_data.callbacks.window_pos) |cb| {
+                        cb(window.platform_window_data, x, y);
                     }
                 }
             },
@@ -480,8 +502,11 @@ pub const Window = struct {
                     var cursor_client_pos = user32.POINT{ .x = x, .y = y };
                     user32.screenToClient(hwnd, &cursor_client_pos) catch unreachable;
 
-                    if (window.callbacks.mouse_move) |cb| {
-                        cb(window, x, y);
+                    //if (window.callbacks.mouse_move) |cb| {
+                    //    cb(window, x, y);
+                    //} else {
+                    if (window.platform_window_data.callbacks.mouse_move) |cb| {
+                        cb(window.platform_window_data, x, y);
                     } else {
                         // TODO (Thomas): Think about how capture_cursor and raw_mouse_motion should
                         // work in this case, meaning raw_mouse_motion is not enable but the cursor is hidden.
@@ -514,9 +539,13 @@ pub const Window = struct {
                     const x = pos[0];
                     const y = pos[1];
 
-                    if (window.callbacks.mouse_button) |cb| {
+                    //if (window.callbacks.mouse_button) |cb| {
+                    //    // TODO (Thomas): Need to know wheter it was button up or down in callback
+                    //    cb(window, x, y, MouseButton.middle);
+                    //} else {
+                    if (window.platform_window_data.callbacks.mouse_button) |cb| {
                         // TODO (Thomas): Need to know wheter it was button up or down in callback
-                        cb(window, x, y, MouseButton.middle);
+                        cb(window.platform_window_data, x, y, MouseButton.middle);
                     } else {
                         const button_event = MouseButtonEvent{
                             .x = x,

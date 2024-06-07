@@ -7,6 +7,8 @@ const EventQueue = input.EventQueue;
 const wiz = @import("wiz.zig");
 
 pub const Window = struct {
+    allocator: Allocator,
+    window_data: wiz.WindowData,
     width: i32,
     height: i32,
     name: []const u8,
@@ -15,9 +17,18 @@ pub const Window = struct {
     raw_mouse_motion: bool,
     event_queue: EventQueue,
 
-    pub fn init(allocator: Allocator, width: i32, height: i32, window_format: wiz.WindowFormat, comptime name: []const u8) !*Window {
+    pub fn init(
+        allocator: Allocator,
+        window_data: wiz.WindowData,
+        width: i32,
+        height: i32,
+        window_format: wiz.WindowFormat,
+        comptime name: []const u8,
+    ) !*Window {
         var window = try allocator.create(Window);
 
+        window.allocator = allocator;
+        window.window_data = window_data;
         window.width = width;
         window.height = height;
         window.name = name;
