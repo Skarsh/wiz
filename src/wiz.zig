@@ -57,6 +57,28 @@ pub const FrameTimes = struct {
     }
 };
 
+pub fn queryPerformanceCounter(performance_counter: *i64) !void {
+    switch (builtin.os.tag) {
+        .windows => {
+            const kernel32 = @import("kernel32.zig");
+            try kernel32.queryPerformanceCounter(performance_counter);
+        },
+        .linux => {},
+        else => @compileError("Unsupported OS"),
+    }
+}
+
+pub fn queryPerformanceFrequency(performance_frequency: *i64) !void {
+    switch (builtin.os.tag) {
+        .windows => {
+            const kernel32 = @import("kernel32.zig");
+            try kernel32.queryPerformanceFrequency(performance_frequency);
+        },
+        .linux => {},
+        else => @compileError("Unsupported OS"),
+    }
+}
+
 pub const PlatformType = enum {
     X11,
     Windows,
@@ -140,7 +162,7 @@ pub const PlatformWindow = struct {
             .windows => PlatformWindow{
                 .allocator = allocator,
                 .window_data = window_data,
-                .window_type = .{ .windows_window = try windows.Window.init(allocator, window_data, width, height, window_format, name) },
+                .window_type = .{ .windows_window = try windows.Window.init(allocator, window_data, window_format, name) },
             },
 
             .linux => PlatformWindow{
@@ -193,6 +215,17 @@ pub const PlatformWindow = struct {
             .linux => self.window_type.x11_window.setVSync(value),
             else => @compileError("Unsupported OS"),
         };
+    }
+
+    //// TODO(Thomas): We should do this differently but it's the least intrusive way now
+    pub fn isVSync(self: PlatformWindow) bool {
+        const is_vsync = switch (builtin.os.tag) {
+            .windows => self.window_type.windows_window.is_vsync,
+            .linux => self.window_type.x11_window.is_vsync,
+            else => @compileError("Unsupported OS"),
+        };
+
+        return is_vsync;
     }
 
     //// TODO(Thomas): We should do this differently but it's the least intrusive way now

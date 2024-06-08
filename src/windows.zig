@@ -36,8 +36,6 @@ pub const Window = struct {
     lp_class_name: [*:0]const u16,
     x_pos: i32,
     y_pos: i32,
-    width: i32,
-    height: i32,
     running: bool,
     last_mouse_x: i16,
     last_mouse_y: i16,
@@ -52,8 +50,6 @@ pub const Window = struct {
     pub fn init(
         allocator: Allocator,
         platform_window_data: *wiz.WindowData,
-        width: i32,
-        height: i32,
         format: wiz.WindowFormat,
         comptime name: []const u8,
     ) !*Window {
@@ -91,8 +87,6 @@ pub const Window = struct {
         window.hglrc = null;
         window.hdc = null;
         window.lp_class_name = wc.lpszClassName;
-        window.width = width;
-        window.height = height;
 
         window.running = true;
         window.x_pos = 0;
@@ -125,8 +119,8 @@ pub const Window = struct {
             user32.WS_OVERLAPPEDWINDOW | user32.WS_VISIBLE,
             0,
             0,
-            window.width,
-            window.height,
+            window.platform_window_data.width,
+            window.platform_window_data.height,
             null,
             null,
             h_instance,
@@ -190,8 +184,8 @@ pub const Window = struct {
                             user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
                         );
 
-                        window.width = max_x - min_x;
-                        window.height = max_y - min_y;
+                        window.platform_window_data.width = max_x - min_x;
+                        window.platform_window_data.height = max_y - min_y;
                     }
                     window.is_fullscreen = true;
                 }
@@ -430,20 +424,13 @@ pub const Window = struct {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
                     const dim = getLParamDims(l_param);
-                    if (dim[0] != window.width or dim[1] != window.height) {
+                    if (dim[0] != window.platform_window_data.width or dim[1] != window.platform_window_data.height) {
                         const width = dim[0];
                         const height = dim[1];
-                        //if (window.callbacks.window_resize) |cb| {
-                        //    cb(window, width, height);
-                        //}
 
                         if (window.platform_window_data.callbacks.window_resize) |cb| {
                             cb(window.platform_window_data, width, height);
                         }
-
-                        //if (window.callbacks.window_framebuffer_resize) |cb| {
-                        //    cb(window, width, height);
-                        //}
 
                         if (window.platform_window_data.callbacks.window_framebuffer_resize) |cb| {
                             cb(window.platform_window_data, width, height);
@@ -459,9 +446,6 @@ pub const Window = struct {
                     const y = pos[1];
                     window.x_pos = x;
                     window.y_pos = y;
-                    //if (window.callbacks.window_pos) |cb| {
-                    //    cb(window, x, y);
-                    //}
 
                     if (window.platform_window_data.callbacks.window_pos) |cb| {
                         cb(window.platform_window_data, x, y);
@@ -484,9 +468,6 @@ pub const Window = struct {
                     var cursor_client_pos = user32.POINT{ .x = x, .y = y };
                     user32.screenToClient(hwnd, &cursor_client_pos) catch unreachable;
 
-                    //if (window.callbacks.mouse_move) |cb| {
-                    //    cb(window, x, y);
-                    //} else {
                     if (window.platform_window_data.callbacks.mouse_move) |cb| {
                         cb(window.platform_window_data, x, y);
                     } else {
@@ -521,10 +502,6 @@ pub const Window = struct {
                     const x = pos[0];
                     const y = pos[1];
 
-                    //if (window.callbacks.mouse_button) |cb| {
-                    //    // TODO (Thomas): Need to know wheter it was button up or down in callback
-                    //    cb(window, x, y, MouseButton.middle);
-                    //} else {
                     if (window.platform_window_data.callbacks.mouse_button) |cb| {
                         // TODO (Thomas): Need to know wheter it was button up or down in callback
                         cb(window.platform_window_data, x, y, MouseButton.middle);
@@ -723,8 +700,8 @@ pub const Window = struct {
                     user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
                 );
 
-                self.width = max_x - min_x;
-                self.height = max_y - min_y;
+                self.platform_window_data.width = max_x - min_x;
+                self.platform_window_data.height = max_y - min_y;
                 if (self.capture_cursor) {
                     try self.constrainAndCenterCursor();
                 }

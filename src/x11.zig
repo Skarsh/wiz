@@ -15,6 +15,7 @@ pub const Window = struct {
     running: bool,
     capture_cursor: bool,
     raw_mouse_motion: bool,
+    is_vsync: bool,
     event_queue: EventQueue,
 
     pub fn init(
