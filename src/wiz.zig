@@ -347,13 +347,12 @@ pub const PlatformWindow = struct {
     }
 };
 
-//test {
-//    // TODO(Thomas): Would it be better to do this in a test in the
-//    // respective source file instead?
-//    std.testing.refAllDeclsRecursive(input);
-//    std.testing.refAllDeclsRecursive(windows);
-//    std.testing.refAllDeclsRecursive(opengl32);
-//
-//    @setEvalBranchQuota(10_000);
-//    std.testing.refAllDeclsRecursive(user32);
-//}
+test {
+    // TODO(Thomas): Would it be better to do this in a test in the
+    // respective source file instead?
+    std.testing.refAllDeclsRecursive(input);
+    std.testing.refAllDeclsRecursive(windows);
+    std.testing.refAllDeclsRecursive(opengl);
+
+    //std.testing.refAllDeclsRecursive(user32);
+}
