@@ -15,6 +15,7 @@ pub const opengl = @import("opengl.zig");
 const windows = @import("windows.zig");
 const x11 = @import("x11.zig");
 
+// TODO(Thomas): Move this stuff out into its own module
 pub const ns_per_sec = 1_000_000_000;
 pub const ms_per_sec = 1000;
 
@@ -181,10 +182,6 @@ pub const PlatformWindow = struct {
     }
 
     pub fn deinit(self: PlatformWindow) void {
-        //switch (self) {
-        //    inline else => |case| case.deinit(),
-        //}
-
         switch (builtin.os.tag) {
             .windows => self.window_type.windows_window.deinit(),
             .linux => self.window_type.x11_window.deinit(),
@@ -195,10 +192,6 @@ pub const PlatformWindow = struct {
     }
 
     pub fn makeModernOpenGLContext(self: PlatformWindow) !void {
-        //switch (self) {
-        //    inline else => |case| try case.makeModernOpenGLContext(),
-        //}
-
         switch (builtin.os.tag) {
             .windows => {
                 try self.window_type.windows_window.makeModernOpenGLContext();
@@ -213,10 +206,6 @@ pub const PlatformWindow = struct {
     }
 
     pub fn setVSync(self: PlatformWindow, value: bool) !void {
-        //switch (self) {
-        //    inline else => |case| try case.setVSync(value),
-        //}
-
         try switch (builtin.os.tag) {
             .windows => self.window_type.windows_window.setVSync(value),
             .linux => self.window_type.x11_window.setVSync(value),
@@ -354,11 +343,6 @@ pub const PlatformWindow = struct {
 };
 
 test {
-    // TODO(Thomas): Would it be better to do this in a test in the
-    // respective source file instead?
     std.testing.refAllDeclsRecursive(input);
-    //std.testing.refAllDeclsRecursive(windows);
     std.testing.refAllDeclsRecursive(opengl);
-
-    //std.testing.refAllDeclsRecursive(user32);
 }

@@ -160,6 +160,13 @@ fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedT
         .optimize = optimize,
     });
 
+    const windows_tests = b.addTest(.{
+        .name = "windows_tests",
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/windows.zig" } },
+        .target = target,
+        .optimize = optimize,
+    });
+
     const exe_tests = b.addTest(.{
         .name = "exe_tests",
         .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/main.zig" } },
@@ -176,12 +183,14 @@ fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedT
 
     const run_root_tests = b.addRunArtifact(root_tests);
     const run_lib_input_tests = b.addRunArtifact(input_tests);
+    const run_lib_windows_tests = b.addRunArtifact(windows_tests);
     const run_exe_tests = b.addRunArtifact(exe_tests);
     const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_root_tests.step);
     test_step.dependOn(&run_lib_input_tests.step);
+    test_step.dependOn(&run_lib_windows_tests.step);
     test_step.dependOn(&run_exe_tests.step);
     test_step.dependOn(&run_wiz_module_tests.step);
 }

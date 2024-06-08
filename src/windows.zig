@@ -355,6 +355,8 @@ pub const Window = struct {
         if (self.hdc) |hdc| {
             _ = user32.releaseDC(self.hwnd, hdc);
         }
+
+        self.allocator.free(self.raw_mouse_motion_buf);
     }
 
     pub fn swapBuffers(self: *Window) !void {
@@ -845,3 +847,10 @@ pub const Window = struct {
         }
     }
 };
+
+test {
+    std.testing.refAllDeclsRecursive(@This());
+
+    @setEvalBranchQuota(10_000);
+    std.testing.refAllDeclsRecursive(user32);
+}
