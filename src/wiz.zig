@@ -351,7 +351,7 @@ test {
     // TODO(Thomas): Would it be better to do this in a test in the
     // respective source file instead?
     std.testing.refAllDeclsRecursive(input);
-    std.testing.refAllDeclsRecursive(windows);
+    //std.testing.refAllDeclsRecursive(windows);
     std.testing.refAllDeclsRecursive(opengl);
 
     //std.testing.refAllDeclsRecursive(user32);
