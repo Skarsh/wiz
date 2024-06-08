@@ -2,8 +2,6 @@ const std = @import("std");
 const builtin = @import("builtin");
 const SourceLocation = std.builtin.SourceLocation;
 
-pub const Self = @This();
-
 pub const GL_TRIANGLES = 0x0004;
 pub const GL_FLOAT = 0x1406;
 pub const GL_VENDOR = 0x1F00;
@@ -182,7 +180,7 @@ pub fn load() void {
     switch (builtin.os.tag) {
         .windows => {
             const opengl32 = @import("opengl32.zig");
-            opengl32.loadDummyGLfunctions(Self);
+            opengl32.loadDummyGLfunctions(@This());
         },
         .linux => {
             const openglx = @import("openglx.zig");
