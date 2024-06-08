@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const windows = std.os.windows;
@@ -849,8 +850,11 @@ pub const Window = struct {
 };
 
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    // NOTE (Thomas): This is necessary for the tests to pass when run on Linux
+    if (builtin.os.tag == .windows) {
+        std.testing.refAllDeclsRecursive(@This());
 
-    @setEvalBranchQuota(10_000);
-    std.testing.refAllDeclsRecursive(user32);
+        @setEvalBranchQuota(10_000);
+        std.testing.refAllDeclsRecursive(user32);
+    }
 }
