@@ -148,7 +148,7 @@ fn makeOpenglExampleExe(
 fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedTarget) void {
     const root_tests = b.addTest(.{
         .name = "root_tests",
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "sr/root.zig" } },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
         .target = target,
         .optimize = optimize,
     });
