@@ -174,6 +174,7 @@ pub const PlatformWindow = struct {
             else => @compileError("Unsupported OS"),
         };
 
+        window.window_data.callbacks.window_resize = defaultWindowSizeCallback;
         window.window_data.callbacks.window_framebuffer_resize = defaultWindowFramebufferSizeCallback;
 
         return window;
