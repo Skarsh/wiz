@@ -276,8 +276,7 @@ pub const Window = struct {
         // 2. LoadOpenGLFunctions
         // 3. Make modern OpenGL context
         try self.makeOpenGLContext();
-        opengl32.loadOpenGLFunctions();
-
+        opengl32.loadWGLFunctions();
         {
 
             // Set pixel format for OpenGl context

@@ -180,7 +180,7 @@ pub fn load() void {
     switch (builtin.os.tag) {
         .windows => {
             const opengl32 = @import("opengl32.zig");
-            opengl32.loadDummyGLfunctions(@This());
+            opengl32.loadFunctions(@This());
         },
         .linux => {
             const openglx = @import("openglx.zig");
