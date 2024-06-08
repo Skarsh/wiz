@@ -22,13 +22,29 @@ pub fn build(
 
     const enable_tracy = b.option(bool, "enable_tracy", "Whether tracy should be enabled.") orelse false;
     exe_options.addOption(bool, "enable_tracy", enable_tracy);
-    exe_options.addOption(bool, "enable_tracy_allocation", b.option(
+    exe_options.addOption(
         bool,
         "enable_tracy_allocation",
-        "Enable using TracyAllocator to monitor allocations.",
-    ) orelse enable_tracy);
-    exe_options.addOption(bool, "enable_tracy_callstack", b.option(bool, "enable_tracy_callstack", "Enable callstack graphs.") orelse enable_tracy);
-    exe_options.addOption(bool, "enable_tracy_gpu", b.option(bool, "enable_tracy_gpu", "Enable GPU zones") orelse enable_tracy);
+        b.option(
+            bool,
+            "enable_tracy_allocation",
+            "Enable using TracyAllocator to monitor allocations.",
+        ) orelse enable_tracy,
+    );
+    exe_options.addOption(
+        bool,
+        "enable_tracy_callstack",
+        b.option(
+            bool,
+            "enable_tracy_callstack",
+            "Enable callstack graphs.",
+        ) orelse enable_tracy,
+    );
+    exe_options.addOption(
+        bool,
+        "enable_tracy_gpu",
+        b.option(bool, "enable_tracy_gpu", "Enable GPU zones") orelse enable_tracy,
+    );
 
     makeExe(b, target, optimize, exe_options, enable_tracy);
     makeOpenglExampleExe(b, target, optimize, exe_options, enable_tracy);
@@ -65,6 +81,11 @@ fn buildExe(b: *Build, exe: *Compile, target: ResolvedTarget, enable_tracy: bool
 
     if (target.result.os.tag == .windows) {
         exe.linkSystemLibrary("opengl32");
+    }
+
+    if (target.result.os.tag == .linux) {
+        exe.linkLibC();
+        exe.linkSystemLibrary("X11");
     }
 
     b.installArtifact(exe);
