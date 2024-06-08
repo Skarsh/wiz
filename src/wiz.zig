@@ -199,11 +199,17 @@ pub const PlatformWindow = struct {
         //    inline else => |case| try case.makeModernOpenGLContext(),
         //}
 
-        try switch (builtin.os.tag) {
-            .windows => self.window_type.windows_window.makeModernOpenGLContext(),
-            .linux => self.window_type.x11_window.makeModernOpenGLContext(),
+        switch (builtin.os.tag) {
+            .windows => {
+                try self.window_type.windows_window.makeModernOpenGLContext();
+                opengl.load();
+            },
+            .linux => {
+                try self.window_type.x11_window.makeModernOpenGLContext();
+                opengl.load();
+            },
             else => @compileError("Unsupported OS"),
-        };
+        }
     }
 
     pub fn setVSync(self: PlatformWindow, value: bool) !void {
