@@ -6,6 +6,24 @@ const EventQueue = input.EventQueue;
 
 const wiz = @import("wiz.zig");
 
+//const c = @cImport({
+//    @cInclude("X11/X.h");
+//    @cInclude("X11/Xlib.h");
+//    @cInclude("GL/gl.h");
+//    @cInclude("GL/glx.h");
+//});
+//
+//pub fn main() !void {
+//    const display = c.XOpenDisplay(0);
+//    const root_window = c.DefaultRootWindow(display);
+//    _ = c.DefaultScreen(display);
+//    const window = c.XCreateWindow(display, root_window, 0, 0, 1280, 720, 0, 0, 0, 0, 0, 0);
+//    _ = c.XMapWindow(display, window);
+//    _ = c.XFlush(display);
+//
+//    while (true) {}
+//}
+
 pub const Window = struct {
     allocator: Allocator,
     window_data: *wiz.WindowData,
