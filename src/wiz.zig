@@ -298,14 +298,11 @@ pub const PlatformWindow = struct {
     }
 
     pub fn enableRawMouseMotion(self: PlatformWindow) void {
-        switch (self.window_type) {
-            inline else => |case| case.enableRawMouseMotion(),
+        switch (builtin.os.tag) {
+            .windows => self.window_type.windows_window.enableRawMouseMotion(),
+            .linux => self.window_type.x11_window.enableRawMouseMotion(),
+            else => @compileError("Unsupported OS"),
         }
-        //switch (builtin.os.tag) {
-        //    .windows => self.window_type.windows_window.enableRawMouseMotion(),
-        //    .linux => self.window_type.x11_window.enableRawMouseMotion(),
-        //    else => @compileError("Unsupported OS"),
-        //}
     }
 
     pub fn disableRawMouseMotion(self: PlatformWindow) void {
