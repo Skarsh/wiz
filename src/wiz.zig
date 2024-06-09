@@ -235,10 +235,10 @@ pub const PlatformWindow = struct {
         return running;
     }
 
-    pub fn processMessages() !void {
+    pub fn processMessages(self: PlatformWindow) !void {
         switch (builtin.os.tag) {
             .windows => try windows.Window.processMessages(),
-            .linux => try x11.Window.processMessages(),
+            .linux => try self.window_type.x11_window.processMessages(),
             else => @compileError("Unsupported OS"),
         }
     }

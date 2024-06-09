@@ -6,27 +6,17 @@ const EventQueue = input.EventQueue;
 
 const wiz = @import("wiz.zig");
 
-//const c = @cImport({
-//    @cInclude("X11/X.h");
-//    @cInclude("X11/Xlib.h");
-//    @cInclude("GL/gl.h");
-//    @cInclude("GL/glx.h");
-//});
-//
-//pub fn main() !void {
-//    const display = c.XOpenDisplay(0);
-//    const root_window = c.DefaultRootWindow(display);
-//    _ = c.DefaultScreen(display);
-//    const window = c.XCreateWindow(display, root_window, 0, 0, 1280, 720, 0, 0, 0, 0, 0, 0);
-//    _ = c.XMapWindow(display, window);
-//    _ = c.XFlush(display);
-//
-//    while (true) {}
-//}
+const c = @cImport({
+    @cInclude("X11/Xlib.h");
+    @cInclude("X11/Xutil.h");
+    @cInclude("X11/keysymdef.h");
+});
 
 pub const Window = struct {
     allocator: Allocator,
     window_data: *wiz.WindowData,
+    display: *c.Display,
+    window_id: c.Window,
     width: i32,
     height: i32,
     name: []const u8,
@@ -53,13 +43,57 @@ pub const Window = struct {
         window.name = name;
         window.running = true;
 
+        const event_queue_size: usize = 1000;
+        window.event_queue = try EventQueue.init(allocator, event_queue_size);
+
         _ = window_format;
+
+        const display = c.XOpenDisplay(null);
+        if (display == null) {
+            std.log.err("Could not open display", .{});
+            return error.CouldNotOpenDisplay;
+        }
+
+        window.display = display.?;
+
+        const screen = c.DefaultScreenOfDisplay(display);
+        const screen_id = c.DefaultScreen(display);
+
+        // Open the window
+        const x_window = c.XCreateSimpleWindow(
+            display,
+            c.RootWindowOfScreen(screen),
+            0,
+            0,
+            320,
+            200,
+            1,
+            c.BlackPixel(display, screen_id),
+            c.WhitePixel(display, screen_id),
+        );
+
+        window.window_id = x_window;
+
+        _ = c.XSelectInput(
+            display,
+            x_window,
+            c.KeyPressMask | c.KeyReleaseMask | c.KeymapStateMask | c.PointerMotionMask | c.ButtonPressMask | c.ButtonReleaseMask | c.EnterWindowMask | c.LeaveWindowMask | c.ExposureMask,
+        );
+
+        // Name the window
+        _ = c.XStoreName(display, x_window, @ptrCast(name));
+
+        // Show the window
+        _ = c.XClearWindow(display, x_window);
+        _ = c.XMapRaised(display, x_window);
 
         return window;
     }
 
     pub fn deinit(self: Window) void {
-        _ = self;
+        self.allocator.destroy(self.event_queue);
+        _ = c.XDestroyWindow(self.display, self.window_id);
+        _ = c.XCloseDisplay(self.display);
     }
 
     pub fn makeModernOpenGLContext(self: *Window) !void {
@@ -71,7 +105,97 @@ pub const Window = struct {
         _ = value;
     }
 
-    pub fn processMessages() !void {}
+    pub fn processMessages(self: *Window) !void {
+        var ev = c.XEvent{ .type = 0 };
+
+        var attribs = c.XWindowAttributes{};
+        _ = c.XGetWindowAttributes(self.display, self.window_id, &attribs);
+
+        var str = [_]u8{0} ** 25;
+        var keysym: c_ulong = 0;
+        var len: c_int = 0;
+        var running = true;
+        var x: i32 = 0;
+        var y: i32 = 0;
+
+        const event_mask =
+            c.KeyPressMask | c.KeyReleaseMask | c.KeymapStateMask | c.PointerMotionMask | c.ButtonPressMask | c.ButtonReleaseMask | c.EnterWindowMask | c.LeaveWindowMask | c.ExposureMask;
+
+        while (c.XCheckWindowEvent(self.display, self.window_id, event_mask, &ev) != 0) {
+            _ = c.XNextEvent(self.display, &ev);
+            switch (ev.type) {
+                c.KeymapNotify => {
+                    _ = c.XRefreshKeyboardMapping(&ev.xmapping);
+                },
+                c.KeyPress => {
+                    _ = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
+                    if (len > 0) {
+                        std.debug.print("Key pressed: {s} - {} - {}\n", .{ str, len, keysym });
+                    }
+                    if (keysym == c.XK_Escape) {
+                        running = false;
+                    }
+                },
+                c.KeyRelease => {
+                    len = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
+                    if (len > 0) {
+                        std.debug.print("Key released: {s} - {} - {}\n", .{ str, len, keysym });
+                    }
+                },
+                c.ButtonPress => {
+                    switch (ev.xbutton.button) {
+                        1 => {
+                            std.debug.print("Left mouse button down\n", .{});
+                        },
+                        2 => {
+                            std.debug.print("Middle mouse button down\n", .{});
+                        },
+                        3 => {
+                            std.debug.print("Right mouse button down\n", .{});
+                        },
+                        4 => {
+                            std.debug.print("Mouse scroll up\n", .{});
+                        },
+                        5 => {
+                            std.debug.print("Mouse scroll down\n", .{});
+                        },
+                        else => {},
+                    }
+                },
+                c.ButtonRelease => {
+                    switch (ev.xbutton.button) {
+                        1 => {
+                            std.debug.print("Left mouse button up\n", .{});
+                        },
+                        2 => {
+                            std.debug.print("Middle mouse button up\n", .{});
+                        },
+                        3 => {
+                            std.debug.print("Right mouse button up\n", .{});
+                        },
+                        else => {},
+                    }
+                },
+                c.MotionNotify => {
+                    x = ev.xmotion.x;
+                    y = ev.xmotion.y;
+                    std.debug.print("Mouse X: {}, Y: {}\n", .{ x, y });
+                },
+                c.EnterNotify => {
+                    std.debug.print("Mouse enter\n", .{});
+                },
+                c.LeaveNotify => {
+                    std.debug.print("Mouse leave\n", .{});
+                },
+                c.Expose => {
+                    std.debug.print("Expose event fired", .{});
+                    _ = c.XGetWindowAttributes(self.display, self.window_id, &attribs);
+                    std.debug.print("\tWindow width: {}, height: {}\n", .{ attribs.width, attribs.height });
+                },
+                else => {},
+            }
+        }
+    }
 
     pub fn windowShouldClose(self: *Window, value: bool) void {
         self.running = !value;
