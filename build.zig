@@ -138,6 +138,10 @@ fn buildOpenglExample(
     wiz_module.addImport("build_options", build_options_module);
 
     exe.root_module.addImport("wiz", wiz_module);
+    if (target.result.os.tag == .linux) {
+        exe.linkLibC();
+        exe.linkSystemLibrary("X11");
+    }
 
     if (enable_tracy) {
         buildTracy(b, exe, target);
