@@ -93,9 +93,9 @@ pub const Window = struct {
     }
 
     pub fn deinit(self: Window) void {
-        self.allocator.destroy(self.event_queue);
-        _ = c.XDestroyWindow(self.display, self.window_id);
-        _ = c.XCloseDisplay(self.display);
+        //self.allocator.destroy(self.event_queue);
+        _ = c.XDestroyWindow(@ptrCast(self.display), self.window_id);
+        _ = c.XCloseDisplay(@ptrCast(self.display));
     }
 
     pub fn makeModernOpenGLContext(self: *Window) !void {
@@ -116,7 +116,7 @@ pub const Window = struct {
         var str = [_]u8{0} ** 25;
         var keysym: c_ulong = 0;
         var len: c_int = 0;
-        var running = true;
+        //var running = true;
         var x: i32 = 0;
         var y: i32 = 0;
 
@@ -133,15 +133,16 @@ pub const Window = struct {
                     _ = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
                     if (len > 0) {
                         std.debug.print("Key pressed: {s} - {} - {}\n", .{ str, len, keysym });
-                    }
-                    if (keysym == c.XK_Escape) {
-                        running = false;
+                        const event = input.Event{ .KeyDown = input.KeyEvent{ .scancode = ev.xkey.keycode } };
+                        self.event_queue.enqueue(event);
                     }
                 },
                 c.KeyRelease => {
                     len = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
                     if (len > 0) {
                         std.debug.print("Key released: {s} - {} - {}\n", .{ str, len, keysym });
+                        const event = input.Event{ .KeyUp = input.KeyEvent{ .scancode = ev.xkey.keycode } };
+                        self.event_queue.enqueue(event);
                     }
                 },
                 c.ButtonPress => {
