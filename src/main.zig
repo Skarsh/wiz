@@ -287,12 +287,6 @@ const wiz = @import("wiz.zig");
 
 const PlatformWindow = wiz.PlatformWindow;
 
-const c = @cImport({
-    @cInclude("X11/Xlib.h");
-    @cInclude("X11/Xutil.h");
-    @cInclude("X11/keysymdef.h");
-});
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
