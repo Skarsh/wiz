@@ -87,6 +87,11 @@ pub fn main() !void {
                         }
                     }
                 },
+                .KeyUp => {
+                    if (event.KeyUp.scancode == @intFromEnum(input.Scancode.Keyboard_Escape)) {
+                        win.windowShouldClose(true);
+                    }
+                },
                 else => {},
             }
         }

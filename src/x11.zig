@@ -133,7 +133,9 @@ pub const Window = struct {
                     _ = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
                     if (len > 0) {
                         std.debug.print("Key pressed: {s} - {} - {}\n", .{ str, len, keysym });
-                        const event = input.Event{ .KeyDown = input.KeyEvent{ .scancode = ev.xkey.keycode } };
+                        // TODO(Thomas): Deal with null value properly
+                        const scancode = @intFromEnum(translateX11KeyToWizKey(keysym).?);
+                        const event = input.Event{ .KeyDown = input.KeyEvent{ .scancode = scancode } };
                         self.event_queue.enqueue(event);
                     }
                 },
@@ -141,7 +143,10 @@ pub const Window = struct {
                     len = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
                     if (len > 0) {
                         std.debug.print("Key released: {s} - {} - {}\n", .{ str, len, keysym });
-                        const event = input.Event{ .KeyUp = input.KeyEvent{ .scancode = ev.xkey.keycode } };
+
+                        // TODO(Thomas): Deal with null value properly
+                        const scancode = @intFromEnum(translateX11KeyToWizKey(keysym).?);
+                        const event = input.Event{ .KeyUp = input.KeyEvent{ .scancode = scancode } };
                         self.event_queue.enqueue(event);
                     }
                 },
@@ -225,3 +230,52 @@ pub const Window = struct {
         _ = self;
     }
 };
+
+// TODO(Thomas): Translating to scancodes for now, but this probably should
+// be mapped to our own WizKey type or something similar.
+// NOTE(Thomas): Not completed due to waiting to figure out how to solve this properly
+pub fn translateX11KeyToWizKey(keysym: c.KeySym) ?input.Scancode {
+    const result = switch (keysym) {
+        c.XK_a => input.Scancode.Keyboard_A,
+        c.XK_b => input.Scancode.Keyboard_B,
+        c.XK_c => input.Scancode.Keyboard_C,
+        c.XK_d => input.Scancode.Keyboard_D,
+        c.XK_e => input.Scancode.Keyboard_E,
+        c.XK_f => input.Scancode.Keyboard_F,
+        c.XK_g => input.Scancode.Keyboard_G,
+        c.XK_h => input.Scancode.Keyboard_H,
+        c.XK_i => input.Scancode.Keyboard_I,
+        c.XK_j => input.Scancode.Keyboard_J,
+        c.XK_k => input.Scancode.Keyboard_K,
+        c.XK_l => input.Scancode.Keyboard_L,
+        c.XK_m => input.Scancode.Keyboard_M,
+        c.XK_n => input.Scancode.Keyboard_N,
+        c.XK_o => input.Scancode.Keyboard_O,
+        c.XK_p => input.Scancode.Keyboard_P,
+        c.XK_q => input.Scancode.Keyboard_Q,
+        c.XK_r => input.Scancode.Keyboard_R,
+        c.XK_s => input.Scancode.Keyboard_S,
+        c.XK_t => input.Scancode.Keyboard_T,
+        c.XK_u => input.Scancode.Keyboard_U,
+        c.XK_v => input.Scancode.Keyboard_V,
+        c.XK_w => input.Scancode.Keyboard_W,
+        c.XK_x => input.Scancode.Keyboard_X,
+        c.XK_y => input.Scancode.Keyboard_Y,
+        c.XK_z => input.Scancode.Keyboard_Z,
+        c.XK_1 => input.Scancode.Keyboard_1_And_Bang,
+        c.XK_2 => input.Scancode.Keyboard_2_And_At,
+        c.XK_3 => input.Scancode.Keyboard_3_And_Hash,
+        c.XK_4 => input.Scancode.Keyboard_4_And_Dollar,
+        c.XK_5 => input.Scancode.Keyboard_5_And_Percent,
+        c.XK_6 => input.Scancode.Keyboard_6_And_Caret,
+        c.XK_7 => input.Scancode.Keyboard_7_And_Ampersand,
+        c.XK_8 => input.Scancode.Keyboard_8_And_Star,
+        c.XK_9 => input.Scancode.Keyboard_9_And_Left_Bracket,
+        c.XK_0 => input.Scancode.Keyboard_0_And_Right_Bracket,
+        c.XK_Return => input.Scancode.Keyboard_Return_Enter,
+        c.XK_Escape => input.Scancode.Keyboard_Escape,
+        else => return null,
+    };
+
+    return result;
+}
