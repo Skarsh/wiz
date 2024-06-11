@@ -151,43 +151,122 @@ pub const Window = struct {
                     }
                 },
                 c.ButtonPress => {
-                    switch (ev.xbutton.button) {
-                        1 => {
-                            std.debug.print("Left mouse button down\n", .{});
+                    // TODO(Thomas): Verify the button mappings, there's probably a better
+                    // way to retrieve these values from Xlib or similar instead of just hardcoding.
+                    const event: ?input.Event = switch (ev.xbutton.button) {
+                        1 => input.Event{
+                            .MouseButtonDown = input.MouseButtonEvent{
+                                .button = .left,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
                         },
-                        2 => {
-                            std.debug.print("Middle mouse button down\n", .{});
+                        2 => input.Event{
+                            .MouseButtonDown = input.MouseButtonEvent{
+                                .button = .middle,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
                         },
-                        3 => {
-                            std.debug.print("Right mouse button down\n", .{});
+
+                        3 => input.Event{
+                            .MouseButtonDown = input.MouseButtonEvent{
+                                .button = .right,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
                         },
-                        4 => {
-                            std.debug.print("Mouse scroll up\n", .{});
+
+                        4 => input.Event{
+                            .MouseButtonDown = input.MouseButtonEvent{
+                                .button = .wheel_up,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
                         },
-                        5 => {
-                            std.debug.print("Mouse scroll down\n", .{});
+                        5 => input.Event{
+                            .MouseButtonDown = input.MouseButtonEvent{
+                                .button = .wheel_down,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
                         },
-                        else => {},
+                        6 => input.Event{
+                            .MouseButtonDown = input.MouseButtonEvent{
+                                .button = .nav_backward,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
+                        },
+                        7 => input.Event{
+                            .MouseButtonDown = input.MouseButtonEvent{
+                                .button = .nav_forward,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
+                        },
+                        else => null,
+                    };
+                    // NOTE(Thomas): We only put events on the queue if they matches the set of legal buttons
+                    if (event) |val| {
+                        self.event_queue.enqueue(val);
                     }
                 },
                 c.ButtonRelease => {
-                    switch (ev.xbutton.button) {
-                        1 => {
-                            std.debug.print("Left mouse button up\n", .{});
+                    // TODO(Thomas): Verify the button mappings, there's probably a better
+                    // way to retrieve these values from Xlib or similar instead of just hardcoding.
+                    const event: ?input.Event = switch (ev.xbutton.button) {
+                        1 => input.Event{
+                            .MouseButtonUp = input.MouseButtonEvent{
+                                .button = .left,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
                         },
-                        2 => {
-                            std.debug.print("Middle mouse button up\n", .{});
+                        2 => input.Event{
+                            .MouseButtonUp = input.MouseButtonEvent{
+                                .button = .middle,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
                         },
-                        3 => {
-                            std.debug.print("Right mouse button up\n", .{});
+
+                        3 => input.Event{
+                            .MouseButtonUp = input.MouseButtonEvent{
+                                .button = .right,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
                         },
-                        else => {},
+
+                        6 => input.Event{
+                            .MouseButtonUp = input.MouseButtonEvent{
+                                .button = .nav_backward,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
+                        },
+                        7 => input.Event{
+                            .MouseButtonUp = input.MouseButtonEvent{
+                                .button = .nav_forward,
+                                .x = @intCast(ev.xbutton.x),
+                                .y = @intCast(ev.xbutton.y),
+                            },
+                        },
+                        else => null,
+                    };
+                    // NOTE(Thomas): We only put events on the queue if they matches the set of legal buttons
+                    if (event) |val| {
+                        self.event_queue.enqueue(val);
                     }
                 },
                 c.MotionNotify => {
                     x = ev.xmotion.x;
                     y = ev.xmotion.y;
-                    std.debug.print("Mouse X: {}, Y: {}\n", .{ x, y });
+                    // TODO(Thomas): Think about making MouseMotion fields be i32 instead of i16 to avoid intCast. That would have no impact on
+                    // windows side since it would be casting up to a bigger size.
+                    const event = input.Event{ .MouseMotion = input.MouseMotionEvent{ .x = @intCast(x), .y = @intCast(y), .x_rel = 0, .y_rel = 0 } };
+                    self.event_queue.enqueue(event);
                 },
                 c.EnterNotify => {
                     std.debug.print("Mouse enter\n", .{});
