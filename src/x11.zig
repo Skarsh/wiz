@@ -15,8 +15,10 @@ const c = @cImport({
 pub const Window = struct {
     allocator: Allocator,
     window_data: *wiz.WindowData,
-    display: *c.Display,
-    window_id: c.Window,
+    //display: *c.Display,
+    display: ?*anyopaque,
+    //window_id: c.Window,
+    window_id: c_ulong,
     width: i32,
     height: i32,
     name: []const u8,
@@ -109,7 +111,7 @@ pub const Window = struct {
         var ev = c.XEvent{ .type = 0 };
 
         var attribs = c.XWindowAttributes{};
-        _ = c.XGetWindowAttributes(self.display, self.window_id, &attribs);
+        _ = c.XGetWindowAttributes(@ptrCast(self.display), self.window_id, &attribs);
 
         var str = [_]u8{0} ** 25;
         var keysym: c_ulong = 0;
@@ -121,8 +123,8 @@ pub const Window = struct {
         const event_mask =
             c.KeyPressMask | c.KeyReleaseMask | c.KeymapStateMask | c.PointerMotionMask | c.ButtonPressMask | c.ButtonReleaseMask | c.EnterWindowMask | c.LeaveWindowMask | c.ExposureMask;
 
-        while (c.XCheckWindowEvent(self.display, self.window_id, event_mask, &ev) != 0) {
-            _ = c.XNextEvent(self.display, &ev);
+        while (c.XCheckWindowEvent(@ptrCast(self.display), self.window_id, event_mask, &ev) != 0) {
+            _ = c.XNextEvent(@ptrCast(self.display), &ev);
             switch (ev.type) {
                 c.KeymapNotify => {
                     _ = c.XRefreshKeyboardMapping(&ev.xmapping);
@@ -189,7 +191,7 @@ pub const Window = struct {
                 },
                 c.Expose => {
                     std.debug.print("Expose event fired", .{});
-                    _ = c.XGetWindowAttributes(self.display, self.window_id, &attribs);
+                    _ = c.XGetWindowAttributes(@ptrCast(self.display), self.window_id, &attribs);
                     std.debug.print("\tWindow width: {}, height: {}\n", .{ attribs.width, attribs.height });
                 },
                 else => {},
