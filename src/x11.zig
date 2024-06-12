@@ -107,182 +107,182 @@ pub const Window = struct {
         _ = value;
     }
 
-    pub fn processMessages(self: *Window) !void {
-        var ev = c.XEvent{ .type = 0 };
+    //pub fn processMessages(self: *Window) !void {
+    //    var ev = c.XEvent{ .type = 0 };
 
-        var attribs = c.XWindowAttributes{};
-        _ = c.XGetWindowAttributes(@ptrCast(self.display), self.window_id, &attribs);
+    //    var attribs = c.XWindowAttributes{};
+    //    _ = c.XGetWindowAttributes(@ptrCast(self.display), self.window_id, &attribs);
 
-        var str = [_]u8{0} ** 25;
-        var keysym: c_ulong = 0;
-        var len: c_int = 0;
-        //var running = true;
-        var x: i32 = 0;
-        var y: i32 = 0;
+    //    var str = [_]u8{0} ** 25;
+    //    var keysym: c_ulong = 0;
+    //    var len: c_int = 0;
+    //    //var running = true;
+    //    var x: i32 = 0;
+    //    var y: i32 = 0;
 
-        const event_mask =
-            c.KeyPressMask | c.KeyReleaseMask | c.KeymapStateMask | c.PointerMotionMask | c.ButtonPressMask | c.ButtonReleaseMask | c.EnterWindowMask | c.LeaveWindowMask | c.ExposureMask;
+    //    const event_mask =
+    //        c.KeyPressMask | c.KeyReleaseMask | c.KeymapStateMask | c.PointerMotionMask | c.ButtonPressMask | c.ButtonReleaseMask | c.EnterWindowMask | c.LeaveWindowMask | c.ExposureMask;
 
-        while (c.XCheckWindowEvent(@ptrCast(self.display), self.window_id, event_mask, &ev) != 0) {
-            _ = c.XNextEvent(@ptrCast(self.display), &ev);
-            switch (ev.type) {
-                c.KeymapNotify => {
-                    _ = c.XRefreshKeyboardMapping(&ev.xmapping);
-                },
-                c.KeyPress => {
-                    _ = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
-                    if (len > 0) {
-                        std.debug.print("Key pressed: {s} - {} - {}\n", .{ str, len, keysym });
-                        // TODO(Thomas): Deal with null value properly
-                        const scancode = @intFromEnum(translateX11KeyToWizKey(keysym).?);
-                        const event = input.Event{ .KeyDown = input.KeyEvent{ .scancode = scancode } };
-                        self.event_queue.enqueue(event);
-                    }
-                },
-                c.KeyRelease => {
-                    len = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
-                    if (len > 0) {
-                        std.debug.print("Key released: {s} - {} - {}\n", .{ str, len, keysym });
+    //    while (c.XCheckWindowEvent(@ptrCast(self.display), self.window_id, event_mask, &ev) != 0) {
+    //        _ = c.XNextEvent(@ptrCast(self.display), &ev);
+    //        switch (ev.type) {
+    //            c.KeymapNotify => {
+    //                _ = c.XRefreshKeyboardMapping(&ev.xmapping);
+    //            },
+    //            c.KeyPress => {
+    //                _ = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
+    //                if (len > 0) {
+    //                    std.debug.print("Key pressed: {s} - {} - {}\n", .{ str, len, keysym });
+    //                    // TODO(Thomas): Deal with null value properly
+    //                    const scancode = @intFromEnum(translateX11KeyToWizKey(keysym).?);
+    //                    const event = input.Event{ .KeyDown = input.KeyEvent{ .scancode = scancode } };
+    //                    self.event_queue.enqueue(event);
+    //                }
+    //            },
+    //            c.KeyRelease => {
+    //                len = c.XLookupString(&ev.xkey, &str, 25, &keysym, null);
+    //                if (len > 0) {
+    //                    std.debug.print("Key released: {s} - {} - {}\n", .{ str, len, keysym });
 
-                        // TODO(Thomas): Deal with null value properly
-                        const scancode = @intFromEnum(translateX11KeyToWizKey(keysym).?);
-                        const event = input.Event{ .KeyUp = input.KeyEvent{ .scancode = scancode } };
-                        self.event_queue.enqueue(event);
-                    }
-                },
-                c.ButtonPress => {
-                    // TODO(Thomas): Verify the button mappings, there's probably a better
-                    // way to retrieve these values from Xlib or similar instead of just hardcoding.
-                    const event: ?input.Event = switch (ev.xbutton.button) {
-                        1 => input.Event{
-                            .MouseButtonDown = input.MouseButtonEvent{
-                                .button = .left,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
-                        2 => input.Event{
-                            .MouseButtonDown = input.MouseButtonEvent{
-                                .button = .middle,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
+    //                    // TODO(Thomas): Deal with null value properly
+    //                    const scancode = @intFromEnum(translateX11KeyToWizKey(keysym).?);
+    //                    const event = input.Event{ .KeyUp = input.KeyEvent{ .scancode = scancode } };
+    //                    self.event_queue.enqueue(event);
+    //                }
+    //            },
+    //            c.ButtonPress => {
+    //                // TODO(Thomas): Verify the button mappings, there's probably a better
+    //                // way to retrieve these values from Xlib or similar instead of just hardcoding.
+    //                const event: ?input.Event = switch (ev.xbutton.button) {
+    //                    1 => input.Event{
+    //                        .MouseButtonDown = input.MouseButtonEvent{
+    //                            .button = .left,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
+    //                    2 => input.Event{
+    //                        .MouseButtonDown = input.MouseButtonEvent{
+    //                            .button = .middle,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
 
-                        3 => input.Event{
-                            .MouseButtonDown = input.MouseButtonEvent{
-                                .button = .right,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
+    //                    3 => input.Event{
+    //                        .MouseButtonDown = input.MouseButtonEvent{
+    //                            .button = .right,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
 
-                        4 => input.Event{
-                            .MouseButtonDown = input.MouseButtonEvent{
-                                .button = .wheel_up,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
-                        5 => input.Event{
-                            .MouseButtonDown = input.MouseButtonEvent{
-                                .button = .wheel_down,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
-                        6 => input.Event{
-                            .MouseButtonDown = input.MouseButtonEvent{
-                                .button = .nav_backward,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
-                        7 => input.Event{
-                            .MouseButtonDown = input.MouseButtonEvent{
-                                .button = .nav_forward,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
-                        else => null,
-                    };
-                    // NOTE(Thomas): We only put events on the queue if they matches the set of legal buttons
-                    if (event) |val| {
-                        self.event_queue.enqueue(val);
-                    }
-                },
-                c.ButtonRelease => {
-                    // TODO(Thomas): Verify the button mappings, there's probably a better
-                    // way to retrieve these values from Xlib or similar instead of just hardcoding.
-                    const event: ?input.Event = switch (ev.xbutton.button) {
-                        1 => input.Event{
-                            .MouseButtonUp = input.MouseButtonEvent{
-                                .button = .left,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
-                        2 => input.Event{
-                            .MouseButtonUp = input.MouseButtonEvent{
-                                .button = .middle,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
+    //                    4 => input.Event{
+    //                        .MouseButtonDown = input.MouseButtonEvent{
+    //                            .button = .wheel_up,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
+    //                    5 => input.Event{
+    //                        .MouseButtonDown = input.MouseButtonEvent{
+    //                            .button = .wheel_down,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
+    //                    6 => input.Event{
+    //                        .MouseButtonDown = input.MouseButtonEvent{
+    //                            .button = .nav_backward,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
+    //                    7 => input.Event{
+    //                        .MouseButtonDown = input.MouseButtonEvent{
+    //                            .button = .nav_forward,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
+    //                    else => null,
+    //                };
+    //                // NOTE(Thomas): We only put events on the queue if they matches the set of legal buttons
+    //                if (event) |val| {
+    //                    self.event_queue.enqueue(val);
+    //                }
+    //            },
+    //            c.ButtonRelease => {
+    //                // TODO(Thomas): Verify the button mappings, there's probably a better
+    //                // way to retrieve these values from Xlib or similar instead of just hardcoding.
+    //                const event: ?input.Event = switch (ev.xbutton.button) {
+    //                    1 => input.Event{
+    //                        .MouseButtonUp = input.MouseButtonEvent{
+    //                            .button = .left,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
+    //                    2 => input.Event{
+    //                        .MouseButtonUp = input.MouseButtonEvent{
+    //                            .button = .middle,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
 
-                        3 => input.Event{
-                            .MouseButtonUp = input.MouseButtonEvent{
-                                .button = .right,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
+    //                    3 => input.Event{
+    //                        .MouseButtonUp = input.MouseButtonEvent{
+    //                            .button = .right,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
 
-                        6 => input.Event{
-                            .MouseButtonUp = input.MouseButtonEvent{
-                                .button = .nav_backward,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
-                        7 => input.Event{
-                            .MouseButtonUp = input.MouseButtonEvent{
-                                .button = .nav_forward,
-                                .x = @intCast(ev.xbutton.x),
-                                .y = @intCast(ev.xbutton.y),
-                            },
-                        },
-                        else => null,
-                    };
-                    // NOTE(Thomas): We only put events on the queue if they matches the set of legal buttons
-                    if (event) |val| {
-                        self.event_queue.enqueue(val);
-                    }
-                },
-                c.MotionNotify => {
-                    x = ev.xmotion.x;
-                    y = ev.xmotion.y;
-                    // TODO(Thomas): Think about making MouseMotion fields be i32 instead of i16 to avoid intCast. That would have no impact on
-                    // windows side since it would be casting up to a bigger size.
-                    const event = input.Event{ .MouseMotion = input.MouseMotionEvent{ .x = @intCast(x), .y = @intCast(y), .x_rel = 0, .y_rel = 0 } };
-                    self.event_queue.enqueue(event);
-                },
-                c.EnterNotify => {
-                    std.debug.print("Mouse enter\n", .{});
-                },
-                c.LeaveNotify => {
-                    std.debug.print("Mouse leave\n", .{});
-                },
-                c.Expose => {
-                    std.debug.print("Expose event fired", .{});
-                    _ = c.XGetWindowAttributes(@ptrCast(self.display), self.window_id, &attribs);
-                    std.debug.print("\tWindow width: {}, height: {}\n", .{ attribs.width, attribs.height });
-                },
-                else => {},
-            }
-        }
-    }
+    //                    6 => input.Event{
+    //                        .MouseButtonUp = input.MouseButtonEvent{
+    //                            .button = .nav_backward,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
+    //                    7 => input.Event{
+    //                        .MouseButtonUp = input.MouseButtonEvent{
+    //                            .button = .nav_forward,
+    //                            .x = @intCast(ev.xbutton.x),
+    //                            .y = @intCast(ev.xbutton.y),
+    //                        },
+    //                    },
+    //                    else => null,
+    //                };
+    //                // NOTE(Thomas): We only put events on the queue if they matches the set of legal buttons
+    //                if (event) |val| {
+    //                    self.event_queue.enqueue(val);
+    //                }
+    //            },
+    //            c.MotionNotify => {
+    //                x = ev.xmotion.x;
+    //                y = ev.xmotion.y;
+    //                // TODO(Thomas): Think about making MouseMotion fields be i32 instead of i16 to avoid intCast. That would have no impact on
+    //                // windows side since it would be casting up to a bigger size.
+    //                const event = input.Event{ .MouseMotion = input.MouseMotionEvent{ .x = @intCast(x), .y = @intCast(y), .x_rel = 0, .y_rel = 0 } };
+    //                self.event_queue.enqueue(event);
+    //            },
+    //            c.EnterNotify => {
+    //                std.debug.print("Mouse enter\n", .{});
+    //            },
+    //            c.LeaveNotify => {
+    //                std.debug.print("Mouse leave\n", .{});
+    //            },
+    //            c.Expose => {
+    //                std.debug.print("Expose event fired", .{});
+    //                _ = c.XGetWindowAttributes(@ptrCast(self.display), self.window_id, &attribs);
+    //                std.debug.print("\tWindow width: {}, height: {}\n", .{ attribs.width, attribs.height });
+    //            },
+    //            else => {},
+    //        }
+    //    }
+    //}
 
     pub fn windowShouldClose(self: *Window, value: bool) void {
         self.running = !value;
@@ -307,6 +307,25 @@ pub const Window = struct {
 
     pub fn swapBuffers(self: *Window) !void {
         _ = self;
+    }
+
+    pub fn processMessages(self: *Window) !void {
+        const timeout: i32 = 0;
+        _ = self.waitForX11Event(timeout);
+    }
+
+    fn waitForX11Event(self: *Window, timeout: i32) bool {
+        const fd = c.ConnectionNumber(self.display);
+
+        var pollfd = std.os.linux.pollfd{ .fd = fd, .events = 0, .revents = 0 };
+
+        while (c.XPending(@ptrCast(self.display)) != 0) {
+            if (std.os.linux.poll(@ptrCast(&pollfd), 1, timeout) != 0)
+                return false;
+
+            std.debug.print("AA\n", .{});
+        }
+        return true;
     }
 };
 
