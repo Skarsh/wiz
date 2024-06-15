@@ -71,6 +71,7 @@ pub fn main() !void {
         while (win.pollEvent(&event)) {
             switch (event) {
                 .KeyDown => {
+                    std.debug.print("{}\n", .{event.KeyDown.scancode});
                     // Hardcoded for now, 1 = ESCAPE
                     if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_Escape)) {
                         win.windowShouldClose(true);
