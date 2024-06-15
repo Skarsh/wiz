@@ -6,5 +6,8 @@ zig-out/
 # RemedyBG
 *.rdbg
 
+# VSCode
+.vscode/
+
 # Tracy
 src/tracy/
