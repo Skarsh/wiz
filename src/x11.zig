@@ -104,26 +104,6 @@ pub const Window = struct {
             std.log.info("GLX server extensions:\n\t {s}", .{c.glXQueryServerString(@ptrCast(display), screen_id, c.GLX_EXTENSIONS)});
         }
 
-        //var glx_attribs = [_]i32{
-        //    c.GLX_RGBA,
-        //    c.GLX_DOUBLEBUFFER,
-        //    c.GLX_DEPTH_SIZE,
-        //    24,
-        //    c.GLX_STENCIL_SIZE,
-        //    8,
-        //    c.GLX_RED_SIZE,
-        //    8,
-        //    c.GLX_GREEN_SIZE,
-        //    8,
-        //    c.GLX_BLUE_SIZE,
-        //    8,
-        //    c.GLX_SAMPLE_BUFFERS,
-        //    0,
-        //    c.GLX_SAMPLES,
-        //    0,
-        //    c.None,
-        //};
-
         var glx_attribs = [_]i32{
             c.GLX_X_RENDERABLE,  c.True,
             c.GLX_DRAWABLE_TYPE, c.GLX_WINDOW_BIT,
@@ -147,14 +127,6 @@ pub const Window = struct {
             window.running = false;
             return error.FailedToRetrieveFramebuffer;
         }
-
-        //const visual = c.glXChooseVisual(@ptrCast(display), screen_id, &glx_attribs);
-
-        //if (visual == 0) {
-        //    std.log.err("Could not create correct visual window.\n", .{});
-        //    _ = c.XCloseDisplay(@ptrCast(display));
-        //    window.running = false;
-        //}
 
         std.log.info("Found {} matching framebuffers.\n", .{fbcount});
 
@@ -230,18 +202,6 @@ pub const Window = struct {
             &windowAttribs,
         );
 
-        //const x_window = c.XCreateSimpleWindow(
-        //    display,
-        //    c.RootWindowOfScreen(screen),
-        //    0,
-        //    0,
-        //    320,
-        //    200,
-        //    1,
-        //    c.BlackPixel(display, screen_id),
-        //    c.WhitePixel(display, screen_id),
-        //);
-
         _ = c.XSelectInput(
             display,
             x_window,
@@ -298,9 +258,6 @@ pub const Window = struct {
         std.log.info("GL Renderer: {s}\n", .{c.glGetString(c.GL_RENDERER)});
         std.log.info("GL Version: {s}\n", .{c.glGetString(c.GL_VERSION)});
         std.log.info("GL Shading Language: {s}\n", .{c.glGetString(c.GL_SHADING_LANGUAGE_VERSION)});
-
-        //const context = c.glXCreateContext(@ptrCast(display), visual, null, @intFromBool(true));
-        //_ = c.glXMakeCurrent(@ptrCast(display), x_window, context);
 
         // Show the window
         _ = c.XClearWindow(display, x_window);
