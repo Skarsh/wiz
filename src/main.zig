@@ -121,7 +121,7 @@ pub fn main() !void {
         c.glVertex3f(1.0, 1.0, 0.0);
         c.glEnd();
 
-        c.glXSwapBuffers(@ptrCast(win.window_type.x11_window.display), win.window_type.x11_window.window_id);
+        try win.swapBuffers();
 
         //opengl.glClearColor(0.2, 0.3, 0.3, 1.0);
         //opengl.glClear(opengl.GL_COLOR_BUFFER_BIT);

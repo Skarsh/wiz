@@ -278,7 +278,7 @@ pub const Window = struct {
     }
 
     pub fn swapBuffers(self: *Window) !void {
-        _ = self;
+        c.glXSwapBuffers(@ptrCast(self.display), self.window_id);
     }
 
     pub fn processMessages(self: *Window) !void {
