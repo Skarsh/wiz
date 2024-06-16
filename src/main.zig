@@ -77,7 +77,7 @@ pub fn main() !void {
                     std.debug.print("MouseButtonUp {}\n", .{event.MouseButtonUp.button});
                 },
                 .KeyDown => {
-                    std.debug.print("{}\n", .{event.KeyDown.scancode});
+                    std.debug.print("KeyDown {}\n", .{event.KeyDown.scancode});
                     // Hardcoded for now, 1 = ESCAPE
                     if (event.KeyDown.scancode == @intFromEnum(input.Key.key_escape)) {
                         win.windowShouldClose(true);
@@ -93,6 +93,9 @@ pub fn main() !void {
                             win.disableRawMouseMotion();
                         }
                     }
+                },
+                .KeyUp => {
+                    std.debug.print("KeyUp {}\n", .{event.KeyUp.scancode});
                 },
                 else => {},
             }

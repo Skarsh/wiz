@@ -178,6 +178,14 @@ pub const Window = struct {
                         self.event_queue.enqueue(event);
                     }
                 },
+                c.KeyRelease => {
+                    const keysym = c.XKeycodeToKeysym(@ptrCast(self.display), @intCast(x_event.xkey.keycode), 0);
+                    const key = translateX11KeyToWizKey(keysym);
+                    if (key) |val| {
+                        const event = input.Event{ .KeyUp = input.KeyEvent{ .scancode = @intFromEnum(val) } };
+                        self.event_queue.enqueue(event);
+                    }
+                },
                 else => {},
             }
         }
