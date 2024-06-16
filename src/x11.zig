@@ -51,8 +51,6 @@ pub const Window = struct {
         const event_queue_size: usize = 1000;
         window.event_queue = try EventQueue.init(allocator, event_queue_size);
 
-        // TODO(Thomas): Is this necessary?
-
         _ = window_format;
 
         const display = c.XOpenDisplay(null);
