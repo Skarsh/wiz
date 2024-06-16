@@ -36,7 +36,7 @@ pub fn main() !void {
     const window_width = 640;
     const window_height = 480;
     var win = try PlatformWindow.init(fba_allocator, window_width, window_height, WindowFormat.windowed, "win1");
-    //defer win.deinit();
+    defer win.deinit();
 
     //var frame_times = try FrameTimes.new(fba_allocator, 1000);
 
