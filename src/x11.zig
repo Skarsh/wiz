@@ -202,10 +202,13 @@ pub const Window = struct {
             &windowAttribs,
         );
 
+        const key_mask = c.KeyPressMask | c.KeyReleaseMask;
+        const button_mask = c.ButtonPressMask | c.ButtonReleaseMask;
+        const window_mask = c.EnterWindowMask | c.LeaveWindowMask;
         _ = c.XSelectInput(
             display,
             x_window,
-            c.KeyPressMask | c.KeyReleaseMask | c.KeymapStateMask | c.PointerMotionMask | c.ButtonPressMask | c.ButtonReleaseMask | c.EnterWindowMask | c.LeaveWindowMask | c.ExposureMask,
+            key_mask | c.KeymapStateMask | c.PointerMotionMask | button_mask | window_mask | c.ExposureMask,
         );
 
         // Name the window
