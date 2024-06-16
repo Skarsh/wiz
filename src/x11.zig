@@ -43,6 +43,8 @@ pub const Window = struct {
     event_queue: EventQueue,
     keycodes: [256]u16,
     scancodes: [@intFromEnum(input.Key.key_last)]u16,
+    gl_context: ?*anyopaque,
+    visual: ?*anyopaque,
 
     pub fn init(
         allocator: Allocator,
@@ -127,6 +129,7 @@ pub const Window = struct {
             window.running = false;
             return error.IncorrectVisualWindow;
         }
+        window.visual = visual;
 
         if (screen_id != visual.*.screen) {
             std.log.err("screen_id({}) does not match visual.screen({})", .{ screen_id, visual.*.screen });
@@ -136,7 +139,7 @@ pub const Window = struct {
         }
 
         // Open the window
-        var windowAttribs = c.XSetWindowAttributes{
+        var window_attribs = c.XSetWindowAttributes{
             .border_pixel = c.BlackPixel(display, screen_id),
             .background_pixel = c.WhitePixel(display, screen_id),
             .override_redirect = @intFromBool(true),
@@ -156,7 +159,7 @@ pub const Window = struct {
             c.InputOutput,
             visual.*.visual,
             c.CWBackPixel | c.CWColormap | c.CWBorderPixel | c.CWEventMask,
-            &windowAttribs,
+            &window_attribs,
         );
 
         const key_mask = c.KeyPressMask | c.KeyReleaseMask;
@@ -204,6 +207,8 @@ pub const Window = struct {
             glXCreateContextAttribsARB(@ptrCast(display), best_fbc_config, null, c.True, context_attribs);
         }
 
+        window.gl_context = context;
+
         _ = c.XSync(@ptrCast(display), c.False);
 
         if (c.glXIsDirect(@ptrCast(display), context) == 0) {
@@ -228,6 +233,16 @@ pub const Window = struct {
 
     pub fn deinit(self: Window) void {
         //self.allocator.destroy(self.event_queue);
+
+        // Cleanup GLX
+        // TODO(Thomas): Not entirely sure how to do this yet.
+        //c.glXDestroyWindow(@ptrCast(self.display), ????);
+
+        // Cleanup X11
+        _ = c.XFree(self.visual);
+
+        // TODO(Thomas): Not entirely sure how to do this yet.
+        //_ = c.XFreeColormap(@ptrCast(self.display), ?????);
         _ = c.XDestroyWindow(@ptrCast(self.display), self.window_id);
         _ = c.XCloseDisplay(@ptrCast(self.display));
     }
