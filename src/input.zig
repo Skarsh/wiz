@@ -125,6 +125,7 @@ pub const Key = enum(u32) {
     //
     key_last = 116,
 };
+
 // NOTE(Thomas): These scancodes are from https://learn.microsoft.com/nb-no/windows/win32/inputdev/about-keyboard-input
 pub const Scancode = enum(u32) {
     Keyboard_A = 0x001E,

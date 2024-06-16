@@ -73,24 +73,19 @@ pub fn main() !void {
                 .KeyDown => {
                     std.debug.print("{}\n", .{event.KeyDown.scancode});
                     // Hardcoded for now, 1 = ESCAPE
-                    if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_Escape)) {
+                    if (event.KeyDown.scancode == @intFromEnum(input.Key.key_escape)) {
                         win.windowShouldClose(true);
                     }
-                    if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_F)) {
+                    if (event.KeyDown.scancode == @intFromEnum(input.Key.key_f)) {
                         try win.toggleFullscreen();
                     }
-                    if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_R)) {
+                    if (event.KeyDown.scancode == @intFromEnum(input.Key.key_r)) {
                         try win.setCaptureCursor(!win.getCaptureCursor());
                         if (!win.getRawMouseMotion()) {
                             win.enableRawMouseMotion();
                         } else {
                             win.disableRawMouseMotion();
                         }
-                    }
-                },
-                .KeyUp => {
-                    if (event.KeyUp.scancode == @intFromEnum(input.Scancode.Keyboard_Escape)) {
-                        win.windowShouldClose(true);
                     }
                 },
                 else => {},
