@@ -118,50 +118,7 @@ pub const Window = struct {
             c.None,
         };
 
-        var fbcount: i32 = 0;
-
-        const fbc = c.glXChooseFBConfig(display, screen_id, &glx_attribs, &fbcount);
-        if (fbc == null) {
-            std.log.err("Failed to retrieve framebuffer.\n", .{});
-            _ = c.XCloseDisplay(@ptrCast(display));
-            window.running = false;
-            return error.FailedToRetrieveFramebuffer;
-        }
-
-        std.log.info("Found {} matching framebuffers.\n", .{fbcount});
-
-        // TODO(Thomas): This whole picking FB config/visual thing should be redone in a more robust way
-        // Pick the FB config/visual with the most sampels per pixel
-        std.log.info("Getting best XVisualInfo\n", .{});
-        var best_fbc: i32 = -1;
-        var wors_fbc: i32 = -1;
-        var best_num_samp: i32 = -1;
-        var worst_num_samp: i32 = 999;
-
-        for (0..@intCast(fbcount)) |i| {
-            const vi = c.glXGetVisualFromFBConfig(@ptrCast(display), fbc[i].?);
-            if (vi != 0) {
-                var samp_buf: i32 = 0;
-                var samples: i32 = 0;
-                _ = c.glXGetFBConfigAttrib(@ptrCast(display), fbc[i], c.GLX_SAMPLE_BUFFERS, &samp_buf);
-                _ = c.glXGetFBConfigAttrib(@ptrCast(display), fbc[i], c.GLX_SAMPLES, &samples);
-
-                if (best_fbc < 0 or (samp_buf == c.True and samples > best_num_samp)) {
-                    best_fbc = @intCast(i);
-                    best_num_samp = samples;
-                }
-
-                if (wors_fbc < 0 or samp_buf == c.False or samples < worst_num_samp) {
-                    wors_fbc = @intCast(i);
-                }
-                worst_num_samp = samples;
-            }
-            _ = c.XFree(vi);
-        }
-
-        std.log.info("Best visual info index: {}\n", .{best_fbc});
-        const best_fbc_config = fbc[@intCast(best_fbc)];
-        _ = c.XFree(fbc.*.?); // Make sure to free this!
+        const best_fbc_config = try findBestFBConfig(@ptrCast(display), screen_id, &glx_attribs);
 
         const visual = c.glXGetVisualFromFBConfig(@ptrCast(display), best_fbc_config);
         if (visual == 0) {
@@ -477,4 +434,53 @@ fn isExtensionSupported(ext_list: []const u8, extension: []const u8) bool {
 
     // Extension names should not have spaces
 
+}
+
+fn findBestFBConfig(display: ?*c.Display, screen_id: i32, glx_attribs: [*c]i32) !c.GLXFBConfig {
+    var fbcount: i32 = 0;
+
+    const fbc = c.glXChooseFBConfig(display, screen_id, glx_attribs, &fbcount);
+    defer _ = c.XFree(fbc.*.?); // Make sure to free this!
+
+    if (fbc == null) {
+        std.log.err("Failed to retrieve framebuffer.\n", .{});
+        _ = c.XCloseDisplay(@ptrCast(display));
+        return error.FailedToRetrieveFramebuffer;
+    }
+
+    std.log.info("Found {} matching framebuffers.\n", .{fbcount});
+
+    // TODO(Thomas): This whole picking FB config/visual thing should be redone in a more robust way
+    // Pick the FB config/visual with the most sampels per pixel
+    std.log.info("Getting best XVisualInfo\n", .{});
+    var best_fbc: i32 = -1;
+    var wors_fbc: i32 = -1;
+    var best_num_samp: i32 = -1;
+    var worst_num_samp: i32 = 999;
+
+    for (0..@intCast(fbcount)) |i| {
+        const vi = c.glXGetVisualFromFBConfig(@ptrCast(display), fbc[i].?);
+        if (vi != 0) {
+            var samp_buf: i32 = 0;
+            var samples: i32 = 0;
+            _ = c.glXGetFBConfigAttrib(@ptrCast(display), fbc[i], c.GLX_SAMPLE_BUFFERS, &samp_buf);
+            _ = c.glXGetFBConfigAttrib(@ptrCast(display), fbc[i], c.GLX_SAMPLES, &samples);
+
+            if (best_fbc < 0 or (samp_buf == c.True and samples > best_num_samp)) {
+                best_fbc = @intCast(i);
+                best_num_samp = samples;
+            }
+
+            if (wors_fbc < 0 or samp_buf == c.False or samples < worst_num_samp) {
+                wors_fbc = @intCast(i);
+            }
+            worst_num_samp = samples;
+        }
+        _ = c.XFree(vi);
+    }
+
+    std.log.info("Best visual info index: {}\n", .{best_fbc});
+    const best_fbc_config = fbc[@intCast(best_fbc)];
+
+    return best_fbc_config;
 }
