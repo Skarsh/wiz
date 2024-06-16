@@ -70,6 +70,12 @@ pub fn main() !void {
         try win.processMessages();
         while (win.pollEvent(&event)) {
             switch (event) {
+                .MouseButtonDown => {
+                    std.debug.print("MouseButtonDown {}\n", .{event.MouseButtonDown.button});
+                },
+                .MouseButtonUp => {
+                    std.debug.print("MouseButtonUp {}\n", .{event.MouseButtonUp.button});
+                },
                 .KeyDown => {
                     std.debug.print("{}\n", .{event.KeyDown.scancode});
                     // Hardcoded for now, 1 = ESCAPE

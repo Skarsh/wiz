@@ -144,18 +144,29 @@ pub const Window = struct {
             _ = c.XNextEvent(@ptrCast(self.display), &x_event);
             switch (x_event.type) {
                 c.ButtonPress => {
-                    const event: ?input.Event = switch (x_event.xbutton.button) {
-                        1 => input.Event{
-                            .MouseButtonDown = input.MouseButtonEvent{
-                                .button = .left,
+                    const button = xButtonToWizButton(x_event.xbutton);
+                    if (button) |val| {
+                        const event = input.Event{
+                            .MouseButtonDown = .{
+                                .button = val,
                                 .x = @intCast(x_event.xbutton.x),
                                 .y = @intCast(x_event.xbutton.y),
                             },
-                        },
-                        else => null,
-                    };
-                    if (event) |val| {
-                        self.event_queue.enqueue(val);
+                        };
+                        self.event_queue.enqueue(event);
+                    }
+                },
+                c.ButtonRelease => {
+                    const button = xButtonToWizButton(x_event.xbutton);
+                    if (button) |val| {
+                        const event = input.Event{
+                            .MouseButtonUp = .{
+                                .button = val,
+                                .x = @intCast(x_event.xbutton.x),
+                                .y = @intCast(x_event.xbutton.y),
+                            },
+                        };
+                        self.event_queue.enqueue(event);
                     }
                 },
 
@@ -181,6 +192,48 @@ pub const Window = struct {
         c.XkbGetNames(@ptrCast(self.display), c.XkbKeyNamesMask | c.XkbKeyAliasesMask, desc);
     }
 };
+
+fn xButtonToWizButton(x_button_event: c.XButtonEvent) ?input.MouseButton {
+    const button: ?input.MouseButton = switch (x_button_event.button) {
+        1 => .left,
+        2 => .middle,
+        3 => .right,
+        4 => .wheel_up,
+        5 => .wheel_down,
+
+        // TODO(Thomas): These don't seem to work
+        //6 => .nav_backward,
+        //7 => .nav_forward,
+        else => null,
+    };
+    return button;
+}
+
+test "XButtonToWizButtonTest" {
+    var x_button = std.mem.zeroes(c.XButtonEvent);
+    var wiz_button = xButtonToWizButton(x_button);
+    try std.testing.expectEqual(null, wiz_button);
+
+    x_button.button = 1;
+    wiz_button = xButtonToWizButton(x_button);
+    try std.testing.expectEqual(.left, wiz_button);
+
+    x_button.button = 2;
+    wiz_button = xButtonToWizButton(x_button);
+    try std.testing.expectEqual(.middle, wiz_button);
+
+    x_button.button = 3;
+    wiz_button = xButtonToWizButton(x_button);
+    try std.testing.expectEqual(.right, wiz_button);
+
+    x_button.button = 4;
+    wiz_button = xButtonToWizButton(x_button);
+    try std.testing.expectEqual(.wheel_up, wiz_button);
+
+    x_button.button = 5;
+    wiz_button = xButtonToWizButton(x_button);
+    try std.testing.expectEqual(.wheel_down, wiz_button);
+}
 
 // TODO(Thomas): Translating to scancodes for now, but this probably should
 // be mapped to our own WizKey type or something similar.
