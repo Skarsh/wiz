@@ -86,6 +86,7 @@ fn buildExe(b: *Build, exe: *Compile, target: ResolvedTarget, enable_tracy: bool
     if (target.result.os.tag == .linux) {
         exe.linkLibC();
         exe.linkSystemLibrary("X11");
+        exe.linkSystemLibrary("GL");
     }
 
     b.installArtifact(exe);
@@ -141,6 +142,7 @@ fn buildOpenglExample(
     if (target.result.os.tag == .linux) {
         exe.linkLibC();
         exe.linkSystemLibrary("X11");
+        exe.linkSystemLibrary("GL");
     }
 
     if (enable_tracy) {

@@ -14,6 +14,14 @@ const WindowFormat = wiz.WindowFormat;
 const WindowData = wiz.WindowData;
 const enable_tracy = build_options.enable_tracy;
 
+const c = @cImport({
+    @cInclude("X11/Xlib.h");
+    @cInclude("X11/Xutil.h");
+    @cInclude("X11/keysymdef.h");
+    @cInclude("X11/XKBlib.h");
+    @cInclude("GL/glx.h");
+});
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     errdefer _ = gpa.deinit();
@@ -100,6 +108,20 @@ pub fn main() !void {
                 else => {},
             }
         }
+
+        c.glClearColor(0.5, 0.6, 0.7, 1.0);
+        c.glClear(c.GL_COLOR_BUFFER_BIT);
+
+        c.glBegin(c.GL_TRIANGLES);
+        c.glColor3f(1.0, 0.0, 0.0);
+        c.glVertex3f(0.0, -1.0, 0.0);
+        c.glColor3f(0.0, 1.0, 0.0);
+        c.glVertex3f(-1.0, 1.0, 0.0);
+        c.glColor3f(0.0, 0.0, 1.0);
+        c.glVertex3f(1.0, 1.0, 0.0);
+        c.glEnd();
+
+        c.glXSwapBuffers(@ptrCast(win.window_type.x11_window.display), win.window_type.x11_window.window_id);
 
         //opengl.glClearColor(0.2, 0.3, 0.3, 1.0);
         //opengl.glClear(opengl.GL_COLOR_BUFFER_BIT);
