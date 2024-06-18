@@ -14,17 +14,13 @@ const c = @cImport({
     @cInclude("GL/glx.h");
 });
 
-const glXCreateContextAttribsARBProc = fn (
+pub var glXCreateContextAttribsARB: ?*const fn (
     display: ?*c.Display,
     fbconfig: c.GLXFBConfig,
     shareContext: c.GLXContext,
     direct: c.Bool,
     attribList: [*:0]const c_int,
-) c.GLXContext;
-
-const PlatformGLData = struct {
-    glxCreateContextAttribsARB: glXCreateContextAttribsARBProc,
-};
+) c.GLXContext = null;
 
 pub const Window = struct {
     allocator: Allocator,
@@ -178,10 +174,10 @@ pub const Window = struct {
 
         // Create GLX OpenGL context
 
-        const glXCreateContextAttribsARB = c.glXGetProcAddressARB("glxCreateContextAttribsARB");
-        //const platform_gl_data = PlatformGLData{
-        //    .glxCreateContextAttribsARB = *const @ptrCast(c.glXGetProcAddressARB("glXCreateContextAttribsARB")),
-        //};
+        glXCreateContextAttribsARB = @as(
+            @TypeOf(glXCreateContextAttribsARB),
+            @ptrCast(@alignCast(c.glXGetProcAddress("glXCreateContextAttribsARB"))),
+        );
 
         const glxExts = c.glXQueryExtensionsString(@ptrCast(display), screen_id);
         std.log.info("Late extensions:\n\t{s}\n\t", .{glxExts});
@@ -198,13 +194,11 @@ pub const Window = struct {
 
         var context: c.GLXContext = null;
 
-        // TODO(Thomas): the glxCreateXontextAttribsARB is broken here
         if (isExtensionSupported(glxExts, "GLX_ARB_create_context")) {
             context = c.glXCreateNewContext(display, best_fbc_config, c.GLX_RGBA_TYPE, null, c.True);
         } else {
-            //context = platform_gl_data.glXCreateContextAttribsARB(@ptrCast(display), best_fbc_config, null, c.True, context_attribs);
-            //glXCreateContextAttribsARB(@ptrCast(display), best_fbc_config, null, c.True, context_attribs);
-            _ = context_attribs;
+            // TODO(Thomas): the glxCreateXontextAttribsARB seems to be broken here. Need to be verified and tested properly.
+            context = glXCreateContextAttribsARB.?(@ptrCast(display), best_fbc_config, null, c.True, @ptrCast(&context_attribs));
         }
 
         window.gl_context = context;
