@@ -198,13 +198,13 @@ pub const Window = struct {
 
         var context: c.GLXContext = null;
 
-        // TODO(Thomas): use isExtensionSupported function here
-        // Also, the glxCreateXontextAttribsARB is broken here
-        if (true) {
+        // TODO(Thomas): the glxCreateXontextAttribsARB is broken here
+        if (isExtensionSupported(glxExts, "GLX_ARB_create_context")) {
             context = c.glXCreateNewContext(display, best_fbc_config, c.GLX_RGBA_TYPE, null, c.True);
         } else {
             //context = platform_gl_data.glXCreateContextAttribsARB(@ptrCast(display), best_fbc_config, null, c.True, context_attribs);
-            glXCreateContextAttribsARB(@ptrCast(display), best_fbc_config, null, c.True, context_attribs);
+            //glXCreateContextAttribsARB(@ptrCast(display), best_fbc_config, null, c.True, context_attribs);
+            _ = context_attribs;
         }
 
         window.gl_context = context;
@@ -436,19 +436,18 @@ pub fn translateX11KeyToWizKey(keysym: c.KeySym) ?input.Key {
     return result;
 }
 
-fn isExtensionSupported(ext_list: []const u8, extension: []const u8) bool {
-    _ = ext_list;
-    _ = extension;
+fn isExtensionSupported(ext_list: [*c]const u8, extension: []const u8) bool {
+    // Use span here to convert from [*c]const u8 to []const u8
+    // which makes it easy to split on the whitespace delimiter and then compare.
+    const extensions = std.mem.span(ext_list);
+    var extensions_it = std.mem.split(u8, extensions, " ");
+    while (extensions_it.next()) |ext| {
+        if (std.mem.eql(u8, ext, extension)) {
+            return true;
+        }
+    }
 
-    const start = "";
-    _ = start;
-    const where = "";
-    _ = where;
-    const terminator = "";
-    _ = terminator;
-
-    // Extension names should not have spaces
-
+    return false;
 }
 
 fn findBestFBConfig(display: ?*c.Display, screen_id: i32, glx_attribs: [*c]i32) !c.GLXFBConfig {
