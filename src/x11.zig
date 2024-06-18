@@ -450,6 +450,43 @@ fn isExtensionSupported(ext_list: [*c]const u8, extension: []const u8) bool {
     return false;
 }
 
+test "isExtensionSupported" {
+    const extensions: [*c]const u8 =
+        \\GLX_ARB_get_proc_address GLX_ARB_multisample GLX_EXT_visual_info GLX_EXT_visual_rating GLX_EXT_import_context GLX_SGI_video_sync GLX_SGIX_fbconfig GLX_SGIX_pbuffer GLX_SGI_swap_control GLX_EXT_swap_control GLX_EXT_swap_control_tear GLX_EXT_buffer_age GLX_ARB_create_context GLX_ARB_create_context_profile GLX_NV_float_buffer GLX_ARB_fbconfig_float GLX_EXT_texture_from_pixmap GLX_EXT_framebuffer_sRGB GLX_NV_copy_image GLX_EXT_create_context_es_profile GLX_EXT_create_context_es2_profile GLX_ARB_create_context_no_error GLX_ARB_create_context_robustness GLX_NV_delay_before_swap GLX_EXT_stereo_tree GLX_ARB_context_flush_control GLX_NV_robustness_video_memory_purge GLX_NV_multigpu_context \0GLX_EXT_not_a_real_ext
+    ;
+
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_ARB_get_proc_address"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_ARB_multisample"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_visual_info"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_visual_rating"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_import_context"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_SGI_video_sync"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_SGIX_fbconfig"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_SGIX_pbuffer"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_SGI_swap_control"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_swap_control"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_swap_control_tear"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_buffer_age"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_ARB_create_context"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_ARB_create_context_profile"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_NV_float_buffer"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_ARB_fbconfig_float"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_texture_from_pixmap"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_framebuffer_sRGB"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_NV_copy_image"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_create_context_es_profile"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_create_context_es2_profile"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_ARB_create_context_no_error"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_ARB_create_context_robustness"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_NV_delay_before_swap"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_EXT_stereo_tree"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_ARB_context_flush_control"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_NV_robustness_video_memory_purge"));
+    try std.testing.expect(isExtensionSupported(extensions, "GLX_NV_multigpu_context"));
+
+    try std.testing.expect(!isExtensionSupported(extensions, "GLX_EXT_not_a_real_ext"));
+}
+
 fn findBestFBConfig(display: ?*c.Display, screen_id: i32, glx_attribs: [*c]i32) !c.GLXFBConfig {
     var fbcount: i32 = 0;
 
