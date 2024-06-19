@@ -324,6 +324,28 @@ pub const Window = struct {
                         self.event_queue.enqueue(event);
                     }
                 },
+                // TODO(Thomas): Not sure about this, does not seem to do much.
+                // Also, think about the API here, is this something we should just automatically do in the
+                // processMessages?
+                c.ClientMessage => {
+                    std.debug.print("ClientMessage\n\n", .{});
+
+                    // Redirect Close
+                    // TODO(Thomas): If we go for this way to deal with ClientMessages, don't redirect close like
+                    // this for every event at least.
+                    var atomWmDeleteWindow = c.XInternAtom(@ptrCast(self.display), "WM_DELETE_WINDOW", c.False);
+                    _ = c.XSetWMProtocols(@ptrCast(self.display), self.window_id, &atomWmDeleteWindow, 1);
+                    if (x_event.xclient.data.l[0] == atomWmDeleteWindow) {
+                        self.running = false;
+                    }
+                },
+                // TODO(Thomas): Not sure about this, does not seem to do much.
+                // Also, think about the API here, is this something we should just automatically do in the
+                // processMessages?
+                c.DestroyNotify => {
+                    std.debug.print("DestroyNotify\n\n", .{});
+                    self.running = false;
+                },
                 else => {},
             }
         }
