@@ -249,7 +249,9 @@ pub const Window = struct {
         // TODO(Thomas): Not entirely sure how to do this yet.
         //_ = c.XFreeColormap(@ptrCast(self.display), ?????);
         _ = c.XDestroyWindow(@ptrCast(self.display), self.window_id);
-        _ = c.XCloseDisplay(@ptrCast(self.display));
+
+        // TODO(Thomas): Why does this seem to cause an error (double free?)
+        //_ = c.XCloseDisplay(@ptrCast(self.display));
     }
 
     pub fn makeModernOpenGLContext(self: *Window) !void {
