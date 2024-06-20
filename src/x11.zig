@@ -14,6 +14,8 @@ const c = @cImport({
     @cInclude("GL/glx.h");
 });
 
+var atomWmDeleteWindow: c.Atom = 1337;
+
 pub var glXCreateContextAttribsARB: ?*const fn (
     display: ?*c.Display,
     fbconfig: c.GLXFBConfig,
@@ -70,10 +72,13 @@ pub const Window = struct {
             return error.CouldNotOpenDisplay;
         }
 
+        // TODO(Thomas): This is for debugging purposes
+        _ = c.XSynchronize(display, c.True);
+
         window.display = display.?;
 
-        const screen = c.DefaultScreenOfDisplay(display);
-        _ = screen;
+        //const screen = c.DefaultScreenOfDisplay(display);
+        //_ = screen;
         const screen_id = c.DefaultScreen(display);
 
         // Check GLX version
@@ -222,6 +227,12 @@ pub const Window = struct {
         _ = c.XClearWindow(display, x_window);
         _ = c.XMapRaised(display, x_window);
 
+        atomWmDeleteWindow = c.XInternAtom(display, "WM_DELETE_WINDOW", c.False);
+        const result = c.XSetWMProtocols(display, x_window, &atomWmDeleteWindow, 1);
+        if (result == c.False) {
+            std.log.err("Failed to set protocol", .{});
+        }
+
         return window;
     }
 
@@ -328,13 +339,11 @@ pub const Window = struct {
                 // Also, think about the API here, is this something we should just automatically do in the
                 // processMessages?
                 c.ClientMessage => {
-                    std.debug.print("ClientMessage\n\n", .{});
+                    std.log.err("ClientMessage\n\n", .{});
 
                     // Redirect Close
                     // TODO(Thomas): If we go for this way to deal with ClientMessages, don't redirect close like
                     // this for every event at least.
-                    var atomWmDeleteWindow = c.XInternAtom(@ptrCast(self.display), "WM_DELETE_WINDOW", c.False);
-                    _ = c.XSetWMProtocols(@ptrCast(self.display), self.window_id, &atomWmDeleteWindow, 1);
                     if (x_event.xclient.data.l[0] == atomWmDeleteWindow) {
                         self.running = false;
                     }
