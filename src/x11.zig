@@ -14,7 +14,7 @@ const c = @cImport({
     @cInclude("GL/glx.h");
 });
 
-var atomWmDeleteWindow: c.Atom = 1337;
+var atomWmDeleteWindow: c.Atom = 0;
 
 pub var glXCreateContextAttribsARB: ?*const fn (
     display: ?*c.Display,
