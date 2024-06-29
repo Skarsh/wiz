@@ -14,14 +14,6 @@ const WindowFormat = wiz.WindowFormat;
 const WindowData = wiz.WindowData;
 const enable_tracy = build_options.enable_tracy;
 
-const c = @cImport({
-    @cInclude("X11/Xlib.h");
-    @cInclude("X11/Xutil.h");
-    @cInclude("X11/keysymdef.h");
-    @cInclude("X11/XKBlib.h");
-    @cInclude("GL/glx.h");
-});
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     errdefer _ = gpa.deinit();
@@ -37,12 +29,14 @@ pub fn main() !void {
     const window_height = 480;
     var win = try PlatformWindow.init(fba_allocator, window_width, window_height, WindowFormat.windowed, "win1");
     defer win.deinit();
-    opengl.load();
 
     var frame_times = try FrameTimes.new(fba_allocator, 1000);
 
     try win.makeModernOpenGLContext();
     try win.setVSync(false);
+
+    // NOTE(Thomas): It's very important to load after making the context on Windows at least.
+    opengl.load();
 
     win.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 

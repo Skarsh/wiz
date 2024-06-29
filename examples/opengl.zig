@@ -38,6 +38,8 @@ pub fn main() !void {
     defer window.deinit();
 
     try window.makeModernOpenGLContext();
+
+    // NOTE(Thomas): It's very important to load after making the context on Windows at least.
     gl.load();
     window.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
