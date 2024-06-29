@@ -233,6 +233,7 @@ fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedT
 
         x11_tests.linkLibC();
         x11_tests.linkSystemLibrary("X11");
+        x11_tests.linkSystemLibrary("GL");
         const run_lib_x11_tests = b.addRunArtifact(x11_tests);
         test_step.dependOn(&run_lib_x11_tests.step);
     }
