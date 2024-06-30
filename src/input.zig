@@ -1,7 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const Window = @import("windows.zig").Window;
+//const Window = @import("windows.zig").Window;
 
 const tracy = @import("tracy.zig");
 
@@ -214,10 +214,10 @@ pub const Scancode = enum(u32) {
 
 pub const EventType = enum {
     Empty,
-    WindowResized,
-    WindowDestroyed,
-    WindowDamaged,
-    WindowVBlank,
+    //WindowResized,
+    //WindowDestroyed,
+    //WindowDamaged,
+    //WindowVBlank,
     AppTerminated,
     KeyDown,
     KeyUp,
@@ -260,10 +260,10 @@ pub const Event = union(EventType) {
     // TODO (Thomas): I don't know about these Window specific events.
     // Do they belong in here?
     Empty: void,
-    WindowResized: *Window,
-    WindowDestroyed: *Window,
-    WindowDamaged: struct { window: *Window, x: u16, y: u16, w: u16, h: u16 },
-    WindowVBlank: *Window,
+    //WindowResized: *Window,
+    //WindowDestroyed: *Window,
+    //WindowDamaged: struct { window: *Window, x: u16, y: u16, w: u16, h: u16 },
+    //WindowVBlank: *Window,
     AppTerminated: void,
     KeyDown: KeyEvent,
     KeyUp: KeyEvent,
