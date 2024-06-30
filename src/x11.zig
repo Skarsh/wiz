@@ -21,9 +21,7 @@ pub var glXCreateContextAttribsARB: ?*const fn (
 pub const Window = struct {
     allocator: Allocator,
     window_data: *wiz.WindowData,
-    //display: *c.Display,
     display: ?*anyopaque,
-    //window_id: c.Window,
     window_id: c_ulong,
     width: i32,
     height: i32,
