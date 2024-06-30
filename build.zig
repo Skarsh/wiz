@@ -194,47 +194,68 @@ fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedT
         .optimize = optimize,
     });
 
-    const wiz_module_tests = b.addTest(.{
-        .name = "wiz_module_tests",
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
-        .target = target,
-        .optimize = optimize,
-    });
-
     const run_root_tests = b.addRunArtifact(root_tests);
     const run_lib_input_tests = b.addRunArtifact(input_tests);
     const run_exe_tests = b.addRunArtifact(exe_tests);
-    const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_root_tests.step);
     test_step.dependOn(&run_lib_input_tests.step);
     test_step.dependOn(&run_exe_tests.step);
-    test_step.dependOn(&run_wiz_module_tests.step);
 
     // TODO(Thomas): This is not ideal, but it works for now. Find a better way.
-    // Platform specific tests
-    if (target.result.os.tag == .windows) {
-        const windows_tests = b.addTest(.{
-            .name = "windows_tests",
-            .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/windows.zig" } },
-            .target = target,
-            .optimize = optimize,
-        });
-        const run_lib_windows_tests = b.addRunArtifact(windows_tests);
-        test_step.dependOn(&run_lib_windows_tests.step);
-    } else if (target.result.os.tag == .linux) {
-        const x11_tests = b.addTest(.{
-            .name = "x11_tests",
-            .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/x11.zig" } },
-            .target = target,
-            .optimize = optimize,
-        });
+    // Platform specific tests, this includes the wiz_module tests too since depending
+    // on the platform it will pull in e.g. X11 which will need to link LibC and so on.
+    switch (target.result.os.tag) {
+        .windows => {
+            const wiz_module_tests = b.addTest(.{
+                .name = "wiz_module_tests",
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
+                .target = target,
+                .optimize = optimize,
+            });
 
-        x11_tests.linkLibC();
-        x11_tests.linkSystemLibrary("X11");
-        x11_tests.linkSystemLibrary("GL");
-        const run_lib_x11_tests = b.addRunArtifact(x11_tests);
-        test_step.dependOn(&run_lib_x11_tests.step);
+            const windows_tests = b.addTest(.{
+                .name = "windows_tests",
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/windows.zig" } },
+                .target = target,
+                .optimize = optimize,
+            });
+
+            const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
+            const run_lib_windows_tests = b.addRunArtifact(windows_tests);
+
+            test_step.dependOn(&run_wiz_module_tests.step);
+            test_step.dependOn(&run_lib_windows_tests.step);
+        },
+        .linux => {
+            const wiz_module_tests = b.addTest(.{
+                .name = "wiz_module_tests",
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
+                .target = target,
+                .optimize = optimize,
+            });
+            wiz_module_tests.linkLibC();
+            wiz_module_tests.linkSystemLibrary("X11");
+            wiz_module_tests.linkSystemLibrary("GL");
+
+            const x11_tests = b.addTest(.{
+                .name = "x11_tests",
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/x11.zig" } },
+                .target = target,
+                .optimize = optimize,
+            });
+
+            x11_tests.linkLibC();
+            x11_tests.linkSystemLibrary("X11");
+            x11_tests.linkSystemLibrary("GL");
+
+            const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
+            const run_lib_x11_tests = b.addRunArtifact(x11_tests);
+
+            test_step.dependOn(&run_wiz_module_tests.step);
+            test_step.dependOn(&run_lib_x11_tests.step);
+        },
+        else => unreachable,
     }
 }
