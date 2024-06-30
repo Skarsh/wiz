@@ -6,13 +6,7 @@ const EventQueue = input.EventQueue;
 
 const wiz = @import("wiz.zig");
 
-const c = @cImport({
-    @cInclude("X11/Xlib.h");
-    @cInclude("X11/Xutil.h");
-    @cInclude("X11/keysymdef.h");
-    @cInclude("X11/XKBlib.h");
-    @cInclude("GL/glx.h");
-});
+const c = @import("c.zig").c;
 
 var atomWmDeleteWindow: c.Atom = 0;
 
