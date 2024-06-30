@@ -64,7 +64,11 @@ pub const Window = struct {
             return error.CouldNotOpenDisplay;
         }
 
-        // TODO(Thomas): This is for debugging purposes
+        // NOTE(Thomas): This is for debugging purposes
+        // TODO(Thomas): This somehow prevents an error
+        // of corrupted double-linked list, which lies
+        // between here and the end of this function
+        // where XSynchronize is set to false.
         _ = c.XSynchronize(display, c.True);
 
         window.display = display.?;
@@ -225,6 +229,10 @@ pub const Window = struct {
             std.log.err("Failed to set protocol", .{});
         }
 
+        // NOTE: This is set here to not make the rest of the application
+        // being forcefully synchronized.
+        _ = c.XSynchronize(@ptrCast(display), c.False);
+
         return window;
     }
 
@@ -348,6 +356,17 @@ pub const Window = struct {
                 c.DestroyNotify => {
                     std.debug.print("DestroyNotify\n\n", .{});
                     self.running = false;
+                },
+                c.Expose => {
+                    var window_attribs = c.XWindowAttributes{};
+                    _ = c.XGetWindowAttributes(@ptrCast(self.display), self.window_id, &window_attribs);
+                    if (self.window_data.callbacks.window_resize) |cb| {
+                        cb(self.window_data, window_attribs.width, window_attribs.height);
+                    }
+
+                    if (self.window_data.callbacks.window_framebuffer_resize) |cb| {
+                        cb(self.window_data, window_attribs.width, window_attribs.height);
+                    }
                 },
                 else => {},
             }
