@@ -24,7 +24,7 @@ fn loadOpenGLFunction(comptime T: type, name: [*:0]const u8) !T {
 
 // TODO(Thomas): There is missing a lot of functions compared to even the
 // windows version implementation.
-pub fn loadOpenGLFunctions(comptime T: type) void {
+pub fn loadFunctions(comptime T: type) void {
     T.glCreateShader = loadOpenGLFunction(@TypeOf(T.glCreateShader), "glCreateShader") catch unreachable;
     T.glShaderSource = loadOpenGLFunction(@TypeOf(T.glShaderSource), "glShaderSource") catch unreachable;
     T.glCompileShader = loadOpenGLFunction(@TypeOf(T.glCompileShader), "glCompileShader") catch unreachable;
@@ -43,4 +43,5 @@ pub fn loadOpenGLFunctions(comptime T: type) void {
     T.glClearColor = loadOpenGLFunction(@TypeOf(T.glClearColor), "glClearColor") catch unreachable;
     T.glClear = loadOpenGLFunction(@TypeOf(T.glClear), "glClear") catch unreachable;
     T.glDrawArrays = loadOpenGLFunction(@TypeOf(T.glDrawArrays), "glDrawArrays") catch unreachable;
+    T.glViewport = loadOpenGLFunction(@TypeOf(T.glViewport), "glViewport") catch unreachable;
 }

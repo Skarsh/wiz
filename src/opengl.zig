@@ -184,7 +184,7 @@ pub fn load() void {
         },
         .linux => {
             const openglx = @import("openglx.zig");
-            openglx.loadOpenGLFunctions(@This());
+            openglx.loadFunctions(@This());
         },
         else => {},
     }
