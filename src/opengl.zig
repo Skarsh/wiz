@@ -185,9 +185,6 @@ pub fn load() void {
         .linux => {
             const openglx = @import("openglx.zig");
             openglx.loadOpenGLFunctions(@This());
-            //glClear = openglx.glClear;
-            //glClearColor = openglx.glClearColor;
-
         },
         else => {},
     }
