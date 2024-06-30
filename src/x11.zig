@@ -64,177 +64,275 @@ pub const Window = struct {
             return error.CouldNotOpenDisplay;
         }
 
-        // NOTE(Thomas): This is for debugging purposes
-        // TODO(Thomas): This somehow prevents an error
-        // of corrupted double-linked list, which lies
-        // between here and the end of this function
-        // where XSynchronize is set to false.
-        _ = c.XSynchronize(display, c.True);
+        window.display = display;
 
-        window.display = display.?;
+        const screen = c.XDefaultScreen(display);
+        const root = c.XRootWindow(display, screen);
 
-        //const screen = c.DefaultScreenOfDisplay(display);
-        //_ = screen;
-        const screen_id = c.DefaultScreen(display);
-
-        // Check GLX version
-        var major_glx: i32 = 0;
-        var minor_glx: i32 = 0;
-
-        _ = c.glXQueryVersion(@ptrCast(display), &major_glx, &minor_glx);
-        // TODO(Thomas): This should be dependent on some backend options that we'll
-        // pass in at some point in the future. If the backend is software then this does
-        // not make sense. If the backend requires higher versions, then that's what we should
-        // check against instead of this.
-        if (major_glx <= 1 and minor_glx < 2) {
-            std.log.err("GLX 1.2 or greater is required.\n", .{});
-            _ = c.XCloseDisplay(@ptrCast(display));
-            window.running = false;
-            return error.IncorrectGLXVersion;
-        } else {
-            // Client
-            std.log.info("GLX client version: {s}", .{c.glXGetClientString(@ptrCast(display), c.GLX_VERSION)});
-            std.log.info("GLX client vendor: {s}", .{c.glXGetClientString(@ptrCast(display), c.GLX_VENDOR)});
-            std.log.info("GLX client extensions:\n\t {s}", .{c.glXGetClientString(@ptrCast(display), c.GLX_EXTENSIONS)});
-
-            // Server
-            std.log.info("GLX server version: {s}\n", .{c.glXQueryServerString(@ptrCast(display), screen_id, c.GLX_VERSION)});
-            std.log.info("GLX server vendor: {s}\n", .{c.glXQueryServerString(@ptrCast(display), screen_id, c.GLX_VENDOR)});
-            std.log.info("GLX server extensions:\n\t {s}", .{c.glXQueryServerString(@ptrCast(display), screen_id, c.GLX_EXTENSIONS)});
-        }
-
-        var glx_attribs = [_]i32{
-            c.GLX_X_RENDERABLE,  c.True,
-            c.GLX_DRAWABLE_TYPE, c.GLX_WINDOW_BIT,
-            c.GLX_RENDER_TYPE,   c.GLX_RGBA_BIT,
-            c.GLX_X_VISUAL_TYPE, c.GLX_TRUE_COLOR,
-            c.GLX_RED_SIZE,      8,
-            c.GLX_GREEN_SIZE,    8,
-            c.GLX_BLUE_SIZE,     8,
-            c.GLX_ALPHA_SIZE,    8,
-            c.GLX_STENCIL_SIZE,  8,
-            c.GLX_DOUBLEBUFFER,  c.True,
-            c.None,
+        var glx_choose_visual_attribs = [_]c_int{
+            c.GLX_RGBA,
+            c.GLX_DEPTH_SIZE,
+            24,
+            c.GLX_DOUBLEBUFFER,
+            0,
         };
 
-        const best_fbc_config = try findBestFBConfig(@ptrCast(display), screen_id, &glx_attribs);
+        const vi = c.glXChooseVisual(display, 0, &glx_choose_visual_attribs) orelse {
+            std.log.err("No appropriate visual found", .{});
+            return error.NoAppropriateVisual;
+        };
+        defer _ = c.XFree(vi);
 
-        const visual = c.glXGetVisualFromFBConfig(@ptrCast(display), best_fbc_config);
-        if (visual == 0) {
-            std.log.err("Could not create correct visual window.\n", .{});
-            _ = c.XCloseDisplay(@ptrCast(display));
-            window.running = false;
-            return error.IncorrectVisualWindow;
-        }
-        window.visual = visual;
+        window.visual = vi;
 
-        if (screen_id != visual.*.screen) {
-            std.log.err("screen_id({}) does not match visual.screen({})", .{ screen_id, visual.*.screen });
-            _ = c.XCloseDisplay(@ptrCast(display));
-            window.running = false;
-            return error.NonMatchingScreenIdWithVisualScreen;
-        }
-
-        // Open the window
-        var window_attribs = c.XSetWindowAttributes{
-            .border_pixel = c.BlackPixel(display, screen_id),
-            .background_pixel = c.WhitePixel(display, screen_id),
-            .override_redirect = @intFromBool(true),
-            .colormap = c.XCreateColormap(@ptrCast(display), c.RootWindow(display, screen_id), visual.*.visual, c.AllocNone),
-            .event_mask = c.ExposureMask,
+        const cmap = c.XCreateColormap(display, root, vi.*.visual, c.AllocNone);
+        var swa = c.XSetWindowAttributes{
+            .colormap = cmap,
+            .event_mask = c.ExposureMask | c.KeyPressMask | c.ButtonPressMask | c.ButtonReleaseMask | c.PointerMotionMask | c.StructureNotifyMask,
+            .background_pixmap = 0,
+            .border_pixel = 0,
+            .override_redirect = 0,
         };
 
-        const x_window = c.XCreateWindow(
-            @ptrCast(display),
-            c.RootWindow(display, screen_id),
+        window.window_id = c.XCreateWindow(
+            display,
+            root,
             0,
             0,
             @intCast(width),
             @intCast(height),
             0,
-            visual.*.depth,
+            vi.*.depth,
             c.InputOutput,
-            visual.*.visual,
-            c.CWBackPixel | c.CWColormap | c.CWBorderPixel | c.CWEventMask,
-            &window_attribs,
+            vi.*.visual,
+            c.CWColormap | c.CWEventMask,
+            &swa,
         );
 
-        const key_mask = c.KeyPressMask | c.KeyReleaseMask;
-        const button_mask = c.ButtonPressMask | c.ButtonReleaseMask;
-        const window_mask = c.EnterWindowMask | c.LeaveWindowMask;
-        _ = c.XSelectInput(
-            display,
-            x_window,
-            key_mask | c.KeymapStateMask | c.PointerMotionMask | button_mask | window_mask | c.ExposureMask,
-        );
+        _ = c.XMapWindow(display, window.window_id);
+        _ = c.XStoreName(display, window.window_id, @ptrCast(name));
 
-        // Name the window
-        _ = c.XStoreName(display, x_window, @ptrCast(name));
-
-        window.window_id = x_window;
-
-        // Create GLX OpenGL context
-
-        glXCreateContextAttribsARB = @as(
-            @TypeOf(glXCreateContextAttribsARB),
-            @ptrCast(@alignCast(c.glXGetProcAddress("glXCreateContextAttribsARB"))),
-        );
-
-        const glxExts = c.glXQueryExtensionsString(@ptrCast(display), screen_id);
-        std.log.info("Late extensions:\n\t{s}\n\t", .{glxExts});
-        if (glXCreateContextAttribsARB == null) {
-            std.log.err("glxCreateContextAttribsARB() not found.\n", .{});
-        }
-
-        const context_attribs = [_]i32{
-            c.GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-            c.GLX_CONTEXT_MINOR_VERSION_ARB, 2,
-            c.GLX_CONTEXT_FLAGS_ARB,         c.GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-            c.None,
-        };
-
-        var context: c.GLXContext = null;
-
-        if (isExtensionSupported(glxExts, "GLX_ARB_create_context")) {
-            context = c.glXCreateNewContext(display, best_fbc_config, c.GLX_RGBA_TYPE, null, c.True);
-        } else {
-            // TODO(Thomas): the glxCreateXontextAttribsARB seems to be broken here. Need to be verified and tested properly.
-            context = glXCreateContextAttribsARB.?(@ptrCast(display), best_fbc_config, null, c.True, @ptrCast(&context_attribs));
-        }
-
-        window.gl_context = context;
-
-        _ = c.XSync(@ptrCast(display), c.False);
-
-        if (c.glXIsDirect(@ptrCast(display), context) == 0) {
-            std.log.info("Indirect GLX rendering context obtained", .{});
-        } else {
-            std.log.info("Direct GLX rendering context obtained", .{});
-        }
-
-        _ = c.glXMakeCurrent(@ptrCast(display), x_window, context);
-
-        std.log.info("GL Vendor: {s}\n", .{c.glGetString(c.GL_VENDOR)});
-        std.log.info("GL Renderer: {s}\n", .{c.glGetString(c.GL_RENDERER)});
-        std.log.info("GL Version: {s}\n", .{c.glGetString(c.GL_VERSION)});
-        std.log.info("GL Shading Language: {s}\n", .{c.glGetString(c.GL_SHADING_LANGUAGE_VERSION)});
-
-        // Show the window
-        _ = c.XClearWindow(display, x_window);
-        _ = c.XMapRaised(display, x_window);
-
+        // Set up WM_DELETE_WINDOW protocol
         atomWmDeleteWindow = c.XInternAtom(display, "WM_DELETE_WINDOW", c.False);
-        const result = c.XSetWMProtocols(display, x_window, &atomWmDeleteWindow, 1);
-        if (result == c.False) {
-            std.log.err("Failed to set protocol", .{});
-        }
+        _ = c.XSetWMProtocols(display, window.window_id, &atomWmDeleteWindow, 1);
 
-        // NOTE: This is set here to not make the rest of the application
-        // being forcefully synchronized.
-        _ = c.XSynchronize(@ptrCast(display), c.False);
+        // Create GLX context
+        const glc = c.glXCreateContext(display, vi, null, 1) orelse {
+            std.log.err("Failed to create GLX context", .{});
+            return error.FailedToCreateGLXContext;
+        };
+        window.gl_context = glc;
+
+        _ = c.glXMakeCurrent(display, window.window_id, glc);
+
+        // Log OpenGL information
+        std.log.info("GL Vendor: {s}", .{c.glGetString(c.GL_VENDOR)});
+        std.log.info("GL Renderer: {s}", .{c.glGetString(c.GL_RENDERER)});
+        std.log.info("GL Version: {s}", .{c.glGetString(c.GL_VERSION)});
+        std.log.info("GL Shading Language: {s}", .{c.glGetString(c.GL_SHADING_LANGUAGE_VERSION)});
 
         return window;
     }
+
+    //pub fn init(
+    //    allocator: Allocator,
+    //    window_data: *wiz.WindowData,
+    //    width: i32,
+    //    height: i32,
+    //    window_format: wiz.WindowFormat,
+    //    comptime name: []const u8,
+    //) !*Window {
+    //    var window = try allocator.create(Window);
+
+    //    window.allocator = allocator;
+    //    window.window_data = window_data;
+    //    window.width = width;
+    //    window.height = height;
+    //    window.name = name;
+    //    window.running = true;
+
+    //    const event_queue_size: usize = 1000;
+    //    window.event_queue = try EventQueue.init(allocator, event_queue_size);
+
+    //    _ = window_format;
+
+    //    const display = c.XOpenDisplay(null);
+    //    if (display == null) {
+    //        std.log.err("Could not open display", .{});
+    //        return error.CouldNotOpenDisplay;
+    //    }
+
+    //    // NOTE(Thomas): This is for debugging purposes
+    //    // TODO(Thomas): This somehow prevents an error
+    //    // of corrupted double-linked list, which lies
+    //    // between here and the end of this function
+    //    // where XSynchronize is set to false.
+    //    _ = c.XSynchronize(display, c.True);
+
+    //    window.display = display.?;
+
+    //    //const screen = c.DefaultScreenOfDisplay(display);
+    //    //_ = screen;
+    //    const screen_id = c.DefaultScreen(display);
+
+    //    // Check GLX version
+    //    var major_glx: i32 = 0;
+    //    var minor_glx: i32 = 0;
+
+    //    _ = c.glXQueryVersion(@ptrCast(display), &major_glx, &minor_glx);
+    //    // TODO(Thomas): This should be dependent on some backend options that we'll
+    //    // pass in at some point in the future. If the backend is software then this does
+    //    // not make sense. If the backend requires higher versions, then that's what we should
+    //    // check against instead of this.
+    //    if (major_glx <= 1 and minor_glx < 2) {
+    //        std.log.err("GLX 1.2 or greater is required.\n", .{});
+    //        _ = c.XCloseDisplay(@ptrCast(display));
+    //        window.running = false;
+    //        return error.IncorrectGLXVersion;
+    //    } else {
+    //        // Client
+    //        std.log.info("GLX client version: {s}", .{c.glXGetClientString(@ptrCast(display), c.GLX_VERSION)});
+    //        std.log.info("GLX client vendor: {s}", .{c.glXGetClientString(@ptrCast(display), c.GLX_VENDOR)});
+    //        std.log.info("GLX client extensions:\n\t {s}", .{c.glXGetClientString(@ptrCast(display), c.GLX_EXTENSIONS)});
+
+    //        // Server
+    //        std.log.info("GLX server version: {s}\n", .{c.glXQueryServerString(@ptrCast(display), screen_id, c.GLX_VERSION)});
+    //        std.log.info("GLX server vendor: {s}\n", .{c.glXQueryServerString(@ptrCast(display), screen_id, c.GLX_VENDOR)});
+    //        std.log.info("GLX server extensions:\n\t {s}", .{c.glXQueryServerString(@ptrCast(display), screen_id, c.GLX_EXTENSIONS)});
+    //    }
+
+    //    var glx_attribs = [_]i32{
+    //        c.GLX_X_RENDERABLE,  c.True,
+    //        c.GLX_DRAWABLE_TYPE, c.GLX_WINDOW_BIT,
+    //        c.GLX_RENDER_TYPE,   c.GLX_RGBA_BIT,
+    //        c.GLX_X_VISUAL_TYPE, c.GLX_TRUE_COLOR,
+    //        c.GLX_RED_SIZE,      8,
+    //        c.GLX_GREEN_SIZE,    8,
+    //        c.GLX_BLUE_SIZE,     8,
+    //        c.GLX_ALPHA_SIZE,    8,
+    //        c.GLX_STENCIL_SIZE,  8,
+    //        c.GLX_DOUBLEBUFFER,  c.True,
+    //        c.None,
+    //    };
+
+    //    const best_fbc_config = try findBestFBConfig(@ptrCast(display), screen_id, &glx_attribs);
+
+    //    const visual = c.glXGetVisualFromFBConfig(@ptrCast(display), best_fbc_config);
+    //    if (visual == 0) {
+    //        std.log.err("Could not create correct visual window.\n", .{});
+    //        _ = c.XCloseDisplay(@ptrCast(display));
+    //        window.running = false;
+    //        return error.IncorrectVisualWindow;
+    //    }
+    //    window.visual = visual;
+
+    //    if (screen_id != visual.*.screen) {
+    //        std.log.err("screen_id({}) does not match visual.screen({})", .{ screen_id, visual.*.screen });
+    //        _ = c.XCloseDisplay(@ptrCast(display));
+    //        window.running = false;
+    //        return error.NonMatchingScreenIdWithVisualScreen;
+    //    }
+
+    //    // Open the window
+    //    var window_attribs = c.XSetWindowAttributes{
+    //        .border_pixel = c.BlackPixel(display, screen_id),
+    //        .background_pixel = c.WhitePixel(display, screen_id),
+    //        .override_redirect = @intFromBool(true),
+    //        .colormap = c.XCreateColormap(@ptrCast(display), c.RootWindow(display, screen_id), visual.*.visual, c.AllocNone),
+    //        .event_mask = c.ExposureMask,
+    //    };
+
+    //    const x_window = c.XCreateWindow(
+    //        @ptrCast(display),
+    //        c.RootWindow(display, screen_id),
+    //        0,
+    //        0,
+    //        @intCast(width),
+    //        @intCast(height),
+    //        0,
+    //        visual.*.depth,
+    //        c.InputOutput,
+    //        visual.*.visual,
+    //        c.CWBackPixel | c.CWColormap | c.CWBorderPixel | c.CWEventMask,
+    //        &window_attribs,
+    //    );
+
+    //    const key_mask = c.KeyPressMask | c.KeyReleaseMask;
+    //    const button_mask = c.ButtonPressMask | c.ButtonReleaseMask;
+    //    const window_mask = c.EnterWindowMask | c.LeaveWindowMask;
+    //    _ = c.XSelectInput(
+    //        display,
+    //        x_window,
+    //        key_mask | c.KeymapStateMask | c.PointerMotionMask | button_mask | window_mask | c.ExposureMask,
+    //    );
+
+    //    // Name the window
+    //    _ = c.XStoreName(display, x_window, @ptrCast(name));
+
+    //    window.window_id = x_window;
+
+    //    // Create GLX OpenGL context
+
+    //    glXCreateContextAttribsARB = @as(
+    //        @TypeOf(glXCreateContextAttribsARB),
+    //        @ptrCast(@alignCast(c.glXGetProcAddress("glXCreateContextAttribsARB"))),
+    //    );
+
+    //    const glxExts = c.glXQueryExtensionsString(@ptrCast(display), screen_id);
+    //    std.log.info("Late extensions:\n\t{s}\n\t", .{glxExts});
+    //    if (glXCreateContextAttribsARB == null) {
+    //        std.log.err("glxCreateContextAttribsARB() not found.\n", .{});
+    //    }
+
+    //    const context_attribs = [_]i32{
+    //        c.GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+    //        c.GLX_CONTEXT_MINOR_VERSION_ARB, 2,
+    //        c.GLX_CONTEXT_FLAGS_ARB,         c.GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+    //        c.None,
+    //    };
+
+    //    var context: c.GLXContext = null;
+
+    //    if (isExtensionSupported(glxExts, "GLX_ARB_create_context")) {
+    //        context = c.glXCreateNewContext(display, best_fbc_config, c.GLX_RGBA_TYPE, null, c.True);
+    //    } else {
+    //        // TODO(Thomas): the glxCreateXontextAttribsARB seems to be broken here. Need to be verified and tested properly.
+    //        context = glXCreateContextAttribsARB.?(@ptrCast(display), best_fbc_config, null, c.True, @ptrCast(&context_attribs));
+    //    }
+
+    //    window.gl_context = context;
+
+    //    _ = c.XSync(@ptrCast(display), c.False);
+
+    //    if (c.glXIsDirect(@ptrCast(display), context) == 0) {
+    //        std.log.info("Indirect GLX rendering context obtained", .{});
+    //    } else {
+    //        std.log.info("Direct GLX rendering context obtained", .{});
+    //    }
+
+    //    _ = c.glXMakeCurrent(@ptrCast(display), x_window, context);
+
+    //    std.log.info("GL Vendor: {s}\n", .{c.glGetString(c.GL_VENDOR)});
+    //    std.log.info("GL Renderer: {s}\n", .{c.glGetString(c.GL_RENDERER)});
+    //    std.log.info("GL Version: {s}\n", .{c.glGetString(c.GL_VERSION)});
+    //    std.log.info("GL Shading Language: {s}\n", .{c.glGetString(c.GL_SHADING_LANGUAGE_VERSION)});
+
+    //    // Show the window
+    //    _ = c.XClearWindow(display, x_window);
+    //    _ = c.XMapRaised(display, x_window);
+
+    //    atomWmDeleteWindow = c.XInternAtom(display, "WM_DELETE_WINDOW", c.False);
+    //    const result = c.XSetWMProtocols(display, x_window, &atomWmDeleteWindow, 1);
+    //    if (result == c.False) {
+    //        std.log.err("Failed to set protocol", .{});
+    //    }
+
+    //    // NOTE: This is set here to not make the rest of the application
+    //    // being forcefully synchronized.
+    //    _ = c.XSynchronize(@ptrCast(display), c.False);
+
+    //    return window;
+    //}
 
     pub fn deinit(self: Window) void {
         //self.allocator.destroy(self.event_queue);
@@ -244,7 +342,7 @@ pub const Window = struct {
         //c.glXDestroyWindow(@ptrCast(self.display), ????);
 
         // Cleanup X11
-        _ = c.XFree(self.visual);
+        //_ = c.XFree(self.visual);
 
         // TODO(Thomas): Not entirely sure how to do this yet.
         //_ = c.XFreeColormap(@ptrCast(self.display), ?????);
