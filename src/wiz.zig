@@ -153,7 +153,13 @@ pub const PlatformWindow = struct {
     window_data: *WindowData,
     window_type: WindowType,
 
-    pub fn init(allocator: Allocator, width: i32, height: i32, window_format: WindowFormat, comptime name: []const u8) !PlatformWindow {
+    pub fn init(
+        allocator: Allocator,
+        width: i32,
+        height: i32,
+        window_format: WindowFormat,
+        comptime name: []const u8,
+    ) !PlatformWindow {
         var window_data = try allocator.create(WindowData);
         window_data.width = width;
         window_data.height = height;
