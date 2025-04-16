@@ -576,7 +576,7 @@ fn isExtensionSupported(ext_list: [*c]const u8, extension: []const u8) bool {
     // Use span here to convert from [*c]const u8 to []const u8
     // which makes it easy to split on the whitespace delimiter and then compare.
     const extensions = std.mem.span(ext_list);
-    var extensions_it = std.mem.split(u8, extensions, " ");
+    var extensions_it = std.mem.splitAny(u8, extensions, " ");
     while (extensions_it.next()) |ext| {
         if (std.mem.eql(u8, ext, extension)) {
             return true;
