@@ -1,10 +1,12 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const windows = std.os.windows;
 
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
+const wiz = @import("wiz.zig");
 const gdi32 = @import("gdi32.zig");
 const kernel32 = @import("kernel32.zig");
 const opengl32 = @import("opengl32.zig");
@@ -25,28 +27,9 @@ pub extern "winmm" fn timeBeginPeriod(uPeriod: windows.UINT) callconv(windows.WI
 pub const default_window_width: i32 = 640;
 pub const default_window_height: i32 = 480;
 
-pub const WindowFormat = enum {
-    windowed,
-    fullscreen,
-    borderless,
-};
-
-pub const windowPosCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
-pub const windowSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
-pub const windowFramebufferSizeCallbackType: *const fn (window: *Window, width: i32, height: i32) void = undefined;
-pub const mouseMoveCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32) void = undefined;
-pub const mouseButtonCallbackType: *const fn (window: *Window, x_pos: i32, y_pos: i32, button: MouseButton) void = undefined;
-
-pub const WindowCallbacks = struct {
-    window_pos: ?*const fn (window: *Window, x_pos: i32, y_pos: i32) void = null,
-    window_resize: ?*const fn (window: *Window, width: i32, height: i32) void = null,
-    window_framebuffer_resize: ?*const fn (window: *Window, width: i32, height: i32) void = null,
-    mouse_move: ?*const fn (window: *Window, x_pos: i32, y_pos: i32) void = null,
-    mouse_button: ?*const fn (window: *Window, x_pos: i32, y_pos: i32, button: MouseButton) void = null,
-};
-
 pub const Window = struct {
     allocator: Allocator,
+    platform_window_data: *wiz.WindowData,
     h_instance: windows.HINSTANCE,
     hwnd: ?windows.HWND,
     hglrc: ?windows.HGLRC,
@@ -54,8 +37,6 @@ pub const Window = struct {
     lp_class_name: [*:0]const u16,
     x_pos: i32,
     y_pos: i32,
-    width: i32,
-    height: i32,
     running: bool,
     last_mouse_x: i16,
     last_mouse_y: i16,
@@ -64,11 +45,15 @@ pub const Window = struct {
     capture_cursor: bool,
     is_vsync: bool,
     is_fullscreen: bool,
-    callbacks: WindowCallbacks,
     event_queue: EventQueue,
     raw_mouse_motion_buf: []u8,
 
-    pub fn init(allocator: Allocator, width: i32, height: i32, format: WindowFormat, comptime name: []const u8) !*Window {
+    pub fn init(
+        allocator: Allocator,
+        platform_window_data: *wiz.WindowData,
+        format: wiz.WindowFormat,
+        comptime name: []const u8,
+    ) !*Window {
         var h_instance: windows.HINSTANCE = undefined;
         if (windows.kernel32.GetModuleHandleW(null)) |hinst| {
             h_instance = @ptrCast(hinst);
@@ -98,12 +83,11 @@ pub const Window = struct {
 
         var window = try allocator.create(Window);
         window.allocator = allocator;
+        window.platform_window_data = platform_window_data;
         window.h_instance = h_instance;
         window.hglrc = null;
         window.hdc = null;
         window.lp_class_name = wc.lpszClassName;
-        window.width = width;
-        window.height = height;
 
         window.running = true;
         window.x_pos = 0;
@@ -123,9 +107,6 @@ pub const Window = struct {
         window.is_vsync = false;
         window.is_fullscreen = false;
 
-        window.callbacks = WindowCallbacks{};
-        window.callbacks.window_resize = defaultWindowSizeCallback;
-
         // TODO (Thomas): Make event queue size configureable?
         const event_queue_size: usize = 1000;
         window.event_queue = try EventQueue.init(allocator, event_queue_size);
@@ -139,8 +120,8 @@ pub const Window = struct {
             user32.WS_OVERLAPPEDWINDOW | user32.WS_VISIBLE,
             0,
             0,
-            window.width,
-            window.height,
+            window.platform_window_data.width,
+            window.platform_window_data.height,
             null,
             null,
             h_instance,
@@ -204,8 +185,8 @@ pub const Window = struct {
                             user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
                         );
 
-                        window.width = max_x - min_x;
-                        window.height = max_y - min_y;
+                        window.platform_window_data.width = max_x - min_x;
+                        window.platform_window_data.height = max_y - min_y;
                     }
                     window.is_fullscreen = true;
                 }
@@ -296,8 +277,7 @@ pub const Window = struct {
         // 2. LoadOpenGLFunctions
         // 3. Make modern OpenGL context
         try self.makeOpenGLContext();
-        opengl32.loadOpenGLFunctions();
-
+        opengl32.loadWGLFunctions();
         {
 
             // Set pixel format for OpenGl context
@@ -362,11 +342,11 @@ pub const Window = struct {
 
     // TODO(Thomas): This needs more thought when more of the API is shaping up.
     // Also, this should ideally not be able to fail or error at least.
-    pub fn deinit(self: Window) !void {
+    pub fn deinit(self: Window) void {
         if (self.hwnd) |hwnd| {
-            try user32.destroyWindow(hwnd);
+            user32.destroyWindow(hwnd) catch unreachable;
         }
-        try user32.unregisterClassW(self.lp_class_name, self.h_instance);
+        user32.unregisterClassW(self.lp_class_name, self.h_instance) catch unreachable;
 
         // TODO: handle return value
         if (self.hglrc) |hglrc| {
@@ -376,6 +356,8 @@ pub const Window = struct {
         if (self.hdc) |hdc| {
             _ = user32.releaseDC(self.hwnd, hdc);
         }
+
+        self.allocator.free(self.raw_mouse_motion_buf);
     }
 
     pub fn swapBuffers(self: *Window) !void {
@@ -444,14 +426,16 @@ pub const Window = struct {
                 const window_opt = getWindowFromHwnd(hwnd);
                 if (window_opt) |window| {
                     const dim = getLParamDims(l_param);
-                    if (dim[0] != window.width or dim[1] != window.height) {
+                    if (dim[0] != window.platform_window_data.width or dim[1] != window.platform_window_data.height) {
                         const width = dim[0];
                         const height = dim[1];
-                        if (window.callbacks.window_resize) |cb| {
-                            cb(window, width, height);
+
+                        if (window.platform_window_data.callbacks.window_resize) |cb| {
+                            cb(window.platform_window_data, width, height);
                         }
-                        if (window.callbacks.window_framebuffer_resize) |cb| {
-                            cb(window, width, height);
+
+                        if (window.platform_window_data.callbacks.window_framebuffer_resize) |cb| {
+                            cb(window.platform_window_data, width, height);
                         }
                     }
                 }
@@ -464,8 +448,9 @@ pub const Window = struct {
                     const y = pos[1];
                     window.x_pos = x;
                     window.y_pos = y;
-                    if (window.callbacks.window_pos) |cb| {
-                        cb(window, x, y);
+
+                    if (window.platform_window_data.callbacks.window_pos) |cb| {
+                        cb(window.platform_window_data, x, y);
                     }
                 }
             },
@@ -485,8 +470,8 @@ pub const Window = struct {
                     var cursor_client_pos = user32.POINT{ .x = x, .y = y };
                     user32.screenToClient(hwnd, &cursor_client_pos) catch unreachable;
 
-                    if (window.callbacks.mouse_move) |cb| {
-                        cb(window, x, y);
+                    if (window.platform_window_data.callbacks.mouse_move) |cb| {
+                        cb(window.platform_window_data, x, y);
                     } else {
                         // TODO (Thomas): Think about how capture_cursor and raw_mouse_motion should
                         // work in this case, meaning raw_mouse_motion is not enable but the cursor is hidden.
@@ -519,9 +504,9 @@ pub const Window = struct {
                     const x = pos[0];
                     const y = pos[1];
 
-                    if (window.callbacks.mouse_button) |cb| {
+                    if (window.platform_window_data.callbacks.mouse_button) |cb| {
                         // TODO (Thomas): Need to know wheter it was button up or down in callback
-                        cb(window, x, y, MouseButton.middle);
+                        cb(window.platform_window_data, x, y, MouseButton.middle);
                     } else {
                         const button_event = MouseButtonEvent{
                             .x = x,
@@ -717,8 +702,8 @@ pub const Window = struct {
                     user32.SWP_NOOWNERZORDER | user32.SWP_FRAMECHANGED,
                 );
 
-                self.width = max_x - min_x;
-                self.height = max_y - min_y;
+                self.platform_window_data.width = max_x - min_x;
+                self.platform_window_data.height = max_y - min_y;
                 if (self.capture_cursor) {
                     try self.constrainAndCenterCursor();
                 }
@@ -862,43 +847,14 @@ pub const Window = struct {
             }
         }
     }
-
-    pub fn setWindowPosCallback(self: *Window, cb_fun: @TypeOf(windowPosCallbackType)) void {
-        self.callbacks.window_pos = cb_fun;
-    }
-
-    pub fn setWindowSizeCallback(self: *Window, cb_fun: @TypeOf(windowSizeCallbackType)) void {
-        self.callbacks.window_resize = cb_fun;
-    }
-
-    pub fn setWindowFramebufferSizeCallback(self: *Window, cb_fun: @TypeOf(windowFramebufferSizeCallbackType)) void {
-        self.callbacks.window_framebuffer_resize = cb_fun;
-    }
-
-    pub fn setMouseMoveCallback(self: *Window, cb_fun: @TypeOf(mouseMoveCallbackType)) void {
-        self.callbacks.mouse_move = cb_fun;
-    }
-
-    // TODO (Thomas): What to do with the default callbacks? Are they really necessary?
-    fn defaultWindowPosCallback(window: *Window, x_pos: i32, y_pos: i32) void {
-        _ = window;
-        _ = x_pos;
-        _ = y_pos;
-    }
-
-    fn defaultWindowSizeCallback(window: *Window, width: i32, height: i32) void {
-        window.width = width;
-        window.height = height;
-    }
-
-    fn defaultWindowFramebufferSizeCallback(window: *Window, width: i32, height: i32) void {
-        _ = window;
-        _ = width;
-        _ = height;
-    }
-
-    fn defaultMoseMoveCallback(window: *Window, x_pos: i32, y_pos: i32) void {
-        window.last_mouse_x = x_pos;
-        window.last_mouse_y = y_pos;
-    }
 };
+
+test {
+    // NOTE (Thomas): This is necessary for the tests to pass when run on Linux
+    if (builtin.os.tag == .windows) {
+        std.testing.refAllDeclsRecursive(@This());
+
+        @setEvalBranchQuota(10_000);
+        std.testing.refAllDeclsRecursive(user32);
+    }
+}

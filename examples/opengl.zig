@@ -2,11 +2,12 @@ const std = @import("std");
 
 const wiz = @import("wiz");
 
-const gl = wiz.opengl32;
+const gl = wiz.opengl;
 const Event = wiz.Event;
 const KeyEvent = wiz.KeyEvent;
-const Window = wiz.Window;
+const PlatformWindow = wiz.PlatformWindow;
 const WindowFormat = wiz.WindowFormat;
+const WindowData = wiz.WindowData;
 
 const vertex_shader_source: [:0]const u8 =
     \\#version 450 core
@@ -33,10 +34,13 @@ const vertices = [_]f32{
 };
 
 pub fn main() !void {
-    var window = try Window.init(std.heap.page_allocator, 640, 480, WindowFormat.windowed, "opengl-example");
-    defer window.deinit() catch unreachable;
+    var window = try PlatformWindow.init(std.heap.page_allocator, 640, 480, WindowFormat.windowed, "opengl-example");
+    defer window.deinit();
 
     try window.makeModernOpenGLContext();
+
+    // NOTE(Thomas): It's very important to load after making the context on Windows at least.
+    gl.load();
     window.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
     try window.setVSync(false);
@@ -87,7 +91,7 @@ pub fn main() !void {
     var last: i64 = 0;
 
     var event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
-    while (window.running) {
+    while (window.isRunning()) {
         last = now;
         try wiz.queryPerformanceCounter(&now);
 
@@ -96,8 +100,9 @@ pub fn main() !void {
         try wiz.queryPerformanceFrequency(&perf_freq);
         delta_time = @as(f32, @floatFromInt((now - last))) * (wiz.ms_per_sec / @as(f32, @floatFromInt(perf_freq)));
 
-        try Window.processMessages();
-        while (window.event_queue.poll(&event)) {
+        //try PlatformWindow.processMessages();
+        try window.processMessages();
+        while (window.pollEvent(&event)) {
             switch (event) {
                 .KeyDown => {
                     if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_Escape)) {
@@ -107,7 +112,7 @@ pub fn main() !void {
                         try window.toggleFullscreen();
                     }
                     if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_R)) {
-                        try window.setCaptureCursor(!window.capture_cursor);
+                        try window.setCaptureCursor(!window.getCaptureCursor());
                     }
                 },
                 else => {},
@@ -122,7 +127,7 @@ pub fn main() !void {
 
         try window.swapBuffers();
 
-        if (!window.is_vsync) {
+        if (!window.isVSync()) {
             var frame_end_time: i64 = 0;
             try wiz.queryPerformanceCounter(&frame_end_time);
             const frame_processing_time = frame_end_time - last; // Time taken for current frame
@@ -136,7 +141,7 @@ pub fn main() !void {
     std.debug.print("Exiting app\n", .{});
 }
 
-pub fn framebufferSizeCallback(window: *Window, width: i32, height: i32) void {
+pub fn framebufferSizeCallback(window: *WindowData, width: i32, height: i32) void {
     _ = window;
     gl.glViewport(0, 0, width, height);
 }

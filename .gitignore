@@ -1,9 +1,13 @@
 # Zig
+.zig-cache/
 zig-cache/
 zig-out/
 
 # RemedyBG
 *.rdbg
+
+# VSCode
+.vscode/
 
 # Tracy
 src/tracy/

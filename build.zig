@@ -11,7 +11,7 @@ pub fn build(
 
     const lib = b.addStaticLibrary(.{
         .name = "wiz",
-        .root_source_file = .{ .path = "src/root.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
         .target = target,
         .optimize = optimize,
     });
@@ -22,20 +22,36 @@ pub fn build(
 
     const enable_tracy = b.option(bool, "enable_tracy", "Whether tracy should be enabled.") orelse false;
     exe_options.addOption(bool, "enable_tracy", enable_tracy);
-    exe_options.addOption(bool, "enable_tracy_allocation", b.option(
+    exe_options.addOption(
         bool,
         "enable_tracy_allocation",
-        "Enable using TracyAllocator to monitor allocations.",
-    ) orelse enable_tracy);
-    exe_options.addOption(bool, "enable_tracy_callstack", b.option(bool, "enable_tracy_callstack", "Enable callstack graphs.") orelse enable_tracy);
-    exe_options.addOption(bool, "enable_tracy_gpu", b.option(bool, "enable_tracy_gpu", "Enable GPU zones") orelse enable_tracy);
+        b.option(
+            bool,
+            "enable_tracy_allocation",
+            "Enable using TracyAllocator to monitor allocations.",
+        ) orelse enable_tracy,
+    );
+    exe_options.addOption(
+        bool,
+        "enable_tracy_callstack",
+        b.option(
+            bool,
+            "enable_tracy_callstack",
+            "Enable callstack graphs.",
+        ) orelse enable_tracy,
+    );
+    exe_options.addOption(
+        bool,
+        "enable_tracy_gpu",
+        b.option(bool, "enable_tracy_gpu", "Enable GPU zones") orelse enable_tracy,
+    );
 
     makeExe(b, target, optimize, exe_options, enable_tracy);
     makeOpenglExampleExe(b, target, optimize, exe_options, enable_tracy);
     runTests(b, optimize, target);
 }
 
-fn buildTracy(exe: *Compile, target: ResolvedTarget) void {
+fn buildTracy(b: *std.Build, exe: *Compile, target: ResolvedTarget) void {
     const client_cpp = "src/tracy/public/TracyClient.cpp";
 
     // On mingw, we need to opt into windows 7+ to get some features required by tracy.
@@ -44,9 +60,9 @@ fn buildTracy(exe: *Compile, target: ResolvedTarget) void {
     else
         &[_][]const u8{ "-DTRACY_ENABLE=1", "-fno-sanitize=undefined" };
 
-    exe.addIncludePath(.{ .path = "src/tracy" });
+    exe.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src/tracy" } });
     exe.addCSourceFile(.{
-        .file = .{ .path = client_cpp },
+        .file = .{ .src_path = .{ .owner = b, .sub_path = client_cpp } },
         .flags = tracy_c_flags,
     });
     exe.linkLibCpp();
@@ -60,10 +76,18 @@ fn buildTracy(exe: *Compile, target: ResolvedTarget) void {
 
 fn buildExe(b: *Build, exe: *Compile, target: ResolvedTarget, enable_tracy: bool) void {
     if (enable_tracy) {
-        buildTracy(exe, target);
+        buildTracy(b, exe, target);
     }
 
-    exe.linkSystemLibrary("opengl32");
+    if (target.result.os.tag == .windows) {
+        exe.linkSystemLibrary("opengl32");
+    }
+
+    if (target.result.os.tag == .linux) {
+        exe.linkLibC();
+        exe.linkSystemLibrary("X11");
+        exe.linkSystemLibrary("GL");
+    }
 
     b.installArtifact(exe);
 }
@@ -90,7 +114,7 @@ fn makeExe(
 ) void {
     const exe = b.addExecutable(.{
         .name = "wiz",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/main.zig" } },
         .target = target,
         .optimize = optimize,
     });
@@ -109,15 +133,20 @@ fn buildOpenglExample(
     enable_tracy: bool,
 ) void {
     const wiz_module = b.addModule("wiz", .{
-        .root_source_file = .{ .path = "src/wiz.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
     });
 
     wiz_module.addImport("build_options", build_options_module);
 
     exe.root_module.addImport("wiz", wiz_module);
+    if (target.result.os.tag == .linux) {
+        exe.linkLibC();
+        exe.linkSystemLibrary("X11");
+        exe.linkSystemLibrary("GL");
+    }
 
     if (enable_tracy) {
-        buildTracy(exe, target);
+        buildTracy(b, exe, target);
     }
 
     b.installArtifact(exe);
@@ -135,7 +164,7 @@ fn makeOpenglExampleExe(
 ) void {
     const exe = b.addExecutable(.{
         .name = "opengl-example",
-        .root_source_file = .{ .path = "examples/opengl.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "examples/opengl.zig" } },
         .target = target,
         .optimize = optimize,
     });
@@ -146,28 +175,21 @@ fn makeOpenglExampleExe(
 fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedTarget) void {
     const root_tests = b.addTest(.{
         .name = "root_tests",
-        .root_source_file = .{ .path = "src/root.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
         .target = target,
         .optimize = optimize,
     });
 
     const input_tests = b.addTest(.{
         .name = "input_tests",
-        .root_source_file = .{ .path = "src/input.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/input.zig" } },
         .target = target,
         .optimize = optimize,
     });
 
     const exe_tests = b.addTest(.{
         .name = "exe_tests",
-        .root_source_file = .{ .path = "src/main.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const wiz_module_tests = b.addTest(.{
-        .name = "wiz_module_tests",
-        .root_source_file = .{ .path = "src/wiz.zig" },
+        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/main.zig" } },
         .target = target,
         .optimize = optimize,
     });
@@ -175,11 +197,65 @@ fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedT
     const run_root_tests = b.addRunArtifact(root_tests);
     const run_lib_input_tests = b.addRunArtifact(input_tests);
     const run_exe_tests = b.addRunArtifact(exe_tests);
-    const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_root_tests.step);
     test_step.dependOn(&run_lib_input_tests.step);
     test_step.dependOn(&run_exe_tests.step);
-    test_step.dependOn(&run_wiz_module_tests.step);
+
+    // TODO(Thomas): This is not ideal, but it works for now. Find a better way.
+    // Platform specific tests, this includes the wiz_module tests too since depending
+    // on the platform it will pull in e.g. X11 which will need to link LibC and so on.
+    switch (target.result.os.tag) {
+        .windows => {
+            const wiz_module_tests = b.addTest(.{
+                .name = "wiz_module_tests",
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
+                .target = target,
+                .optimize = optimize,
+            });
+
+            const windows_tests = b.addTest(.{
+                .name = "windows_tests",
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/windows.zig" } },
+                .target = target,
+                .optimize = optimize,
+            });
+
+            const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
+            const run_lib_windows_tests = b.addRunArtifact(windows_tests);
+
+            test_step.dependOn(&run_wiz_module_tests.step);
+            test_step.dependOn(&run_lib_windows_tests.step);
+        },
+        .linux => {
+            const wiz_module_tests = b.addTest(.{
+                .name = "wiz_module_tests",
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
+                .target = target,
+                .optimize = optimize,
+            });
+            wiz_module_tests.linkLibC();
+            wiz_module_tests.linkSystemLibrary("X11");
+            wiz_module_tests.linkSystemLibrary("GL");
+
+            const x11_tests = b.addTest(.{
+                .name = "x11_tests",
+                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/x11.zig" } },
+                .target = target,
+                .optimize = optimize,
+            });
+
+            x11_tests.linkLibC();
+            x11_tests.linkSystemLibrary("X11");
+            x11_tests.linkSystemLibrary("GL");
+
+            const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
+            const run_lib_x11_tests = b.addRunArtifact(x11_tests);
+
+            test_step.dependOn(&run_wiz_module_tests.step);
+            test_step.dependOn(&run_lib_x11_tests.step);
+        },
+        else => unreachable,
+    }
 }

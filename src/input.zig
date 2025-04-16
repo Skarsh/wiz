@@ -1,9 +1,130 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const Window = @import("windows.zig").Window;
+//const Window = @import("windows.zig").Window;
 
 const tracy = @import("tracy.zig");
+
+pub const Key = enum(u32) {
+    key_unspecified = 0,
+    key_a = 4,
+    key_b = 5,
+    key_c = 6,
+    key_d = 7,
+    key_e = 8,
+    key_f = 9,
+    key_g = 10,
+    key_h = 11,
+    key_i = 12,
+    key_j = 13,
+    key_k = 14,
+    key_l = 15,
+    key_m = 16,
+    key_n = 17,
+    key_o = 18,
+    key_p = 19,
+    key_q = 20,
+    key_r = 21,
+    key_s = 22,
+    key_t = 23,
+    key_u = 24,
+    key_v = 25,
+    key_w = 26,
+    key_x = 27,
+    key_y = 28,
+    key_z = 29,
+    key_1 = 30,
+    key_2 = 31,
+    key_3 = 32,
+    key_4 = 33,
+    key_5 = 34,
+    key_6 = 35,
+    key_7 = 36,
+    key_8 = 37,
+    key_9 = 38,
+    key_0 = 39,
+    key_return = 40,
+    key_escape = 41,
+    key_backspace = 42,
+    key_tab = 43,
+    key_space = 44,
+    key_minus = 45,
+    key_equals = 46,
+    key_left_bracket = 47,
+    key_right_bracket = 48,
+    key_backslash = 49,
+    key_nonus_hash = 50,
+    key_semicolon = 51,
+    key_apostrophe = 52,
+    key_grave = 53,
+    key_comma = 54,
+    key_period = 55,
+    key_slash = 56,
+    key_capslock = 57,
+    key_f1 = 58,
+    key_f2 = 59,
+    key_f3 = 60,
+    key_f4 = 61,
+    key_f5 = 62,
+    key_f6 = 63,
+    key_f7 = 64,
+    key_f8 = 65,
+    key_f9 = 66,
+    key_f10 = 67,
+    key_f11 = 68,
+    key_f12 = 69,
+    key_printscreen = 70,
+    key_scroll_lock = 71,
+    key_pause = 72,
+    key_insert = 73,
+    key_home = 74,
+    key_pageup = 75,
+    key_delete = 76,
+    key_end = 77,
+    key_pagedown = 78,
+    key_right = 79,
+    key_left = 80,
+    key_down = 81,
+    key_up = 82,
+    key_numlock_clear = 83,
+    key_keypad_divide = 84,
+    key_keypad_mulitply = 85,
+    key_keypad_minus = 86,
+    key_keypad_plus = 87,
+    key_keypad_enter = 88,
+    key_keypad_1 = 89,
+    key_keypad_2 = 90,
+    key_keypad_3 = 91,
+    key_keypad_4 = 92,
+    key_keypad_5 = 93,
+    key_keypad_6 = 94,
+    key_keypad_7 = 95,
+    key_keypad_8 = 96,
+    key_keypad_9 = 97,
+    key_keypad_0 = 98,
+    key_keypad_period = 99,
+    key_keypad_nonus_backslash = 100,
+    key_keypad_application = 101,
+    key_keypad_power = 102,
+    key_keypad_equals = 103,
+    key_f13 = 104,
+    key_f14 = 105,
+    key_f15 = 106,
+    key_f16 = 107,
+    key_f17 = 108,
+    key_f18 = 109,
+    key_f19 = 110,
+    key_f20 = 111,
+    key_f21 = 112,
+    key_f22 = 113,
+    key_f23 = 114,
+    key_f24 = 115,
+    // TODO (Thomas) There are more keys here if one are supposed to follow
+    // https://www.usb.org/sites/default/files/documents/hut1_12v2.pdf (10 Keyboard/Keypad Page (0x07))
+    // which e.g. SDL2 does. Not necessary for our case though for now
+    //
+    key_last = 116,
+};
 
 // NOTE(Thomas): These scancodes are from https://learn.microsoft.com/nb-no/windows/win32/inputdev/about-keyboard-input
 pub const Scancode = enum(u32) {
@@ -93,10 +214,10 @@ pub const Scancode = enum(u32) {
 
 pub const EventType = enum {
     Empty,
-    WindowResized,
-    WindowDestroyed,
-    WindowDamaged,
-    WindowVBlank,
+    //WindowResized,
+    //WindowDestroyed,
+    //WindowDamaged,
+    //WindowVBlank,
     AppTerminated,
     KeyDown,
     KeyUp,
@@ -139,10 +260,10 @@ pub const Event = union(EventType) {
     // TODO (Thomas): I don't know about these Window specific events.
     // Do they belong in here?
     Empty: void,
-    WindowResized: *Window,
-    WindowDestroyed: *Window,
-    WindowDamaged: struct { window: *Window, x: u16, y: u16, w: u16, h: u16 },
-    WindowVBlank: *Window,
+    //WindowResized: *Window,
+    //WindowDestroyed: *Window,
+    //WindowDamaged: struct { window: *Window, x: u16, y: u16, w: u16, h: u16 },
+    //WindowVBlank: *Window,
     AppTerminated: void,
     KeyDown: KeyEvent,
     KeyUp: KeyEvent,
@@ -205,15 +326,19 @@ pub const EventQueue = struct {
         // Queue is empty
         if (self.head == -1) {
             return false;
-        } else if (self.head == self.tail) {
+        } else if (self.head == self.tail and self.head >= 0 and self.tail >= 0) {
             event.* = self.queue[@intCast(self.head)];
             self.head = -1;
             self.tail = -1;
             return true;
         } else {
-            event.* = self.queue[@intCast(self.head)];
-            self.head = @mod((self.head + 1), @as(isize, @intCast(self.queue.len)));
-            return true;
+            if (self.head >= 0) {
+                event.* = self.queue[@intCast(self.head)];
+                self.head = @mod((self.head + 1), @as(isize, @intCast(self.queue.len)));
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
@@ -235,7 +360,25 @@ test "Init test" {
     try expectEqual(event_queue.tail, -1);
 }
 
-test "EnqueueTest initial condition" {
+test "Poll Empty Queue" {
+    const allocator = std.testing.allocator;
+    const num_elements: usize = 10;
+    var event_queue = try EventQueue.init(allocator, num_elements);
+    defer event_queue.deinit();
+
+    var event: Event = Event{ .KeyDown = KeyEvent{ .scancode = 0 } };
+    try expectEqual(event_queue.queue.len, 10);
+    try expectEqual(event_queue.head, -1);
+    try expectEqual(event_queue.tail, -1);
+
+    try expectEqual(event_queue.poll(&event), false);
+
+    try expectEqual(event_queue.queue.len, 10);
+    try expectEqual(event_queue.head, -1);
+    try expectEqual(event_queue.tail, -1);
+}
+
+test "Enqueue empty queue" {
     const allocator = std.testing.allocator;
     const num_elements: usize = 10;
     var event_queue = try EventQueue.init(allocator, num_elements);
@@ -248,7 +391,7 @@ test "EnqueueTest initial condition" {
     try expectEqual(event_queue.queue[0], event);
 }
 
-test "Poll initial condition" {
+test "Poll one element" {
     const allocator = std.testing.allocator;
     const num_elements: usize = 10;
     var event_queue = try EventQueue.init(allocator, num_elements);

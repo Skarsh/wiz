@@ -1,11 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const Timer = std.time.Timer;
-const windows = std.os.windows;
-const kernel32 = windows.kernel32;
-const user32 = @import("user32.zig");
-const gdi32 = @import("gdi32.zig");
-const opengl32 = @import("opengl32.zig");
+const opengl = @import("opengl.zig");
 const input = @import("input.zig");
 const wiz = @import("wiz.zig");
 const FrameTimes = wiz.FrameTimes;
@@ -14,9 +9,9 @@ const build_options = @import("build_options");
 const Event = input.Event;
 const u8to16le = std.unicode.utf8ToUtf16LeStringLiteral;
 
-const Window = @import("windows.zig").Window;
-const WindowOptions = @import("windows.zig").WindowOptions;
-const WindowFormat = @import("windows.zig").WindowFormat;
+const PlatformWindow = wiz.PlatformWindow;
+const WindowFormat = wiz.WindowFormat;
+const WindowData = wiz.WindowData;
 const enable_tracy = build_options.enable_tracy;
 
 pub fn main() !void {
@@ -32,13 +27,16 @@ pub fn main() !void {
 
     const window_width = 640;
     const window_height = 480;
-    var win = try Window.init(fba_allocator, window_width, window_height, WindowFormat.windowed, "win1");
-    defer win.deinit() catch unreachable;
+    var win = try PlatformWindow.init(fba_allocator, window_width, window_height, WindowFormat.windowed, "win1");
+    defer win.deinit();
 
     var frame_times = try FrameTimes.new(fba_allocator, 1000);
 
     try win.makeModernOpenGLContext();
     try win.setVSync(false);
+
+    // NOTE(Thomas): It's very important to load after making the context on Windows at least.
+    opengl.load();
 
     win.setWindowFramebufferSizeCallback(framebufferSizeCallback);
 
@@ -52,7 +50,7 @@ pub fn main() !void {
     var frame_count: usize = 0;
 
     var event: Event = Event{ .KeyDown = input.KeyEvent{ .scancode = 0 } };
-    while (win.running) {
+    while (win.isRunning()) {
         const tracy_zone = tracy.trace(@src());
         defer tracy_zone.end();
 
@@ -72,37 +70,47 @@ pub fn main() !void {
             std.debug.print("mean_frame_time: {d:.4}ms, {d:.2}fps\n", .{ mean_frame_time, wiz.ms_per_sec / mean_frame_time });
         }
 
-        try Window.processMessages();
-        while (win.event_queue.poll(&event)) {
+        try win.processMessages();
+        while (win.pollEvent(&event)) {
             switch (event) {
+                .MouseButtonDown => {
+                    std.debug.print("MouseButtonDown {}\n", .{event.MouseButtonDown.button});
+                },
+                .MouseButtonUp => {
+                    std.debug.print("MouseButtonUp {}\n", .{event.MouseButtonUp.button});
+                },
                 .KeyDown => {
+                    std.debug.print("KeyDown {}\n", .{event.KeyDown.scancode});
                     // Hardcoded for now, 1 = ESCAPE
-                    if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_Escape)) {
+                    if (event.KeyDown.scancode == @intFromEnum(input.Key.key_escape)) {
                         win.windowShouldClose(true);
                     }
-                    if (event.KeyDown.scancode == @intFromEnum(input.Scancode.Keyboard_F)) {
+                    if (event.KeyDown.scancode == @intFromEnum(input.Key.key_f)) {
                         try win.toggleFullscreen();
                     }
-                    if (event.KeyDown.scancode == @intFromEnum(wiz.Scancode.Keyboard_R)) {
-                        try win.setCaptureCursor(!win.capture_cursor);
-                        if (!win.raw_mouse_motion) {
+                    if (event.KeyDown.scancode == @intFromEnum(input.Key.key_r)) {
+                        try win.setCaptureCursor(!win.getCaptureCursor());
+                        if (!win.getRawMouseMotion()) {
                             win.enableRawMouseMotion();
                         } else {
                             win.disableRawMouseMotion();
                         }
                     }
                 },
+                .KeyUp => {
+                    std.debug.print("KeyUp {}\n", .{event.KeyUp.scancode});
+                },
                 else => {},
             }
         }
 
-        opengl32.glClearColor(0.2, 0.3, 0.3, 1.0);
-        opengl32.glClear(opengl32.GL_COLOR_BUFFER_BIT);
+        opengl.glClearColor(0.2, 0.3, 0.3, 1.0);
+        opengl.glClear(opengl.GL_COLOR_BUFFER_BIT);
         try win.swapBuffers();
 
         // TODO (Thomas): This is not a great way of doing this, find a better way. It's OK for now.
         // Calculate frame duration and adjust sleep time
-        if (!win.is_vsync) {
+        if (!win.isVSync()) {
             var frame_end_time: i64 = 0;
             try wiz.queryPerformanceCounter(&frame_end_time);
             const frame_processing_time = frame_end_time - last; // Time taken for current frame
@@ -116,7 +124,7 @@ pub fn main() !void {
     std.debug.print("Exiting app\n", .{});
 }
 
-pub fn framebufferSizeCallback(window: *Window, width: i32, height: i32) void {
+pub fn framebufferSizeCallback(window: *WindowData, width: i32, height: i32) void {
     _ = window;
-    opengl32.glViewport(0, 0, width, height);
+    opengl.glViewport(0, 0, width, height);
 }
