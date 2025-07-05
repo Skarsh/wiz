@@ -520,9 +520,9 @@ pub const Window = struct {
                         };
                         const event: Event =
                             if ((message == user32.WM_LBUTTONDOWN) or (message == user32.WM_MBUTTONDOWN) or (message == user32.WM_RBUTTONDOWN))
-                            Event{ .MouseButtonDown = button_event }
-                        else
-                            Event{ .MouseButtonUp = button_event };
+                                Event{ .MouseButtonDown = button_event }
+                            else
+                                Event{ .MouseButtonUp = button_event };
 
                         window.event_queue.enqueue(event);
                     }
