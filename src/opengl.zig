@@ -108,24 +108,24 @@ const GlError = error{
     IllegalError,
 };
 
-pub var glGenVertexArrays: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined;
-pub var glDeleteVertexArrays: *const fn (GLsizei, [*c]const GLuint) callconv(.C) void = undefined;
-pub var glGenBuffers: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined;
-pub var glDeleteBuffers: *const fn (GLsizei, [*c]const GLuint) callconv(.C) void = undefined;
-pub var glGenFramebuffers: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined;
+pub var glGenVertexArrays: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined;
+pub var glDeleteVertexArrays: *const fn (GLsizei, [*c]const GLuint) callconv(.c) void = undefined;
+pub var glGenBuffers: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined;
+pub var glDeleteBuffers: *const fn (GLsizei, [*c]const GLuint) callconv(.c) void = undefined;
+pub var glGenFramebuffers: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined;
 // TODO (Thomas): Why is the buffers pointers not const here? https://registry.khronos.org/OpenGL-Refpages/gl4/html/glDeleteFramebuffers.xhtml
-pub var glDeleteFramebuffers: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined;
-pub var glDeleteProgram: *const fn (GLuint) callconv(.C) void = undefined;
-pub var glGenRenderbuffers: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined;
-pub var glBindVertexArray: *const fn (GLuint) callconv(.C) void = undefined;
-pub var glBindBuffer: *const fn (KhrGLenum, GLuint) callconv(.C) void = undefined;
-pub var glBufferData: *const fn (KhrGLenum, stride: GLsizeiptr, ?*const anyopaque, KhrGLenum) callconv(.C) void = undefined;
-pub var glBindFramebuffer: *const fn (KhrGLenum, GLuint) callconv(.C) void = undefined;
-pub var glFramebufferTexture2D: *const fn (KhrGLenum, KhrGLenum, KhrGLenum, GLuint, GLint) callconv(.C) void = undefined;
-pub var glBindRenderbuffer: *const fn (KhrGLenum, GLuint) callconv(.C) void = undefined;
-pub var glRenderbufferStorage: *const fn (KhrGLenum, KhrGLenum, GLsizei, GLsizei) callconv(.C) void = undefined;
-pub var glFramebufferRenderbuffer: *const fn (KhrGLenum, KhrGLenum, KhrGLenum, GLuint) callconv(.C) void = undefined;
-pub var glCheckFramebufferStatus: *const fn (KhrGLenum) callconv(.C) KhrGLenum = undefined;
+pub var glDeleteFramebuffers: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined;
+pub var glDeleteProgram: *const fn (GLuint) callconv(.c) void = undefined;
+pub var glGenRenderbuffers: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined;
+pub var glBindVertexArray: *const fn (GLuint) callconv(.c) void = undefined;
+pub var glBindBuffer: *const fn (KhrGLenum, GLuint) callconv(.c) void = undefined;
+pub var glBufferData: *const fn (KhrGLenum, stride: GLsizeiptr, ?*const anyopaque, KhrGLenum) callconv(.c) void = undefined;
+pub var glBindFramebuffer: *const fn (KhrGLenum, GLuint) callconv(.c) void = undefined;
+pub var glFramebufferTexture2D: *const fn (KhrGLenum, KhrGLenum, KhrGLenum, GLuint, GLint) callconv(.c) void = undefined;
+pub var glBindRenderbuffer: *const fn (KhrGLenum, GLuint) callconv(.c) void = undefined;
+pub var glRenderbufferStorage: *const fn (KhrGLenum, KhrGLenum, GLsizei, GLsizei) callconv(.c) void = undefined;
+pub var glFramebufferRenderbuffer: *const fn (KhrGLenum, KhrGLenum, KhrGLenum, GLuint) callconv(.c) void = undefined;
+pub var glCheckFramebufferStatus: *const fn (KhrGLenum) callconv(.c) KhrGLenum = undefined;
 pub var glVertexAttribPointer: *const fn (
     GLuint,
     size: GLint,
@@ -133,34 +133,34 @@ pub var glVertexAttribPointer: *const fn (
     GLboolean,
     stride: GLsizei,
     pointer: ?*const anyopaque,
-) callconv(.C) void = undefined;
-pub var glEnableVertexAttribArray: *const fn (GLuint) callconv(.C) void = undefined;
-pub var glViewport: *const fn (GLint, GLint, GLsizei, GLsizei) callconv(.C) void = undefined;
-pub var glEnable: *const fn (KhrGLenum) callconv(.C) void = undefined;
-pub var glClearColor: *const fn (GLfloat, GLfloat, GLfloat, GLfloat) callconv(.C) void = undefined;
-pub var glClear: *const fn (GLbitfield) callconv(.C) void = undefined;
-pub var glActiveTexture: *const fn (KhrGLenum) callconv(.C) void = undefined;
-pub var glDrawArrays: *const fn (KhrGLenum, GLint, GLsizei) callconv(.C) void = undefined;
-pub var glCreateShader: *const fn (KhrGLenum) callconv(.C) GLuint = undefined;
-pub var glShaderSource: *const fn (GLuint, GLsizei, [*c]const [*c]const GLchar, [*c]const GLint) callconv(.C) void = undefined;
-pub var glCompileShader: *const fn (GLuint) callconv(.C) void = undefined;
-pub var glAttachShader: *const fn (GLuint, GLuint) callconv(.C) void = undefined;
-pub var glCreateProgram: *const fn () callconv(.C) GLuint = undefined;
-pub var glLinkProgram: *const fn (GLuint) callconv(.C) void = undefined;
-pub var glDeleteShader: *const fn (GLuint) callconv(.C) void = undefined;
-pub var glUseProgram: *const fn (GLuint) callconv(.C) void = undefined;
-pub var glGetUniformLocation: *const fn (GLuint, [*c]const GLchar) callconv(.C) GLint = undefined;
-pub var glUniform1i: *const fn (GLint, GLint) callconv(.C) void = undefined;
-pub var glUniform1f: *const fn (GLint, GLfloat) callconv(.C) void = undefined;
-pub var glUniform3f: *const fn (GLint, GLfloat, GLfloat, GLfloat) callconv(.C) void = undefined;
-pub var glUniform3fv: *const fn (GLint, GLsizei, [*c]const GLfloat) callconv(.C) void = undefined;
-pub var glUniformMatrix4fv: *const fn (GLint, GLsizei, GLboolean, [*c]const GLfloat) callconv(.C) void = undefined;
-pub var glGetShaderiv: *const fn (GLuint, KhrGLenum, [*c]GLint) callconv(.C) void = undefined;
-pub var glGetShaderInfoLog: *const fn (GLuint, GLsizei, [*c]GLsizei, [*c]GLchar) callconv(.C) void = undefined;
-pub var glGetProgramiv: *const fn (GLuint, KhrGLenum, [*c]GLint) callconv(.C) void = undefined;
-pub var glGetProgramInfoLog: *const fn (GLuint, GLsizei, [*c]GLsizei, [*c]GLchar) callconv(.C) void = undefined;
-pub var glGenTextures: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined;
-pub var glBindTexture: *const fn (KhrGLenum, GLuint) callconv(.C) void = undefined;
+) callconv(.c) void = undefined;
+pub var glEnableVertexAttribArray: *const fn (GLuint) callconv(.c) void = undefined;
+pub var glViewport: *const fn (GLint, GLint, GLsizei, GLsizei) callconv(.c) void = undefined;
+pub var glEnable: *const fn (KhrGLenum) callconv(.c) void = undefined;
+pub var glClearColor: *const fn (GLfloat, GLfloat, GLfloat, GLfloat) callconv(.c) void = undefined;
+pub var glClear: *const fn (GLbitfield) callconv(.c) void = undefined;
+pub var glActiveTexture: *const fn (KhrGLenum) callconv(.c) void = undefined;
+pub var glDrawArrays: *const fn (KhrGLenum, GLint, GLsizei) callconv(.c) void = undefined;
+pub var glCreateShader: *const fn (KhrGLenum) callconv(.c) GLuint = undefined;
+pub var glShaderSource: *const fn (GLuint, GLsizei, [*c]const [*c]const GLchar, [*c]const GLint) callconv(.c) void = undefined;
+pub var glCompileShader: *const fn (GLuint) callconv(.c) void = undefined;
+pub var glAttachShader: *const fn (GLuint, GLuint) callconv(.c) void = undefined;
+pub var glCreateProgram: *const fn () callconv(.c) GLuint = undefined;
+pub var glLinkProgram: *const fn (GLuint) callconv(.c) void = undefined;
+pub var glDeleteShader: *const fn (GLuint) callconv(.c) void = undefined;
+pub var glUseProgram: *const fn (GLuint) callconv(.c) void = undefined;
+pub var glGetUniformLocation: *const fn (GLuint, [*c]const GLchar) callconv(.c) GLint = undefined;
+pub var glUniform1i: *const fn (GLint, GLint) callconv(.c) void = undefined;
+pub var glUniform1f: *const fn (GLint, GLfloat) callconv(.c) void = undefined;
+pub var glUniform3f: *const fn (GLint, GLfloat, GLfloat, GLfloat) callconv(.c) void = undefined;
+pub var glUniform3fv: *const fn (GLint, GLsizei, [*c]const GLfloat) callconv(.c) void = undefined;
+pub var glUniformMatrix4fv: *const fn (GLint, GLsizei, GLboolean, [*c]const GLfloat) callconv(.c) void = undefined;
+pub var glGetShaderiv: *const fn (GLuint, KhrGLenum, [*c]GLint) callconv(.c) void = undefined;
+pub var glGetShaderInfoLog: *const fn (GLuint, GLsizei, [*c]GLsizei, [*c]GLchar) callconv(.c) void = undefined;
+pub var glGetProgramiv: *const fn (GLuint, KhrGLenum, [*c]GLint) callconv(.c) void = undefined;
+pub var glGetProgramInfoLog: *const fn (GLuint, GLsizei, [*c]GLsizei, [*c]GLchar) callconv(.c) void = undefined;
+pub var glGenTextures: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined;
+pub var glBindTexture: *const fn (KhrGLenum, GLuint) callconv(.c) void = undefined;
 pub var glTexImage2D: *const fn (
     KhrGLenum,
     GLint,
@@ -171,10 +171,10 @@ pub var glTexImage2D: *const fn (
     KhrGLenum,
     KhrGLenum,
     ?*const anyopaque,
-) callconv(.C) void = undefined;
-pub var glTexParameteri: *const fn (KhrGLenum, KhrGLenum, GLint) callconv(.C) void = undefined;
-pub var glGenerateMipmap: *const fn (KhrGLenum) callconv(.C) void = undefined;
-pub var glGetError: *const fn () callconv(.C) KhrGLenum = undefined;
+) callconv(.c) void = undefined;
+pub var glTexParameteri: *const fn (KhrGLenum, KhrGLenum, GLint) callconv(.c) void = undefined;
+pub var glGenerateMipmap: *const fn (KhrGLenum) callconv(.c) void = undefined;
+pub var glGetError: *const fn () callconv(.c) KhrGLenum = undefined;
 
 pub fn load() void {
     switch (builtin.os.tag) {
@@ -191,24 +191,24 @@ pub fn load() void {
 }
 
 pub const OpenGL = struct {
-    glGenVertexArrays: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined,
-    glDeleteVertexArrays: *const fn (GLsizei, [*c]const GLuint) callconv(.C) void = undefined,
-    glGenBuffers: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined,
-    glDeleteBuffers: *const fn (GLsizei, [*c]const GLuint) callconv(.C) void = undefined,
-    glGenFramebuffers: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined,
+    glGenVertexArrays: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined,
+    glDeleteVertexArrays: *const fn (GLsizei, [*c]const GLuint) callconv(.c) void = undefined,
+    glGenBuffers: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined,
+    glDeleteBuffers: *const fn (GLsizei, [*c]const GLuint) callconv(.c) void = undefined,
+    glGenFramebuffers: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined,
     // TODO (Thomas): Why is the buffers pointers not const here? https://registry.khronos.org/OpenGL-Refpages/gl4/html/glDeleteFramebuffers.xhtml
-    glDeleteFramebuffers: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined,
-    glDeleteProgram: *const fn (GLuint) callconv(.C) void = undefined,
-    glGenRenderbuffers: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined,
-    glBindVertexArray: *const fn (GLuint) callconv(.C) void = undefined,
-    glBindBuffer: *const fn (KhrGLenum, GLuint) callconv(.C) void = undefined,
-    glBufferData: *const fn (KhrGLenum, stride: GLsizeiptr, ?*const anyopaque, KhrGLenum) callconv(.C) void = undefined,
-    glBindFramebuffer: *const fn (KhrGLenum, GLuint) callconv(.C) void = undefined,
-    glFramebufferTexture2D: *const fn (KhrGLenum, KhrGLenum, KhrGLenum, GLuint, GLint) callconv(.C) void = undefined,
-    glBindRenderbuffer: *const fn (KhrGLenum, GLuint) callconv(.C) void = undefined,
-    glRenderbufferStorage: *const fn (KhrGLenum, KhrGLenum, GLsizei, GLsizei) callconv(.C) void = undefined,
-    glFramebufferRenderbuffer: *const fn (KhrGLenum, KhrGLenum, KhrGLenum, GLuint) callconv(.C) void = undefined,
-    glCheckFramebufferStatus: *const fn (KhrGLenum) callconv(.C) KhrGLenum = undefined,
+    glDeleteFramebuffers: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined,
+    glDeleteProgram: *const fn (GLuint) callconv(.c) void = undefined,
+    glGenRenderbuffers: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined,
+    glBindVertexArray: *const fn (GLuint) callconv(.c) void = undefined,
+    glBindBuffer: *const fn (KhrGLenum, GLuint) callconv(.c) void = undefined,
+    glBufferData: *const fn (KhrGLenum, stride: GLsizeiptr, ?*const anyopaque, KhrGLenum) callconv(.c) void = undefined,
+    glBindFramebuffer: *const fn (KhrGLenum, GLuint) callconv(.c) void = undefined,
+    glFramebufferTexture2D: *const fn (KhrGLenum, KhrGLenum, KhrGLenum, GLuint, GLint) callconv(.c) void = undefined,
+    glBindRenderbuffer: *const fn (KhrGLenum, GLuint) callconv(.c) void = undefined,
+    glRenderbufferStorage: *const fn (KhrGLenum, KhrGLenum, GLsizei, GLsizei) callconv(.c) void = undefined,
+    glFramebufferRenderbuffer: *const fn (KhrGLenum, KhrGLenum, KhrGLenum, GLuint) callconv(.c) void = undefined,
+    glCheckFramebufferStatus: *const fn (KhrGLenum) callconv(.c) KhrGLenum = undefined,
     glVertexAttribPointer: *const fn (
         GLuint,
         size: GLint,
@@ -216,34 +216,34 @@ pub const OpenGL = struct {
         GLboolean,
         stride: GLsizei,
         pointer: ?*const anyopaque,
-    ) callconv(.C) void = undefined,
-    glEnableVertexAttribArray: *const fn (GLuint) callconv(.C) void = undefined,
-    glViewport: *const fn (GLint, GLint, GLsizei, GLsizei) callconv(.C) void = undefined,
-    glEnable: *const fn (KhrGLenum) callconv(.C) void = undefined,
-    glClearColor: *const fn (GLfloat, GLfloat, GLfloat, GLfloat) callconv(.C) void = undefined,
-    glClear: *const fn (GLbitfield) callconv(.C) void = undefined,
-    glActiveTexture: *const fn (KhrGLenum) callconv(.C) void = undefined,
-    glDrawArrays: *const fn (KhrGLenum, GLint, GLsizei) callconv(.C) void = undefined,
-    glCreateShader: *const fn (KhrGLenum) callconv(.C) GLuint = undefined,
-    glShaderSource: *const fn (GLuint, GLsizei, [*c]const [*c]const GLchar, [*c]const GLint) callconv(.C) void = undefined,
-    glCompileShader: *const fn (GLuint) callconv(.C) void = undefined,
-    glAttachShader: *const fn (GLuint, GLuint) callconv(.C) void = undefined,
-    glCreateProgram: *const fn () callconv(.C) GLuint = undefined,
-    glLinkProgram: *const fn (GLuint) callconv(.C) void = undefined,
-    glDeleteShader: *const fn (GLuint) callconv(.C) void = undefined,
-    glUseProgram: *const fn (GLuint) callconv(.C) void = undefined,
-    glGetUniformLocation: *const fn (GLuint, [*c]const GLchar) callconv(.C) GLint = undefined,
-    glUniform1i: *const fn (GLint, GLint) callconv(.C) void = undefined,
-    glUniform1f: *const fn (GLint, GLfloat) callconv(.C) void = undefined,
-    glUniform3f: *const fn (GLint, GLfloat, GLfloat, GLfloat) callconv(.C) void = undefined,
-    glUniform3fv: *const fn (GLint, GLsizei, [*c]const GLfloat) callconv(.C) void = undefined,
-    glUniformMatrix4fv: *const fn (GLint, GLsizei, GLboolean, [*c]const GLfloat) callconv(.C) void = undefined,
-    glGetShaderiv: *const fn (GLuint, KhrGLenum, [*c]GLint) callconv(.C) void = undefined,
-    glGetShaderInfoLog: *const fn (GLuint, GLsizei, [*c]GLsizei, [*c]GLchar) callconv(.C) void = undefined,
-    glGetProgramiv: *const fn (GLuint, KhrGLenum, [*c]GLint) callconv(.C) void = undefined,
-    glGetProgramInfoLog: *const fn (GLuint, GLsizei, [*c]GLsizei, [*c]GLchar) callconv(.C) void = undefined,
-    glGenTextures: *const fn (GLsizei, [*c]GLuint) callconv(.C) void = undefined,
-    glBindTexture: *const fn (KhrGLenum, GLuint) callconv(.C) void = undefined,
+    ) callconv(.c) void = undefined,
+    glEnableVertexAttribArray: *const fn (GLuint) callconv(.c) void = undefined,
+    glViewport: *const fn (GLint, GLint, GLsizei, GLsizei) callconv(.c) void = undefined,
+    glEnable: *const fn (KhrGLenum) callconv(.c) void = undefined,
+    glClearColor: *const fn (GLfloat, GLfloat, GLfloat, GLfloat) callconv(.c) void = undefined,
+    glClear: *const fn (GLbitfield) callconv(.c) void = undefined,
+    glActiveTexture: *const fn (KhrGLenum) callconv(.c) void = undefined,
+    glDrawArrays: *const fn (KhrGLenum, GLint, GLsizei) callconv(.c) void = undefined,
+    glCreateShader: *const fn (KhrGLenum) callconv(.c) GLuint = undefined,
+    glShaderSource: *const fn (GLuint, GLsizei, [*c]const [*c]const GLchar, [*c]const GLint) callconv(.c) void = undefined,
+    glCompileShader: *const fn (GLuint) callconv(.c) void = undefined,
+    glAttachShader: *const fn (GLuint, GLuint) callconv(.c) void = undefined,
+    glCreateProgram: *const fn () callconv(.c) GLuint = undefined,
+    glLinkProgram: *const fn (GLuint) callconv(.c) void = undefined,
+    glDeleteShader: *const fn (GLuint) callconv(.c) void = undefined,
+    glUseProgram: *const fn (GLuint) callconv(.c) void = undefined,
+    glGetUniformLocation: *const fn (GLuint, [*c]const GLchar) callconv(.c) GLint = undefined,
+    glUniform1i: *const fn (GLint, GLint) callconv(.c) void = undefined,
+    glUniform1f: *const fn (GLint, GLfloat) callconv(.c) void = undefined,
+    glUniform3f: *const fn (GLint, GLfloat, GLfloat, GLfloat) callconv(.c) void = undefined,
+    glUniform3fv: *const fn (GLint, GLsizei, [*c]const GLfloat) callconv(.c) void = undefined,
+    glUniformMatrix4fv: *const fn (GLint, GLsizei, GLboolean, [*c]const GLfloat) callconv(.c) void = undefined,
+    glGetShaderiv: *const fn (GLuint, KhrGLenum, [*c]GLint) callconv(.c) void = undefined,
+    glGetShaderInfoLog: *const fn (GLuint, GLsizei, [*c]GLsizei, [*c]GLchar) callconv(.c) void = undefined,
+    glGetProgramiv: *const fn (GLuint, KhrGLenum, [*c]GLint) callconv(.c) void = undefined,
+    glGetProgramInfoLog: *const fn (GLuint, GLsizei, [*c]GLsizei, [*c]GLchar) callconv(.c) void = undefined,
+    glGenTextures: *const fn (GLsizei, [*c]GLuint) callconv(.c) void = undefined,
+    glBindTexture: *const fn (KhrGLenum, GLuint) callconv(.c) void = undefined,
     glTexImage2D: *const fn (
         KhrGLenum,
         GLint,
@@ -254,10 +254,10 @@ pub const OpenGL = struct {
         KhrGLenum,
         KhrGLenum,
         ?*const anyopaque,
-    ) callconv(.C) void = undefined,
-    glTexParameteri: *const fn (KhrGLenum, KhrGLenum, GLint) callconv(.C) void = undefined,
-    glGenerateMipmap: *const fn (KhrGLenum) callconv(.C) void = undefined,
-    glGetError: *const fn () callconv(.C) KhrGLenum = undefined,
+    ) callconv(.c) void = undefined,
+    glTexParameteri: *const fn (KhrGLenum, KhrGLenum, GLint) callconv(.c) void = undefined,
+    glGenerateMipmap: *const fn (KhrGLenum) callconv(.c) void = undefined,
+    glGetError: *const fn () callconv(.c) KhrGLenum = undefined,
 
     pub fn load(self: *OpenGL) void {
         self.glGenVertexArrays = glGenVertexArrays;

@@ -9,11 +9,14 @@ pub fn build(
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "wiz",
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
-        .target = target,
-        .optimize = optimize,
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/root.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     b.installArtifact(lib);
@@ -114,9 +117,11 @@ fn makeExe(
 ) void {
     const exe = b.addExecutable(.{
         .name = "wiz",
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/main.zig" } },
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     exe.root_module.addImport("build_options", options.createModule());
@@ -164,9 +169,11 @@ fn makeOpenglExampleExe(
 ) void {
     const exe = b.addExecutable(.{
         .name = "opengl-example",
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "examples/opengl.zig" } },
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/opengl.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     buildOpenglExample(b, exe, target, options.createModule(), enable_tracy);
     runExe(b, exe, "run-opengl-example", "Run the OpenGL example");
@@ -175,23 +182,29 @@ fn makeOpenglExampleExe(
 fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedTarget) void {
     const root_tests = b.addTest(.{
         .name = "root_tests",
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/root.zig" } },
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/root.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const input_tests = b.addTest(.{
         .name = "input_tests",
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/input.zig" } },
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/input.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const exe_tests = b.addTest(.{
         .name = "exe_tests",
-        .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/main.zig" } },
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const run_root_tests = b.addRunArtifact(root_tests);
@@ -210,16 +223,20 @@ fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedT
         .windows => {
             const wiz_module_tests = b.addTest(.{
                 .name = "wiz_module_tests",
-                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
-                .target = target,
-                .optimize = optimize,
+                .root_module = b.createModule(.{
+                    .root_source_file = b.path("src/wiz.zig"),
+                    .target = target,
+                    .optimize = optimize,
+                }),
             });
 
             const windows_tests = b.addTest(.{
                 .name = "windows_tests",
-                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/windows.zig" } },
-                .target = target,
-                .optimize = optimize,
+                .root_module = b.createModule(.{
+                    .root_source_file = b.path("src/windows.zig"),
+                    .target = target,
+                    .optimize = optimize,
+                }),
             });
 
             const run_wiz_module_tests = b.addRunArtifact(wiz_module_tests);
@@ -231,9 +248,11 @@ fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedT
         .linux => {
             const wiz_module_tests = b.addTest(.{
                 .name = "wiz_module_tests",
-                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/wiz.zig" } },
-                .target = target,
-                .optimize = optimize,
+                .root_module = b.createModule(.{
+                    .root_source_file = b.path("src/wiz.zig"),
+                    .target = target,
+                    .optimize = optimize,
+                }),
             });
             wiz_module_tests.linkLibC();
             wiz_module_tests.linkSystemLibrary("X11");
@@ -241,9 +260,11 @@ fn runTests(b: *std.Build, optimize: std.builtin.OptimizeMode, target: ResolvedT
 
             const x11_tests = b.addTest(.{
                 .name = "x11_tests",
-                .root_source_file = .{ .src_path = .{ .owner = b, .sub_path = "src/x11.zig" } },
-                .target = target,
-                .optimize = optimize,
+                .root_module = b.createModule(.{
+                    .root_source_file = b.path("src/x11.zig"),
+                    .target = target,
+                    .optimize = optimize,
+                }),
             });
 
             x11_tests.linkLibC();

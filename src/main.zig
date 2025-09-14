@@ -116,7 +116,7 @@ pub fn main() !void {
             const frame_processing_time = frame_end_time - last; // Time taken for current frame
             const sleep_duration = if (target_frame_duration > frame_processing_time) target_frame_duration - frame_processing_time else 0;
             if (sleep_duration > 0) {
-                std.time.sleep(@intCast(sleep_duration));
+                std.Thread.sleep(@intCast(sleep_duration));
             }
         }
     }
